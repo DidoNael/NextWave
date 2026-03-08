@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Moon, Sun, Monitor, User, Bell, Shield, Palette } from "lucide-react";
+import { Moon, Sun, Monitor, User, Bell, Shield, Palette, Puzzle, Mail } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -164,6 +165,44 @@ export default function ConfiguracoesPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Recursos Adicionais */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-bold mt-8">Recursos Adicionais</h2>
+          <p className="text-muted-foreground">Configure módulos extras e serviços de integração.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link href="/configuracoes/modulos">
+            <Card className="hover:border-primary/50 transition-colors group">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Módulos do Sistema</CardTitle>
+                  <CardDescription>Ative ou desative recursos do seu CRM.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/configuracoes/smtp">
+            <Card className="hover:border-primary/50 transition-colors group">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                  <Mail className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">E-mail (SMTP)</CardTitle>
+                  <CardDescription>Configure o servidor de saída para e-mails.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

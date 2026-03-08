@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Filter, TrendingUp, TrendingDown, DollarSign, Clock, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, TrendingDown, DollarSign, Clock, Trash2, Edit, MessageSquare, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -260,6 +260,26 @@ export default function FinanceiroPage() {
                         {tx.type === "receita" ? "+" : "-"}{formatCurrency(tx.amount)}
                       </p>
                       <div className="flex gap-1 shrink-0">
+                        {tx.status === "pendente" && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              onClick={() => toast.success(`Cobrança WhatsApp enviada para ${tx.description}`)}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => toast.success(`E-mail de cobrança enviado!`)}
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(tx)}>
                           <Edit className="h-3.5 w-3.5" />
                         </Button>

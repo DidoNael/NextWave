@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName } = body;
+        const { name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules } = body;
 
         // Se houver backup, tentar restaurar primeiro
         if (backupData) {
@@ -64,6 +64,17 @@ export async function POST(req: Request) {
                     workDayStart: workDayStart || null,
                     workDayEnd: workDayEnd || null,
                 },
+            });
+        }
+
+        // 3. Configurar Módulos
+        if (modules && Array.isArray(modules)) {
+            await (prisma as any).systemModule.updateMany({
+                data: { enabled: false }
+            });
+            await (prisma as any).systemModule.updateMany({
+                where: { key: { in: modules } },
+                data: { enabled: true }
             });
         }
 

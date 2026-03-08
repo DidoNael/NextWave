@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, DollarSign, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight,
-  Zap, Database, User, Shield
+  Zap, Database, User, Shield, MessageSquare, Paintbrush, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,16 +22,20 @@ const navItems = [
   { href: "/servicos", label: "Serviços", icon: Briefcase },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/agenda", label: "Agenda", icon: Calendar },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageSquare },
 ];
 
 const bottomItems = [
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush },
+  { href: "/configuracoes/agendador", label: "Agendador", icon: Clock },
+  { href: "/configuracoes", label: "Sistema", icon: Settings },
   { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [activeModules, setActiveModules] = useState<string[]>([]);
 
   // Carregar estado inicial do localStorage
   useEffect(() => {
@@ -39,6 +43,20 @@ export function Sidebar() {
     if (saved !== null) {
       setCollapsed(saved === "true");
     }
+
+    // Carregar módulos ativos
+    fetch("/api/sistema/modulos")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setActiveModules(data.filter(m => m.enabled).map(m => m.key));
+        }
+      })
+      .catch(() => {
+        // Se a API falhar, habilitamos tudo por padrão para não travar o usuário
+        const allKeys = ["clientes", "financeiro", "projetos", "servicos", "agenda", "usuarios", "whatsapp"];
+        setActiveModules(allKeys);
+      });
   }, []);
 
   const toggleSidebar = () => {
@@ -47,11 +65,28 @@ export function Sidebar() {
     localStorage.setItem("sidebar-collapsed", String(newState));
   };
 
+  // Mapear itens de navegação para as chaves dos módulos
+  const moduleMapping: Record<string, string> = {
+    "/clientes": "clientes",
+    "/financeiro": "financeiro",
+    "/projetos": "projetos",
+    "/servicos": "servicos",
+    "/agenda": "agenda",
+    "/usuarios": "usuarios",
+    "/whatsapp": "whatsapp",
+  };
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.href === "/") return true; // Sempre mostrar Dashboard
+    const moduleKey = moduleMapping[item.href];
+    return !moduleKey || activeModules.includes(moduleKey);
+  });
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "relative hidden flex-col border-r border-border bg-card transition-all duration-300 ease-in-out sm:flex",
+          "relative hidden flex-col border-r border-border bg-[hsl(var(--sidebar))] transition-all duration-300 ease-in-out sm:flex shadow-[4px_0_24px_rgba(0,0,0,0.05)]",
           collapsed ? "w-16" : "w-64"
         )}
       >
@@ -60,7 +95,7 @@ export function Sidebar() {
           "flex h-16 items-center border-b border-border px-4 transition-all",
           collapsed ? "justify-center" : "gap-3"
         )}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/20">
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
           {!collapsed && (
@@ -74,7 +109,7 @@ export function Sidebar() {
         {/* Navigation */}
         <ScrollArea className="flex-1 py-4">
           <nav className="flex flex-col gap-1 px-2">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               const Icon = item.icon;
 
@@ -85,10 +120,10 @@ export function Sidebar() {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex h-9 w-full items-center justify-center rounded-lg transition-colors",
+                          "flex h-10 w-10 mx-auto items-center justify-center rounded-xl transition-all duration-200",
                           isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110"
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -132,10 +167,10 @@ export function Sidebar() {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex h-9 w-full items-center justify-center rounded-lg transition-colors",
+                          "flex h-10 w-10 mx-auto items-center justify-center rounded-xl transition-all duration-200",
                           isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110"
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                         )}
                       >
                         <Icon className="h-4 w-4" />

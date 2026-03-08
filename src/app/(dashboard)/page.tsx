@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { DollarSign, Users, Briefcase, TrendingUp, Clock, XCircle } from "lucide-react";
+import { DollarSign, Users, Briefcase, TrendingUp, Clock, XCircle, LayoutGrid } from "lucide-react";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { GrowthChart } from "@/components/dashboard/GrowthChart";
 import { TopClients } from "@/components/dashboard/TopClients";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { FinanceWidget, WhatsAppWidget, BackupWidget, TasksWidget } from "@/components/dashboard/DashboardWidgets";
 
 async function getDashboardData(userId: string) {
   const agora = new Date();
@@ -22,6 +23,7 @@ async function getDashboardData(userId: string) {
     totalServicos,
     ultimasTransacoes,
     topClientesRaw,
+    modulesStatus,
   ] = await Promise.all([
     prisma.transaction.aggregate({
       where: { userId, type: "receita", status: "pago", paidAt: { gte: inicioMes } },
@@ -55,6 +57,7 @@ async function getDashboardData(userId: string) {
         services: true,
       },
     }),
+    prisma.$queryRawUnsafe('SELECT * FROM "SystemModule"') as Promise<any[]>,
   ]);
 
   // Gráfico dos últimos 12 meses
@@ -92,13 +95,13 @@ async function getDashboardData(userId: string) {
     : 0;
 
   const topClientes = topClientesRaw
-    .map((c) => ({
+    .map((c: any) => ({
       id: c.id,
       name: c.name,
-      totalReceita: c.transactions.reduce((sum, t) => sum + t.amount, 0),
+      totalReceita: c.transactions.reduce((sum: number, t: any) => sum + t.amount, 0),
       totalServicos: c.services.length,
     }))
-    .sort((a, b) => b.totalReceita - a.totalReceita)
+    .sort((a: any, b: any) => b.totalReceita - a.totalReceita)
     .slice(0, 5);
 
   return {
@@ -114,6 +117,7 @@ async function getDashboardData(userId: string) {
     chartData,
     topClientes,
     ultimasTransacoes,
+    activeModules: modulesStatus.filter((m: any) => m.enabled).map((m: any) => m.key),
   };
 }
 
@@ -121,7 +125,7 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const { stats, chartData, topClientes, ultimasTransacoes } = await getDashboardData(session.user.id);
+  const { stats, chartData, topClientes, ultimasTransacoes, activeModules } = await getDashboardData(session.user.id);
 
   const saudacao = () => {
     const hora = new Date().getHours();
@@ -131,77 +135,66 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header da página */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {saudacao()}, {session.user.name?.split(" ")[0]}! 👋
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Aqui está um resumo do seu negócio hoje.
-        </p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <div className="sm:col-span-2 lg:col-span-1 xl:col-span-2">
-          <KPICard
-            title="Receita do Mês"
-            value={stats.totalReceita}
-            icon={DollarSign}
-            isCurrency
-            change={stats.variacaoReceita}
-            iconColor="text-blue-600"
-            iconBg="bg-blue-100 dark:bg-blue-900/30"
-          />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            {saudacao()}, {session.user.name?.split(" ")[0]}! 👋
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Aqui está a visão geral modular do seu sistema hoje.
+          </p>
         </div>
-        <div className="sm:col-span-1 xl:col-span-2">
-          <KPICard
-            title="A Receber"
-            value={stats.totalPendente}
-            icon={Clock}
-            isCurrency
-            iconColor="text-amber-600"
-            iconBg="bg-amber-100 dark:bg-amber-900/30"
-          />
-        </div>
-        <div className="sm:col-span-1 xl:col-span-2">
-          <KPICard
-            title="Cancelados"
-            value={stats.totalCancelado}
-            icon={XCircle}
-            isCurrency
-            iconColor="text-red-600"
-            iconBg="bg-red-100 dark:bg-red-900/30"
-          />
-        </div>
-        <div className="sm:col-span-1 xl:col-span-2">
-          <KPICard
-            title="Total de Clientes"
-            value={stats.totalClientes}
-            icon={Users}
-            change={stats.variacaoClientes}
-            iconColor="text-emerald-600"
-            iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-          />
-        </div>
-        <div className="sm:col-span-1 xl:col-span-2">
-          <KPICard
-            title="Serviços Ativos"
-            value={stats.totalServicos}
-            icon={Briefcase}
-            iconColor="text-purple-600"
-            iconBg="bg-purple-100 dark:bg-purple-900/30"
-          />
+        <div className="hidden sm:flex items-center gap-2 p-1 bg-muted/50 rounded-lg border border-border/40">
+          <LayoutGrid className="h-4 w-4 ml-2 text-muted-foreground" />
+          <span className="text-[10px] font-bold uppercase mr-2 text-muted-foreground px-2">Dashboard Modular</span>
         </div>
       </div>
 
-      {/* Gráfico de Crescimento */}
-      <GrowthChart data={chartData} />
+      {/* Grid de Widgets Modulares */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {activeModules.includes("financeiro") && <FinanceWidget stats={stats} />}
+        {activeModules.includes("whatsapp") && <WhatsAppWidget />}
+        <BackupWidget />
+        <TasksWidget />
+      </div>
 
-      {/* Top Clientes + Últimas Transações */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* KPI Adicionais (Clientes e Serviços) */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <KPICard
+          title="Total de Clientes"
+          value={stats.totalClientes}
+          icon={Users}
+          change={stats.variacaoClientes}
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-500/10"
+        />
+        <KPICard
+          title="Serviços Ativos"
+          value={stats.totalServicos}
+          icon={Briefcase}
+          iconColor="text-purple-500"
+          iconBg="bg-purple-500/10"
+        />
+        <KPICard
+          title="Atrasos Detectados"
+          value={stats.totalCancelado > 0 ? 1 : 0}
+          icon={XCircle}
+          iconColor="text-red-500"
+          iconBg="bg-red-500/10"
+        />
+      </div>
+
+      {/* Seção de Análise e Atividade */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <GrowthChart data={chartData} />
+        </div>
         <TopClients clients={topClientes} />
+      </div>
+
+      <div className="grid gap-6">
         <RecentTransactions transactions={ultimasTransacoes as Parameters<typeof RecentTransactions>[0]["transactions"]} />
       </div>
     </div>

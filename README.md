@@ -84,6 +84,22 @@ src/
 └── types/                  # TypeScript types
 ```
 
+## 📄 Licença
+
+Este projeto está sob a licença [MIT](LICENSE).
+
+## 🏗️ Arquitetura e Portabilidade (ARM64)
+
+Este projeto foi projetado para ser adaptável a múltiplas arquiteturas, incluindo **x86_64** e **ARM64** (Apple Silicon, Raspberry Pi, AWS Graviton).
+
+### Considerações de Deploy:
+- **Docker Multi-Arch**: O `Dockerfile` utiliza `node:alpine` para manter a leveza e compatibilidade. Para gerar imagens multi-arquitetura, utilize o Docker Buildx:
+  ```bash
+  docker buildx build --platform linux/amd64,linux/arm64 -t nextwave-crm:latest --push .
+  ```
+- **Prisma Client**: O `schema.prisma` já inclui `binaryTargets` para `linux-musl` e `linux-musl-arm64`, garantindo que o motor de consulta funcione corretamente dentro de containers Alpine em qualquer arquitetura.
+- **Dependências Nativas**: Priorizamos versões em JavaScript puro (como `bcryptjs`) para evitar problemas de compilação cruzada durante a instalação automática de dependências.
+
 ## Proximas Funcionalidades (Camada 2 e 3)
 
 - Gerador de NFe

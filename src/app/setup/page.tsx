@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft, Database } from "lucide-react";
+import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft, Database, Users, DollarSign, Briefcase, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,18 @@ export default function SetupPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
     const [backupData, setBackupData] = useState<{ data: string, name: string } | null>(null);
+    const [selectedModules, setSelectedModules] = useState<string[]>([
+        "clientes", "financeiro", "projetos", "servicos", "agenda", "usuarios"
+    ]);
+
+    const availableModules = [
+        { key: "clientes", label: "Clientes", icon: Users },
+        { key: "financeiro", label: "Financeiro", icon: DollarSign },
+        { key: "projetos", label: "Projetos (Kanban)", icon: Briefcase },
+        { key: "servicos", label: "Serviços", icon: Database },
+        { key: "agenda", label: "Agenda", icon: Calendar },
+        { key: "whatsapp", label: "WhatsApp Chat", icon: Zap },
+    ];
 
     useEffect(() => {
         async function checkStatus() {
@@ -85,6 +98,7 @@ export default function SetupPage() {
                     dbUrl: data.dbUrl,
                     backupData: backupData?.data,
                     backupName: backupData?.name,
+                    modules: selectedModules,
                 }),
             });
 
@@ -92,7 +106,7 @@ export default function SetupPage() {
 
             if (response.ok) {
                 toast.success("Sistema configurado com sucesso!");
-                setStep(5);
+                setStep(6);
             } else {
                 toast.error(result.error || "Erro ao configurar sistema");
             }
@@ -111,7 +125,7 @@ export default function SetupPage() {
         );
     }
 
-    const totalSteps = 5;
+    const totalSteps = 6;
 
     return (
         <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -165,17 +179,19 @@ export default function SetupPage() {
                             </div>
                             <CardTitle className="text-xl">
                                 {step === 1 && "Verificação de Ambiente"}
-                                {step === 2 && "Configuração de Banco de Dados"}
-                                {step === 3 && "Restrições de Segurança"}
-                                {step === 4 && "Cadastro de Administrador Master"}
-                                {step === 5 && "Configuração Finalizada!"}
+                                {step === 2 && "Personalização do Sistema"}
+                                {step === 3 && "Configuração de Banco de Dados"}
+                                {step === 4 && "Restrições de Segurança"}
+                                {step === 5 && "Cadastro de Administrador Master"}
+                                {step === 6 && "Configuração Finalizada!"}
                             </CardTitle>
                             <CardDescription>
                                 {step === 1 && "O ambiente foi detectado e o servidor está disponível."}
-                                {step === 2 && "Configure o local onde seus dados serão armazenados."}
-                                {step === 3 && "Defina regras de acesso por IP e horário de trabalho."}
-                                {step === 4 && "Crie sua conta master com super-poderes administrativos."}
-                                {step === 5 && "Seu ambiente NextWave está proto e seguro."}
+                                {step === 2 && "Escolha quais funcionalidades deseja ativar agora."}
+                                {step === 3 && "Configure o local onde seus dados serão armazenados."}
+                                {step === 4 && "Defina regras de acesso por IP e horário de trabalho."}
+                                {step === 5 && "Crie sua conta master com super-poderes administrativos."}
+                                {step === 6 && "Seu ambiente NextWave está proto e seguro."}
                             </CardDescription>
                         </CardHeader>
 
@@ -198,12 +214,57 @@ export default function SetupPage() {
                                         ))}
                                     </div>
                                     <Button onClick={() => setStep(2)} className="w-full h-12 text-md transition-all hover:gap-3" size="lg">
-                                        Continuar para Banco de Dados <ArrowRight className="h-5 w-5" />
+                                        Continuar para Personalização <ArrowRight className="h-5 w-5" />
                                     </Button>
                                 </div>
                             )}
 
                             {step === 2 && (
+                                <div className="space-y-6 animate-in fade-in duration-500">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {availableModules.map((mod) => {
+                                            const Icon = mod.icon;
+                                            const isSelected = selectedModules.includes(mod.key);
+                                            return (
+                                                <button
+                                                    key={mod.key}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedModules(prev => prev.filter(k => k !== mod.key));
+                                                        } else {
+                                                            setSelectedModules(prev => [...prev, mod.key]);
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                                                        isSelected
+                                                            ? "border-primary bg-primary/5 text-primary"
+                                                            : "border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-200"
+                                                    )}
+                                                >
+                                                    <Icon className="h-5 w-5" />
+                                                    <span className="text-xs font-semibold">{mod.label}</span>
+                                                    <div className={cn(
+                                                        "h-2 w-2 rounded-full",
+                                                        isSelected ? "bg-primary" : "bg-slate-200 dark:bg-slate-800"
+                                                    )} />
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button variant="outline" onClick={() => setStep(1)} className="h-12 w-14">
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </Button>
+                                        <Button onClick={() => setStep(3)} className="flex-1 h-12 text-md" size="lg">
+                                            Próximo: Banco de Dados <ArrowRight className="h-5 w-5 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {step === 3 && (
                                 <div className="space-y-6 animate-in fade-in duration-500">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
@@ -257,17 +318,17 @@ export default function SetupPage() {
                                         )}
                                     </div>
                                     <div className="flex gap-3">
-                                        <Button variant="outline" onClick={() => setStep(1)} className="h-12 w-14">
+                                        <Button variant="outline" onClick={() => setStep(2)} className="h-12 w-14">
                                             <ChevronLeft className="h-5 w-5" />
                                         </Button>
-                                        <Button onClick={() => setStep(3)} className="flex-1 h-12 text-md" size="lg">
-                                            Confirmar e Seguir <ArrowRight className="h-5 w-5 ml-2" />
+                                        <Button onClick={() => setStep(4)} className="flex-1 h-12 text-md" size="lg">
+                                            Próximo: Segurança <ArrowRight className="h-5 w-5 ml-2" />
                                         </Button>
                                     </div>
                                 </div>
                             )}
 
-                            {step === 3 && (
+                            {step === 4 && (
                                 <div className="space-y-6 animate-in fade-in duration-500">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
@@ -295,17 +356,17 @@ export default function SetupPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
-                                        <Button variant="outline" onClick={() => setStep(2)} className="h-12 w-14">
+                                        <Button variant="outline" onClick={() => setStep(3)} className="h-12 w-14">
                                             <ChevronLeft className="h-5 w-5" />
                                         </Button>
-                                        <Button onClick={() => setStep(4)} className="flex-1 h-12 text-md" size="lg">
+                                        <Button onClick={() => setStep(5)} className="flex-1 h-12 text-md" size="lg">
                                             Próximo Passo <ArrowRight className="h-5 w-5 ml-2" />
                                         </Button>
                                     </div>
                                 </div>
                             )}
 
-                            {step === 4 && (
+                            {step === 5 && (
                                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 animate-in fade-in duration-500">
                                     <div className="space-y-2">
                                         <Label htmlFor="name">Nome Completo</Label>
@@ -333,7 +394,7 @@ export default function SetupPage() {
                                     </div>
 
                                     <div className="flex gap-3 pt-4">
-                                        <Button type="button" variant="outline" onClick={() => setStep(3)} className="h-12 w-14">
+                                        <Button type="button" variant="outline" onClick={() => setStep(4)} className="h-12 w-14">
                                             <ChevronLeft className="h-5 w-5" />
                                         </Button>
                                         <Button type="submit" className="flex-1 h-12 text-md" disabled={isLoading}>
@@ -350,7 +411,7 @@ export default function SetupPage() {
                                 </form>
                             )}
 
-                            {step === 5 && (
+                            {step === 6 && (
                                 <div className="text-center space-y-8 animate-in zoom-in-95 duration-700">
                                     <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20">
                                         <p className="text-slate-600 dark:text-slate-400">

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -142,4 +143,128 @@ model Task {
 
   columnId    String
   column      TaskColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+}
+
+model SystemModule {
+  id          String   @id @default(cuid())
+  key         String   @unique // ex: 'financeiro', 'whatsapp', 'projetos'
+  name        String
+  description String?
+  enabled     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppFlow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(false)
+  nodes       WhatsAppNode[]
+  edges       WhatsAppEdge[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppNode {
+  id          String       @id @default(cuid())
+  type        String       // message, menu, input, condition
+  data        String       // JSON com conteúdo do nó (texto, opções, etc)
+  positionX   Float
+  positionY   Float
+  flowId      String
+  flow        WhatsAppFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppEdge {
+  id          String       @id @default(cuid())
+  source      String
+  target      String
+  sourceHandle String?
+  flowId      String
+  flow        WhatsAppFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppConfig {
+  id          String   @id @default("default")
+  apiUrl      String?
+  apiKey      String?
+  waVersion   String?  // Versão do WhatsApp Web (ex: 2.3000.x)
+  updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppChannel {
+  id          String   @id @default(cuid())
+  name        String   // Ex: 'Suporte Comercial', 'Financeiro'
+  instanceName String   // Nome da instância na API (Evolution/WPP)
+  apiUrl      String?
+  apiKey      String?
+  webhookUrl  String?
+  status      String   @default("disconnected") // connected, disconnected, connecting
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  
+  interactions WhatsAppInteraction[]
+}
+
+model WhatsAppInteraction {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  customerName String?
+  lastFlowId  String?
+  currentNodeId String?
+  state       String?  // JSON com variáveis capturadas
+  lastMessageAt DateTime @default(now())
+  status      String   @default("ativo") // ativo, finalizado
+  
+  channelId   String
+  channel     WhatsAppChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  messages    WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id            String   @id @default(cuid())
+  fromMe        Boolean  @default(false)
+  body          String
+  type          String   @default("chat") // chat, image, audio, video
+  timestamp     DateTime @default(now())
+  
+  interactionId String
+  interaction   WhatsAppInteraction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+}
+
+model SmtpConfig {
+  id          String   @id @default(cuid())
+  name        String   // Ex: 'Suporte', 'Financeiro'
+  host        String
+  port        Int
+  user        String
+  pass        String
+  fromEmail   String
+  fromName    String?
+  secure      Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model CommunicationTemplate {
+  id        String   @id @default(cuid())
+  name      String   // ex: 'Cobranca Atrasada'
+  type      String   // 'whatsapp' ou 'email'
+  content   String   // Corpo da mensagem (aceita variáveis {nome}, {valor})
+  subject   String?  // Apenas para e-mail
+  createdAt DateTime @default(now())
+}
+
+model ScheduledTask {
+  id          String   @id @default(cuid())
+  name        String   // Ex: 'Backup Diário', 'Cobrança WhatsApp'
+  type        String   // 'email_blast', 'whatsapp_billing', 'backup', 'wa_check'
+  cron        String   // Expressão cron ou formato simplificado '0 3 * * *'
+  lastRun     DateTime?
+  nextRun     DateTime?
+  status      String   @default("active") // 'active', 'disabled', 'failed'
+  config      String?  // JSON string com configurações extras
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
