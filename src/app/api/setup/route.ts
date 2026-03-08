@@ -25,11 +25,11 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, email, password } = body;
+        const { name, email, password, allowedIps, workDayStart, workDayEnd } = body;
 
         if (!name || !email || !password) {
             return NextResponse.json(
-                { error: "Todos os campos são obrigatórios." },
+                { error: "Todos os campos obrigatórios devem ser preenchidos." },
                 { status: 400 }
             );
         }
@@ -43,6 +43,9 @@ export async function POST(req: Request) {
                 email,
                 password: hashedPassword,
                 role: "admin",
+                allowedIps: allowedIps || "*",
+                workDayStart: workDayStart || null,
+                workDayEnd: workDayEnd || null,
             },
         });
 

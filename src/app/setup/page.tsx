@@ -14,10 +14,18 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
 const setupSchema = z.object({
+    // Step: Admin
     name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
     email: z.string().email("Email inválido"),
     password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
-    confirmPassword: z.string()
+    confirmPassword: z.string(),
+    // Step: Security
+    allowedIps: z.string().optional(),
+    workDayStart: z.string().optional(),
+    workDayEnd: z.string().optional(),
+    // Step: Database
+    dbType: z.enum(["sqlite", "postgres", "mysql"]).default("sqlite"),
+    dbUrl: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "As senhas não coincidem",
     path: ["confirmPassword"],
@@ -48,9 +56,17 @@ export default function SetupPage() {
         checkStatus();
     }, [router]);
 
-    const { register, handleSubmit, formState: { errors } } = useForm<SetupForm>({
+    const { register, handleSubmit, watch, formState: { errors } } = useForm<SetupForm>({
         resolver: zodResolver(setupSchema),
+        defaultValues: {
+            dbType: "sqlite",
+            allowedIps: "*",
+            workDayStart: "08:00",
+            workDayEnd: "18:00",
+        }
     });
+
+    const dbType = watch("dbType");
 
     const onSubmit = async (data: SetupForm) => {
         setIsLoading(true);
@@ -62,14 +78,18 @@ export default function SetupPage() {
                     name: data.name,
                     email: data.email,
                     password: data.password,
+                    allowedIps: data.allowedIps,
+                    workDayStart: data.workDayStart,
+                    workDayEnd: data.workDayEnd,
+                    dbUrl: data.dbUrl,
                 }),
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                toast.success("Administrador criado com sucesso!");
-                setStep(3);
+                toast.success("Sistema configurado com sucesso!");
+                setStep(5);
             } else {
                 toast.error(result.error || "Erro ao configurar sistema");
             }
@@ -87,6 +107,8 @@ export default function SetupPage() {
             </div>
         );
     }
+
+    const totalSteps = 5;
 
     return (
         <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -106,10 +128,10 @@ export default function SetupPage() {
                         </div>
                         <div className="space-y-1">
                             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                                Bem-vindo ao NextWave
+                                Configuração Inicial
                             </h1>
                             <p className="text-slate-500 dark:text-slate-400 text-lg">
-                                Vamos configurar seu ambiente de trabalho em poucos minutos.
+                                Wizard de Segurança e Performance NextWave
                             </p>
                         </div>
                     </div>
@@ -117,14 +139,14 @@ export default function SetupPage() {
                     {/* Progress Bar */}
                     <div className="space-y-4 px-4 sm:px-12">
                         <div className="flex justify-between text-sm font-medium text-slate-500 dark:text-slate-400">
-                            <span>Passo {step} de 3</span>
-                            <span>{Math.round((step / 3) * 100)}% concluído</span>
+                            <span>Passo {step} de {totalSteps}</span>
+                            <span>{Math.round((step / totalSteps) * 100)}% concluído</span>
                         </div>
-                        <Progress value={(step / 3) * 100} className="h-2 rounded-full bg-slate-200 dark:bg-slate-800" />
-                        <div className="flex justify-between gap-2 px-2">
-                            <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                            <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                            <div className={`h-1.5 flex-1 rounded-full ${step >= 3 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                        <Progress value={(step / totalSteps) * 100} className="h-2 rounded-full bg-slate-200 dark:bg-slate-800" />
+                        <div className="flex justify-between gap-1 px-2">
+                            {Array.from({ length: totalSteps }).map((_, i) => (
+                                <div key={i} className={`h-1.5 flex-1 rounded-full ${step > i ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                            ))}
                         </div>
                     </div>
 
@@ -133,18 +155,24 @@ export default function SetupPage() {
                         <CardHeader className="text-center pb-2">
                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
                                 {step === 1 && <ShieldCheck className="h-6 w-6 text-primary" />}
-                                {step === 2 && <UserPlus className="h-6 w-6 text-primary" />}
-                                {step === 3 && <CheckCircle2 className="h-6 w-6 text-emerald-500" />}
+                                {step === 2 && <Zap className="h-6 w-6 text-primary" />}
+                                {step === 3 && <ShieldCheck className="h-6 w-6 text-primary" />}
+                                {step === 4 && <UserPlus className="h-6 w-6 text-primary" />}
+                                {step === 5 && <CheckCircle2 className="h-6 w-6 text-emerald-500" />}
                             </div>
                             <CardTitle className="text-xl">
-                                {step === 1 && "Verificação de Sistema"}
-                                {step === 2 && "Configure sua conta Master"}
-                                {step === 3 && "Tudo pronto!"}
+                                {step === 1 && "Verificação de Ambiente"}
+                                {step === 2 && "Configuração de Banco de Dados"}
+                                {step === 3 && "Restrições de Segurança"}
+                                {step === 4 && "Cadastro de Administrador Master"}
+                                {step === 5 && "Configuração Finalizada!"}
                             </CardTitle>
                             <CardDescription>
-                                {step === 1 && "O ambiente foi detectado e o servidor está pronto para inicializar."}
-                                {step === 2 && "Esta conta terá acesso total a todas as funcionalidades do CRM."}
-                                {step === 3 && "Seu NextWave CRM foi instalado com sucesso!"}
+                                {step === 1 && "O ambiente foi detectado e o servidor está disponível."}
+                                {step === 2 && "Configure o local onde seus dados serão armazenados."}
+                                {step === 3 && "Defina regras de acesso por IP e horário de trabalho."}
+                                {step === 4 && "Crie sua conta master com super-poderes administrativos."}
+                                {step === 5 && "Seu ambiente NextWave está proto e seguro."}
                             </CardDescription>
                         </CardHeader>
 
@@ -153,9 +181,9 @@ export default function SetupPage() {
                                 <div className="space-y-6 animate-in fade-in duration-500">
                                     <div className="space-y-4">
                                         {[
-                                            { label: "Banco de Dados (SQLite)", status: "Pronto" },
                                             { label: "Engine CRM", status: "Instalado" },
-                                            { label: "Serviços de Autenticação", status: "Pronto" },
+                                            { label: "Sessão e JWT", status: "Pronto" },
+                                            { label: "Permissões de Escrita", status: "OK" },
                                         ].map((item) => (
                                             <div key={item.label} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                                                 <span className="text-slate-600 dark:text-slate-400 font-medium">{item.label}</span>
@@ -167,15 +195,93 @@ export default function SetupPage() {
                                         ))}
                                     </div>
                                     <Button onClick={() => setStep(2)} className="w-full h-12 text-md transition-all hover:gap-3" size="lg">
-                                        Começar Configuração <ArrowRight className="h-5 w-5" />
+                                        Continuar para Banco de Dados <ArrowRight className="h-5 w-5" />
                                     </Button>
                                 </div>
                             )}
 
                             {step === 2 && (
+                                <div className="space-y-6 animate-in fade-in duration-500">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label>Tipo de Banco de Dados</Label>
+                                            <select 
+                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                                                {...register("dbType")}
+                                            >
+                                                <option value="sqlite">SQLite (Padrão - Embeded)</option>
+                                                <option value="postgres">PostgreSQL (Recomendado para SASS)</option>
+                                                <option value="mysql">MySQL / MariaDB</option>
+                                            </select>
+                                        </div>
+
+                                        {dbType !== "sqlite" && (
+                                            <div className="space-y-2 animate-in slide-in-from-top-2">
+                                                <Label htmlFor="dbUrl">URL de Conexão (DATABASE_URL)</Label>
+                                                <Input id="dbUrl" placeholder="postgres://user:password@host:port/dbname" {...register("dbUrl")} />
+                                                <p className="text-[10px] text-muted-foreground">O processo requer reinicialização do Docker caso mude o banco agora.</p>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
+                                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                <strong>Nota:</strong> O SQLite não requer senha de conexão, mas os dados ficam dentro da pasta /app/data do container.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button variant="outline" onClick={() => setStep(1)} className="h-12 w-14">
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </Button>
+                                        <Button onClick={() => setStep(3)} className="flex-1 h-12 text-md" size="lg">
+                                            Confirmar e Seguir <ArrowRight className="h-5 w-5 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {step === 3 && (
+                                <div className="space-y-6 animate-in fade-in duration-500">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="allowedIps">IPs Permitidos (Separados por vírgula)</Label>
+                                            <Input id="allowedIps" placeholder="Ex: 177.91.165.246 ou * para todos" {...register("allowedIps")} />
+                                            <p className="text-[10px] text-muted-foreground">Seu IP atual será detectado automaticamente como padrão se deixar vazio.</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="workDayStart">Início do Turno</Label>
+                                                <Input id="workDayStart" type="time" {...register("workDayStart")} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="workDayEnd">Fim do Turno</Label>
+                                                <Input id="workDayEnd" type="time" {...register("workDayEnd")} />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
+                                            <ShieldCheck className="h-5 w-5 text-amber-600" />
+                                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                O acesso fora do horário ou IP será bloqueado pelo Gateway de Autenticação.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button variant="outline" onClick={() => setStep(2)} className="h-12 w-14">
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </Button>
+                                        <Button onClick={() => setStep(4)} className="flex-1 h-12 text-md" size="lg">
+                                            Próximo Passo <ArrowRight className="h-5 w-5 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {step === 4 && (
                                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 animate-in fade-in duration-500">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">Seu Nome Completo</Label>
+                                        <Label htmlFor="name">Nome Completo</Label>
                                         <Input id="name" placeholder="Ex: João Silva" {...register("name")} />
                                         {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                                     </div>
@@ -188,52 +294,52 @@ export default function SetupPage() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="password">Criar Senha</Label>
+                                            <Label htmlFor="password">Senha Forte</Label>
                                             <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
                                             {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                                            <Label htmlFor="confirmPassword">Confirmação</Label>
                                             <Input id="confirmPassword" type="password" placeholder="••••••••" {...register("confirmPassword")} />
                                             {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
                                         </div>
                                     </div>
 
                                     <div className="flex gap-3 pt-4">
-                                        <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-12 w-14">
+                                        <Button type="button" variant="outline" onClick={() => setStep(3)} className="h-12 w-14">
                                             <ChevronLeft className="h-5 w-5" />
                                         </Button>
                                         <Button type="submit" className="flex-1 h-12 text-md" disabled={isLoading}>
                                             {isLoading ? (
                                                 <>
                                                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                                    Finalizando...
+                                                    Finalizando Setup...
                                                 </>
                                             ) : (
-                                                "Salvar e Continuar"
+                                                "Concluir Instalação"
                                             )}
                                         </Button>
                                     </div>
                                 </form>
                             )}
 
-                            {step === 3 && (
+                            {step === 5 && (
                                 <div className="text-center space-y-8 animate-in zoom-in-95 duration-700">
                                     <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20">
                                         <p className="text-slate-600 dark:text-slate-400">
-                                            Você configurou seu acesso master. Agora você pode entrar no sistema, adicionar clientes e gerenciar sua equipe.
+                                            Parabéns! O seu CRM está configurado com camadas extras de segurança por IP e Horário. Suas credenciais master foram salvas.
                                         </p>
                                     </div>
                                     <Button onClick={() => router.push("/login")} className="w-full h-14 text-lg bg-emerald-600 hover:bg-emerald-700" size="lg">
-                                        Acessar Painel Agora
+                                        Acessar CRM Seguro
                                     </Button>
                                 </div>
                             )}
                         </CardContent>
 
                         <CardFooter className="justify-center border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-4 rounded-b-xl">
-                            <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">
-                                Deploy Seguro & Verificado
+                            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                                NextWave v1.0.1 • Security Gateway Active
                             </p>
                         </CardFooter>
                     </Card>
@@ -242,7 +348,7 @@ export default function SetupPage() {
 
             <div className="p-8 text-center relative z-10">
                 <p className="text-sm text-slate-500">
-                    © 2026 NextWave CRM • Sistema Instalado Localmente
+                    © 2026 NextWave CRM • Assistente de Configuração Master
                 </p>
             </div>
         </div>

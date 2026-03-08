@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -25,6 +25,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Verificar se o sistema precisa de configuração inicial
+  useEffect(() => {
+    async function checkSetup() {
+      try {
+        const res = await fetch("/api/setup");
+        const data = await res.json();
+        if (data && data.isConfigured === false) {
+          router.push("/setup");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar setup:", error);
+      }
+    }
+    checkSetup();
+  }, [router]);
+
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -43,7 +59,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error("Email ou senha incorretos");
+        // Mostrar erro específico se disponível (ex: bloqueio de IP ou horário)
+        const errorMsg = result.error === "CredentialsSignin"
+          ? "Email ou senha incorretos"
+          : result.error;
+        toast.error(errorMsg);
       } else {
         toast.success("Login realizado com sucesso!");
         router.push("/");
@@ -97,9 +117,14 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-sm text-blue-200">
-          © 2026 NextWave CRM. Todos os direitos reservados.
-        </p>
+        <div className="space-y-1">
+          <p className="text-sm text-blue-200">
+            © 2026 NextWave CRM. Todos os direitos reservados.
+          </p>
+          <p className="text-[10px] text-blue-300 font-mono opacity-50">
+            v1.0.1 - Wizard Ready
+          </p>
+        </div>
       </div>
 
       {/* Right Side - Login Form */}
@@ -118,7 +143,7 @@ export default function LoginPage() {
 
           <Card className="border-0 shadow-none lg:border lg:shadow-sm">
             <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
+              <CardTitle className="text-2xl font-bold">NextWave CRM - Acesso Seguro</CardTitle>
               <CardDescription>
                 Entre com sua conta para acessar o painel
               </CardDescription>

@@ -30,6 +30,7 @@ if [ ! -f ".env" ]; then
 NEXTAUTH_URL=$URL
 NEXTAUTH_SECRET=$SECRET
 AUTH_SECRET=$SECRET
+AUTH_TRUST_HOST=true
 DATABASE_URL=file:/app/data/prod.db
 EOF
 
@@ -67,9 +68,6 @@ echo "   NextWave CRM esta no ar!"
 echo ""
 URL=$(grep NEXTAUTH_URL .env | cut -d= -f2)
 echo "   Acesse: $URL"
-echo ""
-echo "   Login: admin@nextwave.com"
-echo "   Senha: admin123"
 echo ""
 echo "   Para ver logs:  docker compose logs -f"
 echo "   Para parar:     docker compose down"

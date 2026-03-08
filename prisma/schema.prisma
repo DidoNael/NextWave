@@ -13,14 +13,18 @@ model User {
   email     String   @unique
   password  String
   avatar    String?
-  role      String   @default("admin")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role         String   @default("admin")
+  allowedIps   String?  // IPs permitidos (separados por vírgula ou "*" para todos)
+  workDayStart String?  // Formato HH:mm (ex: 08:00)
+  workDayEnd   String?  // Formato HH:mm (ex: 18:00)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   clients      Client[]
   transactions Transaction[]
   services     Service[]
   events       Event[]
+  projects     Project[]
 }
 
 model Client {
@@ -99,4 +103,43 @@ model Event {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?  @default("#3b82f6")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  columns     TaskColumn[]
+}
+
+model TaskColumn {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    String    @default("media") // baixa, media, alta
+  order       Int       @default(0)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  columnId    String
+  column      TaskColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 }

@@ -48,7 +48,7 @@ export default function RelatoriosPage() {
   }, []);
 
   // Dados por categoria para gráfico de pizza
-  const categoriaData = finData?.transactions
+  const categoriaData = (finData?.transactions || [])
     .filter((t) => t.type === "receita")
     .reduce((acc: Record<string, number>, tx) => {
       acc[tx.category] = (acc[tx.category] ?? 0) + tx.amount;
@@ -57,7 +57,7 @@ export default function RelatoriosPage() {
 
   const pieData = Object.entries(categoriaData ?? {}).map(([name, value]) => ({ name, value }));
 
-  const chartData = dashData?.chartData.slice(-parseInt(periodo)) ?? [];
+  const chartData = dashData?.chartData?.slice(-parseInt(periodo)) ?? [];
 
   const handleExport = () => {
     toast.info("Exportação em PDF será implementada na próxima versão.");
