@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft } from "lucide-react";
+import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,29 +205,44 @@ export default function SetupPage() {
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label>Tipo de Banco de Dados</Label>
-                                            <select 
-                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                                            <select
+                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none transition-all"
                                                 {...register("dbType")}
                                             >
-                                                <option value="sqlite">SQLite (Padrão - Embeded)</option>
-                                                <option value="postgres">PostgreSQL (Recomendado para SASS)</option>
+                                                <option value="sqlite">SQLite (Pronto para Uso)</option>
+                                                <option value="postgres">PostgreSQL (Recomendado)</option>
                                                 <option value="mysql">MySQL / MariaDB</option>
                                             </select>
+                                        </div>
+
+                                        <div className="relative group">
+                                            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent" />
+                                            <div className="py-4 space-y-3">
+                                                <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Importação (Opcional)</Label>
+                                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-colors hover:border-primary/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-900/50">
+                                                    <Database className="h-8 w-8 text-slate-400 mb-2" />
+                                                    <p className="text-xs text-slate-500 text-center mb-4">
+                                                        Já possui um backup? Arraste o arquivo .db ou .sql aqui para restaurar seus dados.
+                                                    </p>
+                                                    <Input
+                                                        type="file"
+                                                        accept=".db,.sql"
+                                                        className="cursor-pointer file:cursor-pointer"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) toast.success(`Arquivo ${file.name} pronto para importação`);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {dbType !== "sqlite" && (
                                             <div className="space-y-2 animate-in slide-in-from-top-2">
                                                 <Label htmlFor="dbUrl">URL de Conexão (DATABASE_URL)</Label>
                                                 <Input id="dbUrl" placeholder="postgres://user:password@host:port/dbname" {...register("dbUrl")} />
-                                                <p className="text-[10px] text-muted-foreground">O processo requer reinicialização do Docker caso mude o banco agora.</p>
                                             </div>
                                         )}
-                                        
-                                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
-                                            <p className="text-xs text-blue-700 dark:text-blue-300">
-                                                <strong>Nota:</strong> O SQLite não requer senha de conexão, mas os dados ficam dentro da pasta /app/data do container.
-                                            </p>
-                                        </div>
                                     </div>
                                     <div className="flex gap-3">
                                         <Button variant="outline" onClick={() => setStep(1)} className="h-12 w-14">
@@ -259,7 +274,7 @@ export default function SetupPage() {
                                                 <Input id="workDayEnd" type="time" {...register("workDayEnd")} />
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
                                             <ShieldCheck className="h-5 w-5 text-amber-600" />
                                             <p className="text-xs text-amber-700 dark:text-amber-300">

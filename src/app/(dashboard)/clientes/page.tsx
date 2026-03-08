@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Filter, Phone, Mail, Building2, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Search, Filter, Phone, Mail, Building2, Trash2, Edit, Eye, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Client } from "@/types";
 import { formatDate, getInitials, getStatusLabel } from "@/lib/utils";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { IMaskInput } from "react-imask";
 
 const clienteSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -28,6 +29,7 @@ const clienteSchema = z.object({
   phone: z.string().optional(),
   document: z.string().optional(),
   company: z.string().optional(),
+  zipCode: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -56,7 +58,7 @@ export default function ClientesPage() {
   const [editingCliente, setEditingCliente] = useState<ClienteComCount | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<ClienteForm>({
+  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors, isSubmitting } } = useForm<ClienteForm>({
     resolver: zodResolver(clienteSchema),
     defaultValues: { status: "ativo" },
   });
@@ -84,7 +86,19 @@ export default function ClientesPage() {
 
   const openCreate = () => {
     setEditingCliente(null);
-    reset({ status: "ativo" });
+    reset({
+      name: "",
+      email: "",
+      phone: "",
+      document: "",
+      company: "",
+      zipCode: "",
+      address: "",
+      city: "",
+      state: "",
+      notes: "",
+      status: "ativo"
+    });
     setIsDialogOpen(true);
   };
 
@@ -96,6 +110,7 @@ export default function ClientesPage() {
       phone: cliente.phone ?? "",
       document: cliente.document ?? "",
       company: cliente.company ?? "",
+      zipCode: cliente.zipCode ?? "",
       address: cliente.address ?? "",
       city: cliente.city ?? "",
       state: cliente.state ?? "",
@@ -221,6 +236,11 @@ export default function ClientesPage() {
                           <Phone className="h-3 w-3" />{cliente.phone}
                         </span>
                       )}
+                      {cliente.zipCode && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />{cliente.zipCode}
+                        </span>
+                      )}
                       {cliente.company && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Building2 className="h-3 w-3" />{cliente.company}
@@ -274,11 +294,57 @@ export default function ClientesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input placeholder="(11) 99999-9999" {...register("phone")} />
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <IMaskInput
+                      mask="(00) 00000-0000"
+                      definitions={{
+                        '#': /[1-9]/,
+                      }}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="(11) 99999-9999"
+                      value={field.value}
+                      onAccept={(value: string) => field.onChange(value)}
+                    />
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label>CPF/CNPJ</Label>
-                <Input placeholder="000.000.000-00" {...register("document")} />
+                <Controller
+                  name="document"
+                  control={control}
+                  render={({ field }) => (
+                    <IMaskInput
+                      mask={[
+                        { mask: '000.000.000-00' },
+                        { mask: '00.000.000/0000-00' }
+                      ]}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="000.000.000-00"
+                      value={field.value}
+                      onAccept={(value: string) => field.onChange(value)}
+                    />
+                  )}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CEP</Label>
+                <Controller
+                  name="zipCode"
+                  control={control}
+                  render={({ field }) => (
+                    <IMaskInput
+                      mask="00000-000"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="00000-000"
+                      value={field.value}
+                      onAccept={(value: string) => field.onChange(value)}
+                    />
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Empresa</Label>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, DollarSign, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight,
-  Zap,
+  Zap, Database, User, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const navItems = [
 
 const bottomItems = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database },
 ];
 
 export function Sidebar() {
