@@ -64,6 +64,14 @@ npm start
 - **Erro de motor do Prisma (Engine not found)**: Se você encontrar erros dizendo que o binário do Prisma não foi encontrado, execute `npx prisma generate` novamente. Isso forçará o download do motor correto para o seu hardware.
 - **Docker**: Se for criar uma imagem Docker, use `node:20-alpine` ou `node:20-slim`, que possuem excelente suporte para ARM64.
 
+### Passo Alternativo: Deploy em Um Clique
+Para facilitar ainda mais, use o script de automação:
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+---
 ## 5. Instalação via Docker (Recomendado para Produção)
 
 O Docker é a forma mais segura e estável de rodar o NextWave em servidores ARM64, pois ele isola todas as dependências do sistema operacional.
