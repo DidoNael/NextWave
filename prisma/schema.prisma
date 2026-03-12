@@ -281,19 +281,19 @@ model ScheduledTask {
   updatedAt   DateTime @updatedAt
 }
 model Subscription {
-  id          String   @id @default(cuid())
-  name        String   // Ex: 'Plano Mensal Gold'
-  amount      Float
-  interval    String   // 'monthly', 'yearly', 'weekly'
-  status      String   @default("active") // active, paused, cancelled
-  nextBilling DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  description     String   // Ex: 'Plano Mensal Gold'
+  amount          Float
+  interval        String   @default("monthly") // monthly, yearly
+  status          String   @default("active") // active, canceled, past_due
+  nextBillingDate DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id])
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 }
 
 model NfeConfig {
@@ -363,18 +363,4 @@ model PaymentGatewayConfig {
   credentials String   // JSON string with API keys, tags, etc.
   isActive    Boolean  @default(false)
   updatedAt   DateTime @updatedAt
-}
-
-model Subscription {
-  id              String   @id @default(cuid())
-  status          String   @default("active") // active, canceled, past_due
-  interval        String   @default("monthly") // monthly, yearly
-  amount          Float
-  description     String
-  nextBillingDate DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id])
 }
