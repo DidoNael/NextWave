@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "Sistema de gestão de clientes e projetos profissional",
 };
 
+type AccentColor = "blue" | "orange" | "green" | "purple" | "rose";
+type LayoutTheme = "default" | "professional";
+
 const VALID_COLORS: AccentColor[] = ["blue", "orange", "green", "purple", "rose"];
 const VALID_LAYOUTS: LayoutTheme[] = ["default", "professional"];
 

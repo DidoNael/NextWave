@@ -16,7 +16,7 @@ services:
     volumes:
       - crm-data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/session"]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3000/api/auth/session" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -28,7 +28,7 @@ services:
         max-file: "3"
 
   evolution-api:
-    image: atendare/evolution-api:latest
+    image: atendai/evolution-api:latest
     container_name: evolution-api
     restart: unless-stopped
     ports:
