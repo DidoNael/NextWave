@@ -286,7 +286,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {!collapsed && (
           <div className="px-4 py-2 border-t border-border/40">
             <p className="text-[10px] text-muted-foreground font-medium text-center opacity-50">
-              v1.6.2 - Stabilized Edition
+              v1.6.3 - Final Stabilization
             </p>
           </div>
         )}

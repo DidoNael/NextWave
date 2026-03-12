@@ -29,8 +29,8 @@ export async function processRecurringBilling() {
                         category: "Manutenção",
                         status: "pendente",
                         dueDate: today,
-                        clientId: sub.clientId,
-                        userId: "system" // Identificador de automação
+                        client: sub.clientId ? { connect: { id: sub.clientId } } : undefined,
+                        user: { connect: { id: sub.userId } }
                     }
                 });
 

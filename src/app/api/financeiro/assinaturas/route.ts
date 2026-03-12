@@ -8,6 +8,7 @@ export async function GET() {
 
     try {
         const subscriptions = await prisma.subscription.findMany({
+            where: { userId: session.user.id },
             include: { client: true },
             orderBy: { nextBillingDate: "asc" }
         });
@@ -27,12 +28,13 @@ export async function POST(req: Request) {
 
         const subscription = await prisma.subscription.create({
             data: {
-                clientId,
-                amount,
                 description,
+                amount,
                 interval,
                 nextBillingDate: new Date(nextBillingDate),
-                status: "active"
+                status: "active",
+                user: { connect: { id: session.user.id } },
+                client: { connect: { id: clientId } }
             }
         });
 

@@ -49,10 +49,10 @@ export async function POST(req: Request) {
                 for (const sub of activeSubscriptions) {
                     await prisma.transaction.create({
                         data: {
-                            userId: sub.userId,
-                            clientId: sub.clientId,
+                            user: { connect: { id: sub.userId } },
+                            client: { connect: { id: sub.clientId } },
                             amount: sub.amount,
-                            description: `Faturamento Mensal - ${sub.name}`,
+                            description: `Faturamento Mensal - ${sub.description}`,
                             type: "receita",
                             category: "servicos",
                             status: "pendente"
