@@ -260,6 +260,25 @@ export default function FinanceiroPage() {
                         {tx.type === "receita" ? "+" : "-"}{formatCurrency(tx.amount)}
                       </p>
                       <div className="flex gap-1 shrink-0">
+                        {tx.status === "pendente" && tx.type === "receita" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/financeiro/${tx.id}/infinitepay`, { method: "POST" });
+                                const data = await res.json();
+                                if (data.url) window.open(data.url, "_blank");
+                                else throw new Error();
+                              } catch {
+                                toast.error("Erro ao gerar link InfinitePay");
+                              }
+                            }}
+                          >
+                            <DollarSign className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         {tx.status === "pendente" && (
                           <>
                             <Button
