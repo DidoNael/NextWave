@@ -25,7 +25,7 @@ import { IMaskInput } from "react-imask";
 
 const clienteSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
-  email: z.string().email("Email obrigatório"),
+  emails: z.array(z.object({ value: z.string().email("Email inválido") })).min(1, "Adicione pelo menos um email"),
   phones: z.array(z.object({ value: z.string().min(1, "Mínimo 1 telefone") })).min(1, "Adicione pelo menos um telefone"),
   document: z.string().min(1, "CPF/CNPJ obrigatório"),
   company: z.string().optional(),
@@ -60,12 +60,17 @@ export default function ClientesPage() {
 
   const { register, handleSubmit, reset, setValue, watch, control, formState: { errors, isSubmitting } } = useForm<ClienteForm>({
     resolver: zodResolver(clienteSchema),
-    defaultValues: { status: "ativo", phones: [{ value: "" }] },
+    defaultValues: { status: "ativo", phones: [{ value: "" }], emails: [{ value: "" }] },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
     control,
     name: "phones",
+  });
+
+  const { fields: emailFields, append: appendEmail, remove: removeEmail } = useFieldArray({
+    control,
+    name: "emails",
   });
 
   const fetchClientes = useCallback(async () => {
@@ -91,9 +96,10 @@ export default function ClientesPage() {
 
   const openCreate = () => {
     setEditingCliente(null);
+    setEditingCliente(null);
     reset({
       name: "",
-      email: "",
+      emails: [{ value: "" }],
       phones: [{ value: "" }],
       document: "",
       company: "",
@@ -113,9 +119,13 @@ export default function ClientesPage() {
       ? cliente.phone.split(",").map(p => ({ value: p.trim() }))
       : [{ value: "" }];
 
+    const emails = cliente.email
+      ? cliente.email.split(",").map(e => ({ value: e.trim() }))
+      : [{ value: "" }];
+
     reset({
       name: cliente.name,
-      email: cliente.email ?? "",
+      emails: emails,
       phones: phones,
       document: cliente.document ?? "",
       company: cliente.company ?? "",
@@ -133,6 +143,7 @@ export default function ClientesPage() {
     try {
       const payload = {
         ...data,
+        email: data.emails.map(e => e.value).filter(Boolean).join(", "),
         phone: data.phones.map(p => p.value).filter(Boolean).join(", ")
       };
 
@@ -240,16 +251,16 @@ export default function ClientesPage() {
                       <StatusBadge status={cliente.status} />
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                      {cliente.email && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />{cliente.email}
+                      {cliente.email && cliente.email.split(",").map((e, idx) => (
+                        <span key={idx} className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Mail className="h-3 w-3" />{e.trim()}
                         </span>
-                      )}
-                      {cliente.phone && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />{cliente.phone}
+                      ))}
+                      {cliente.phone && cliente.phone.split(",").map((p, idx) => (
+                        <span key={idx} className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />{p.trim()}
                         </span>
-                      )}
+                      ))}
                       {cliente.zipCode && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3" />{cliente.zipCode}
@@ -301,10 +312,48 @@ export default function ClientesPage() {
                 <Input placeholder="Nome completo" {...register("name")} />
                 {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="email@exemplo.com" {...register("email")} />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+              <div className="col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Emails *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => appendEmail({ value: "" })}
+                  >
+                    <Plus className="h-3 w-3" /> Adicionar
+                  </Button>
+                </div>
+                {emailFields.map((field, index) => (
+                  <div key={field.id} className="space-y-1">
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        placeholder="email@exemplo.com"
+                        {...register(`emails.${index}.value` as const)}
+                        className="bg-background"
+                      />
+                      {emailFields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 text-destructive hover:bg-destructive/10"
+                          onClick={() => removeEmail(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {errors.emails?.[index]?.value && (
+                      <p className="text-[10px] text-destructive italic">{errors.emails[index]?.value?.message}</p>
+                    )}
+                  </div>
+                ))}
+                {errors.emails?.message && !errors.emails[0] && (
+                  <p className="text-xs text-destructive">{errors.emails.message}</p>
+                )}
               </div>
               <div className="col-span-2 space-y-3">
                 <div className="flex items-center justify-between">
@@ -314,12 +363,12 @@ export default function ClientesPage() {
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs gap-1"
-                    onClick={() => append({ value: "" })}
+                    onClick={() => appendPhone({ value: "" })}
                   >
                     <Plus className="h-3 w-3" /> Adicionar
                   </Button>
                 </div>
-                {fields.map((field, index) => (
+                {phoneFields.map((field, index) => (
                   <div key={field.id} className="space-y-1">
                     <div className="flex gap-2">
                       <Controller
@@ -338,13 +387,13 @@ export default function ClientesPage() {
                           />
                         )}
                       />
-                      {fields.length > 1 && (
+                      {phoneFields.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           className="h-10 w-10 text-destructive hover:bg-destructive/10"
-                          onClick={() => remove(index)}
+                          onClick={() => removePhone(index)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
