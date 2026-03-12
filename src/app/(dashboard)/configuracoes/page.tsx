@@ -244,6 +244,20 @@ export default function ConfiguracoesPage() {
             </Card>
           </Link>
 
+          <Link href="/configuracoes/infinitepay">
+            <Card className="hover:border-primary/50 transition-colors group">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                  <DollarSign className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">InfinitePay</CardTitle>
+                  <CardDescription>Gerar cobranças e links de pagamento automáticos.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+
           {session?.user?.role === "master" && (
             <Link href="/configuracoes/whitelabel">
               <Card className="hover:border-primary/50 border-primary/20 bg-primary/5 transition-colors group">
