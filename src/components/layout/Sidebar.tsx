@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, DollarSign, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight, ChevronDown,
-  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart,
+  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const dashboardSubItems = [
   { href: "/dashboard/clientes", label: "Clientes", module: "clientes" },
   { href: "/dashboard/whatsapp", label: "WhatsApp", module: "whatsapp" },
   { href: "/dashboard/servicos", label: "Serviços", module: "servicos" },
+  { href: "/dashboard/pbx", label: "Telefonia", module: "pbx" },
 ];
 
 type SubItem = { href: string; label: string; module?: string };
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageSquare, module: "whatsapp" },
+  { href: "/configuracoes/pbx", label: "Telefonia", icon: Phone, module: "pbx" },
 ];
 
 const bottomItems = [
@@ -96,6 +98,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     "/agenda": "agenda",
     "/usuarios": "usuarios",
     "/whatsapp": "whatsapp",
+    "/configuracoes/pbx": "pbx",
   };
 
   const filteredNavItems = navItems.filter(item => {
@@ -278,8 +281,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           className={cn("absolute -right-3 top-20 z-10 h-6 w-6 border border-border bg-background shadow-md", isProfessional ? "rounded-none" : "rounded-full")}
           onClick={toggleSidebar}
         >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
+
+        {!collapsed && (
+          <div className="px-4 py-2 border-t border-border/40">
+            <p className="text-[10px] text-muted-foreground font-medium text-center opacity-50">
+              v1.6.0 - Scalable Edition
+            </p>
+          </div>
+        )}
       </aside>
     </TooltipProvider>
   );
