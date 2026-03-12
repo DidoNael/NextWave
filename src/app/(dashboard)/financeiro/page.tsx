@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Filter, TrendingUp, TrendingDown, DollarSign, Clock, Trash2, Edit, MessageSquare, Mail } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, TrendingDown, DollarSign, Clock, Trash2, Edit, MessageSquare, Mail, QrCode, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,8 @@ export default function FinanceiroPage() {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("todos");
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [qrCodeLoading, setQrCodeLoading] = useState(false);
 
   const { register, handleSubmit, reset, control, watch, formState: { errors, isSubmitting } } = useForm<TxForm>({
     resolver: zodResolver(txSchema),
@@ -220,7 +222,7 @@ export default function FinanceiroPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="px-6 border-b border-border">
               <TabsList className="h-9 bg-transparent p-0 gap-4">
-                {[["todos", "Todos"], ["receitas", "Receitas"], ["despesas", "Despesas"], ["pendentes", "Pendentes"]].map(([v, l]) => (
+                {[["todos", "Todos"], ["receitas", "Receitas"], ["despesas", "Despesas"], ["pendentes", "Pendentes"], ["assinaturas", "Assinaturas"]].map(([v, l]) => (
                   <TabsTrigger key={v} value={v} className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0">
                     {l}
                   </TabsTrigger>
@@ -261,23 +263,50 @@ export default function FinanceiroPage() {
                       </p>
                       <div className="flex gap-1 shrink-0">
                         {tx.status === "pendente" && tx.type === "receita" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                            onClick={async () => {
-                              try {
-                                const res = await fetch(`/api/financeiro/${tx.id}/infinitepay`, { method: "POST" });
-                                const data = await res.json();
-                                if (data.url) window.open(data.url, "_blank");
-                                else throw new Error();
-                              } catch {
-                                toast.error("Erro ao gerar link InfinitePay");
-                              }
-                            }}
-                          >
-                            <DollarSign className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                              title="Links InfinitePay"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/financeiro/${tx.id}/infinitepay`, { method: "POST" });
+                                  const data = await res.json();
+                                  if (data.url) window.open(data.url, "_blank");
+                                  else throw new Error();
+                                } catch {
+                                  toast.error("Erro ao gerar link InfinitePay");
+                                }
+                              }}
+                            >
+                              <DollarSign className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              title="Mostrar QR Code Pix"
+                              onClick={async () => {
+                                setQrCodeLoading(true);
+                                try {
+                                  const res = await fetch(`/api/financeiro/${tx.id}/infinitepay`, { method: "POST" });
+                                  const data = await res.json();
+                                  if (data.url) {
+                                    setQrCodeUrl(data.url);
+                                  } else {
+                                    throw new Error();
+                                  }
+                                } catch {
+                                  toast.error("Erro ao gerar QR Code");
+                                } finally {
+                                  setQrCodeLoading(false);
+                                }
+                              }}
+                            >
+                              {qrCodeLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
                         )}
                         {tx.status === "pendente" && (
                           <>
@@ -421,6 +450,32 @@ export default function FinanceiroPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Remover</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* QR Code Modal */}
+      <Dialog open={!!qrCodeUrl} onOpenChange={() => setQrCodeUrl(null)}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>Pagamento via Pix</DialogTitle>
+            <DialogDescription>Aponte o celular para realizar o pagamento.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-inner mt-4">
+            {qrCodeUrl && (
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
+                alt="QR Code Pix"
+                className="w-48 h-48"
+              />
+            )}
+            <p className="text-[10px] text-muted-foreground mt-4 break-all opacity-50">
+              {qrCodeUrl}
+            </p>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button className="w-full bg-emerald-500 hover:bg-emerald-600" onClick={() => window.open(qrCodeUrl || "", "_blank")}>
+              Abrir Checkout Completo
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
