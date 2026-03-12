@@ -354,3 +354,25 @@ model PbxConfig {
   isActive      Boolean  @default(false)
   updatedAt     DateTime @updatedAt
 }
+
+model InfinitePayConfig {
+  id            String   @id @default("default")
+  infiniteTag   String?
+  isActive      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  status          String   @default("active") // active, canceled, past_due
+  interval        String   @default("monthly") // monthly, yearly
+  amount          Float
+  description     String
+  nextBillingDate DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+}
+```
