@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { cookies } from "next/headers";
-import "./globals.css";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { ColorProvider } from "@/components/providers/ColorProvider";
-import type { AccentColor, LayoutTheme } from "@/components/providers/ColorProvider";
-import { SessionProvider } from "@/components/providers/SessionProvider";
-import { Toaster } from "sonner";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
-const inter = Inter({ subsets: ["latin"] });
+// Removendo Google Fonts para evitar timeouts no build Docker ARM64
+// const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "NextWave CRM",
@@ -60,7 +52,7 @@ export default async function RootLayout({
       data-color={initialColor}
       data-layout={initialLayout}
     >
-      <body className={inter.className}>
+      <body className="antialiased">
         <SessionProvider>
           <ThemeProvider
             attribute="class"
