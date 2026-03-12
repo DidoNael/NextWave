@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { auth } from "@/auth";
+import { cookies } from "next/headers";
+import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ColorProvider } from "@/components/providers/ColorProvider";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 // Removendo Google Fonts para evitar timeouts no build Docker ARM64
 // const inter = Inter({ subsets: ["latin"] });
