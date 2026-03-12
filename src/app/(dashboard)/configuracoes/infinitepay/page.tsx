@@ -23,10 +23,17 @@ export default function InfinitePaySettingsPage() {
 
     const fetchConfig = async () => {
         try {
-            const res = await fetch("/api/sistema/pagamentos/infinitepay");
+            const res = await fetch("/api/sistema/pagamentos");
             if (res.ok) {
                 const data = await res.json();
-                if (data) setConfig(data);
+                const infinitePay = data.find((d: any) => d.provider === "infinitepay");
+                if (infinitePay) {
+                    const credentials = JSON.parse(infinitePay.credentials);
+                    setConfig({
+                        infiniteTag: credentials.infiniteTag || "",
+                        isActive: infinitePay.isActive
+                    });
+                }
             }
         } catch (error) {
             toast.error("Erro ao carregar configurações.");
@@ -38,10 +45,15 @@ export default function InfinitePaySettingsPage() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const res = await fetch("/api/sistema/pagamentos/infinitepay", {
+            const res = await fetch("/api/sistema/pagamentos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(config)
+                body: JSON.stringify({
+                    provider: "infinitepay",
+                    name: "InfinitePay",
+                    credentials: { infiniteTag: config.infiniteTag },
+                    isActive: config.isActive
+                })
             });
             if (res.ok) {
                 toast.success("Configurações da InfinitePay salvas!");
