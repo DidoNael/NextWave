@@ -41,6 +41,13 @@ services:
       - SERVER_URL=http://localhost:8081
       - AUTH_TYPE=apikey
       - AUTH_API_KEY=422A33A0-5E46-4A1C-91B1-65114660AF93
+      - DATABASE_ENABLED=false
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_LOCAL_ENABLED=true
+      - STORE_MESSAGES=true
+      - STORE_MESSAGE_UP=true
+      - STORE_CONTACTS=true
+      - STORE_CHATS=true
     volumes:
       - evolution-data:/app/evolution/instances
     logging:
