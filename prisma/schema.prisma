@@ -378,4 +378,3 @@ model Subscription {
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 }
-```
