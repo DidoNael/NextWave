@@ -61,6 +61,8 @@ export default function FinanceiroPage() {
   const [activeTab, setActiveTab] = useState("todos");
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [qrCodeLoading, setQrCodeLoading] = useState(false);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [isSubDialogOpen, setIsSubDialogOpen] = useState(false);
 
   const { register, handleSubmit, reset, control, watch, formState: { errors, isSubmitting } } = useForm<TxForm>({
     resolver: zodResolver(txSchema),
@@ -86,10 +88,23 @@ export default function FinanceiroPage() {
     }
   }, [search, typeFilter, statusFilter]);
 
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/financeiro/assinaturas");
+      const data = await res.json();
+      setSubscriptions(Array.isArray(data) ? data : []);
+    } catch {
+      console.error("Erro ao carregar assinaturas");
+    }
+  }, []);
+
   useEffect(() => {
-    const t = setTimeout(fetchTransactions, 300);
+    const t = setTimeout(() => {
+      fetchTransactions();
+      fetchSubscriptions();
+    }, 300);
     return () => clearTimeout(t);
-  }, [fetchTransactions]);
+  }, [fetchTransactions, fetchSubscriptions]);
 
   const openCreate = (defaultType?: "receita" | "despesa") => {
     setEditingTx(null);
@@ -339,7 +354,42 @@ export default function FinanceiroPage() {
                   ))}
                 </div>
               )}
-            </TabsContent>
+              <TabsContent value="assinaturas" className="mt-0">
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  </div>
+                ) : subscriptions.length === 0 ? (
+                  <div className="py-12 text-center space-y-4">
+                    <p className="text-muted-foreground">Nenhuma assinatura ativa encontrada.</p>
+                    <Button onClick={() => setIsSubDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar Primeira Assinatura
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {subscriptions.map((sub) => (
+                      <div key={sub.id} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-900/30">
+                          <Clock className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">{sub.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {sub.client?.name} • R$ {sub.amount.toFixed(2)} • {sub.interval === "monthly" ? "Mensal" : "Anual"}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Próximo Faturamento</p>
+                          <p className="text-sm font-semibold">{formatDate(sub.nextBillingDate)}</p>
+                        </div>
+                        <Badge variant={sub.status === "active" ? "success" : "secondary"}>{sub.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
