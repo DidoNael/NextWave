@@ -40,6 +40,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (user.twoFactorEnabled && !credentials.twoFactorCode) {
             console.log("2FA required for user:", credentials.email);
+            // No Auth.js v5, lançar um erro com uma mensagem específica 
+            // costuma resultar em CredentialsSignin com essa mensagem
             throw new Error("2FA_REQUIRED");
           }
 
@@ -50,10 +52,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
           };
         } catch (error: any) {
-          if (error.title === "2FA_REQUIRED" || error.message === "2FA_REQUIRED") {
-            throw error;
-          }
           console.error("Authorize error detail:", error);
+          // Re-throw if it's our 2FA marker
+          if (error.message === "2FA_REQUIRED") throw error;
           return null;
         }
       },

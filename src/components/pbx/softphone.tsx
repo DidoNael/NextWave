@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, X, Minus, ChevronUp, History, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, X, Minus, ChevronUp, History, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { sipClient, SipStatus } from "@/lib/sip-client";
+import { toast } from "sonner";
 
 export function Softphone() {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +15,34 @@ export function Softphone() {
     const [number, setNumber] = useState("");
     const [callStatus, setCallStatus] = useState<"idle" | "calling" | "active" | "incoming">("idle");
     const [isMuted, setIsMuted] = useState(false);
+    const [status, setStatus] = useState<SipStatus>("offline");
+    const [recentCalls, setRecentCalls] = useState<{ number: string; date: string }[]>([]);
+    const [showHistory, setShowHistory] = useState(false);
+
+    useEffect(() => {
+        const savedHistory = localStorage.getItem("pbx_call_history");
+        if (savedHistory) setRecentCalls(JSON.parse(savedHistory));
+
+        sipClient.onStatusChange((newStatus) => {
+            setStatus(newStatus);
+            if (newStatus === "online") toast.success("PABX Conectado");
+            if (newStatus === "error") toast.error("Falha na conexão SIP");
+        });
+
+        // Tenta carregar configuração e iniciar
+        fetch("/api/sistema/pbx")
+            .then(res => res.json())
+            .then(config => {
+                if (config && config.isActive) {
+                    sipClient.init(config);
+                }
+            })
+            .catch(() => console.error("Falha ao carregar config PBX"));
+
+        return () => {
+            sipClient.stop();
+        };
+    }, []);
 
     const addDigit = (digit: string) => {
         setNumber(prev => prev + digit);
@@ -20,23 +50,52 @@ export function Softphone() {
 
     const handleCall = () => {
         if (!number) return;
+        if (status !== "online") {
+            toast.error("SIP não registrado. Verifique configurações.");
+            return;
+        }
+
         setCallStatus("calling");
-        // Lógica real de VoIP entrará aqui
-        setTimeout(() => setCallStatus("active"), 2000);
+        sipClient.call(number);
+
+        // Adiciona ao histórico
+        const call = { number, date: new Date().toLocaleString() };
+        const newHistory = [call, ...recentCalls].slice(0, 10);
+        setRecentCalls(newHistory);
+        localStorage.setItem("pbx_call_history", JSON.stringify(newHistory));
+
+        // Simulação de transição para ativo (no mundo real JsSIP eventos fariam isso)
+        setTimeout(() => setCallStatus("active"), 3000);
     };
 
     const handleEndCall = () => {
+        sipClient.terminate();
         setCallStatus("idle");
         setNumber("");
+    };
+
+    const toggleMute = () => {
+        const next = !isMuted;
+        setIsMuted(next);
+        sipClient.toggleMute(next);
     };
 
     if (!isOpen) {
         return (
             <Button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl animate-in zoom-in"
+                className={cn(
+                    "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl animate-in zoom-in z-50",
+                    status === "online" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-primary"
+                )}
             >
-                <Phone className="h-6 w-6" />
+                <div className="relative">
+                    <Phone className="h-6 w-6" />
+                    <div className={cn(
+                        "absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white",
+                        status === "online" ? "bg-emerald-400" : status === "connecting" ? "bg-yellow-400" : "bg-red-400"
+                    )} />
+                </div>
             </Button>
         );
     }
@@ -44,12 +103,15 @@ export function Softphone() {
     return (
         <Card className={cn(
             "fixed bottom-6 right-6 w-80 shadow-2xl border-primary/20 transition-all duration-300 z-50 overflow-hidden",
-            isMinimized ? "h-14" : "h-[480px]"
+            isMinimized ? "h-14" : "h-[520px]"
         )}>
             <CardHeader className="bg-primary text-primary-foreground p-3 flex flex-row items-center justify-between space-y-0">
                 <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    <span className="text-sm font-bold">Telefonia PBX</span>
+                    <div className={cn(
+                        "h-2 w-2 rounded-full",
+                        status === "online" ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+                    )} />
+                    <span className="text-sm font-bold">PBX {status.toUpperCase()}</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setIsMinimized(!isMinimized)}>
@@ -65,34 +127,62 @@ export function Softphone() {
                 <CardContent className="p-4 flex flex-col h-[calc(100%-56px)]">
                     {callStatus === "idle" ? (
                         <div className="space-y-6 flex flex-col flex-1">
-                            <Input
-                                value={number}
-                                onChange={(e) => setNumber(e.target.value)}
-                                placeholder="Digitar número..."
-                                className="text-2xl text-center h-16 font-mono tracking-widest border-0 focus-visible:ring-0 bg-secondary/30"
-                            />
+                            {showHistory ? (
+                                <div className="flex-1 overflow-y-auto space-y-2">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-xs font-bold uppercase text-muted-foreground">Chamadas Recentes</h4>
+                                        <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setShowHistory(false)}>Voltar</Button>
+                                    </div>
+                                    {recentCalls.length === 0 ? (
+                                        <p className="text-center text-xs text-muted-foreground py-8">Nenhum registro</p>
+                                    ) : (
+                                        recentCalls.map((c, i) => (
+                                            <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer" onClick={() => { setNumber(c.number); setShowHistory(false); }}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                        <Phone className="h-4 w-4 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold">{c.number}</p>
+                                                        <p className="text-[10px] text-muted-foreground">{c.date}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <Input
+                                        value={number}
+                                        onChange={(e) => setNumber(e.target.value)}
+                                        placeholder="Digitar número..."
+                                        className="text-2xl text-center h-16 font-mono tracking-widest border-0 focus-visible:ring-0 bg-secondary/30"
+                                    />
 
-                            <div className="grid grid-cols-3 gap-2 flex-1 items-center">
-                                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(d => (
-                                    <Button
-                                        key={d}
-                                        variant="outline"
-                                        className="h-14 text-xl font-bold rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all"
-                                        onClick={() => addDigit(d)}
-                                    >
-                                        {d}
-                                    </Button>
-                                ))}
-                            </div>
+                                    <div className="grid grid-cols-3 gap-2 flex-1 items-center">
+                                        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(d => (
+                                            <Button
+                                                key={d}
+                                                variant="outline"
+                                                className="h-14 text-xl font-bold rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all"
+                                                onClick={() => addDigit(d)}
+                                            >
+                                                {d}
+                                            </Button>
+                                        ))}
+                                    </div>
 
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl">
-                                    <History className="h-5 w-5" />
-                                </Button>
-                                <Button className="flex-1 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 gap-2" onClick={handleCall}>
-                                    <Phone className="h-5 w-5" /> Iniciar Chamada
-                                </Button>
-                            </div>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setShowHistory(true)}>
+                                            <History className="h-5 w-5" />
+                                        </Button>
+                                        <Button className="flex-1 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 gap-2 font-bold" onClick={handleCall}>
+                                            <Phone className="h-5 w-5" /> Chamada Real
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center space-y-8 flex-1 animate-in slide-in-from-bottom">
@@ -103,7 +193,7 @@ export function Softphone() {
                                 </div>
                                 <h3 className="text-xl font-bold">{number}</h3>
                                 <p className="text-sm text-muted-foreground animate-pulse">
-                                    {callStatus === "calling" ? "Chamando..." : "Em chamada (00:45)"}
+                                    {callStatus === "calling" ? "Chamando..." : "Em chamada (Real)"}
                                 </p>
                             </div>
 
@@ -112,7 +202,7 @@ export function Softphone() {
                                     variant="outline"
                                     size="icon"
                                     className={cn("h-14 w-14 rounded-full", isMuted && "bg-destructive/10 border-destructive")}
-                                    onClick={() => setIsMuted(!isMuted)}
+                                    onClick={toggleMute}
                                 >
                                     {isMuted ? <MicOff className="h-6 w-6 text-destructive" /> : <Mic className="h-6 w-6" />}
                                 </Button>
@@ -133,5 +223,8 @@ export function Softphone() {
                 </CardContent>
             )}
         </Card>
+    );
+}
+        </Card >
     );
 }

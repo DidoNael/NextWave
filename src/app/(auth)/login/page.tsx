@@ -55,28 +55,32 @@ export default function LoginPage() {
 
       console.log("SignIn result:", result);
 
-      // No Auth.js v5 / NextAuth.js v5 beta, erros de authorize vêm no `result.error` ou na URL
-      const errorMsg = result?.error || "";
-      const errorUrl = result?.url || "";
+      if (result?.error) {
+        // No Auth.js v5, erros customizados as vezes são encapsulados
+        if (result.error.includes("2FA_REQUIRED") || result.url?.includes("2FA_REQUIRED")) {
+          setSavedCredentials(data);
+          setStep("totp");
+          toast.info("Autenticação de dois fatores necessária");
+          return;
+        }
 
-      if (errorMsg.includes("2FA_REQUIRED") || errorUrl.includes("2FA_REQUIRED")) {
+        // Caso o erro venha como generic "Configuration" mas sabemos que é 2FA via console/logs
+        // Ou se o erro for especificamente o que definimos no authorize
+        toast.error(result.error === "Configuration" ? "Erro interno no servidor (Verifique 2FA)" : "Email ou senha incorretos");
+        return;
+      }
+
+      toast.success("Login realizado com sucesso!");
+      router.push("/");
+      router.refresh();
+    } catch (e: any) {
+      console.error("Login exception:", e);
+      // Alguns erros de redirect do NextAuth podem cair aqui
+      if (e.message?.includes("2FA_REQUIRED")) {
         setSavedCredentials(data);
         setStep("totp");
-        toast.info("Autenticação de dois fatores necessária");
         return;
       }
-
-      if (!result?.error) {
-        toast.success("Login realizado com sucesso!");
-        router.push("/");
-        router.refresh();
-        return;
-      }
-
-      // Se não for 2FA, é erro de credencial ou configuração
-      toast.error(result.error === "Configuration" ? "Erro interno no servidor" : "Email ou senha incorretos");
-    } catch (e) {
-      console.error("Login exception:", e);
       toast.error("Erro ao realizar login.");
     } finally {
       setIsLoading(false);
