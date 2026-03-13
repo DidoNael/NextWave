@@ -295,17 +295,18 @@ export default function KanbanPage() {
                                         </div>
                                     )}
                                 </Droppable>
-                                );
+                            </div>
+                        );
                     })}
 
-                                <Button
-                                    variant="outline"
-                                    className="w-80 shrink-0 border-dashed border-2 bg-muted/5 min-h-[100px] flex flex-col gap-2 rounded-xl text-muted-foreground hover:border-primary/30 hover:bg-muted/10 transition-all py-8"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                    Adicionar Coluna
-                                </Button>
-                            </div>
+                    <Button
+                        variant="outline"
+                        className="w-80 shrink-0 border-dashed border-2 bg-muted/5 min-h-[100px] flex flex-col gap-2 rounded-xl text-muted-foreground hover:border-primary/30 hover:bg-muted/10 transition-all py-8"
+                    >
+                        <Plus className="h-5 w-5" />
+                        Adicionar Coluna
+                    </Button>
+                </div>
             </DragDropContext>
         </div>
     );
