@@ -47,40 +47,44 @@ export default function LoginPage() {
   const onSubmitCredentials = async (data: LoginForm) => {
     setIsLoading(true);
     try {
+      // Passo 1: Verificar credenciais via API customizada (contorna limitação do Auth.js v5)
+      const preLogin = await fetch("/api/auth/pre-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      });
+
+      const preLoginData = await preLogin.json();
+
+      if (!preLogin.ok) {
+        toast.error(preLoginData.error || "Email ou senha incorretos");
+        return;
+      }
+
+      // Passo 2: Se precisa de 2FA, mostra o formulário de código
+      if (preLoginData.requires2FA) {
+        setSavedCredentials(data);
+        setStep("totp");
+        toast.info("Autenticação de dois fatores necessária");
+        return;
+      }
+
+      // Passo 3: Se não precisa de 2FA, faz login direto
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      console.log("SignIn result:", result);
-
-      if (result?.error) {
-        // No Auth.js v5, erros customizados as vezes são encapsulados
-        if (result.error.includes("2FA_REQUIRED") || result.url?.includes("2FA_REQUIRED")) {
-          setSavedCredentials(data);
-          setStep("totp");
-          toast.info("Autenticação de dois fatores necessária");
-          return;
-        }
-
-        // Caso o erro venha como generic "Configuration" mas sabemos que é 2FA via console/logs
-        // Ou se o erro for especificamente o que definimos no authorize
-        toast.error(result.error === "Configuration" ? "Erro interno no servidor (Verifique 2FA)" : "Email ou senha incorretos");
-        return;
+      if (!result?.error) {
+        toast.success("Login realizado com sucesso!");
+        router.push("/");
+        router.refresh();
+      } else {
+        toast.error("Erro ao autenticar. Tente novamente.");
       }
-
-      toast.success("Login realizado com sucesso!");
-      router.push("/");
-      router.refresh();
     } catch (e: any) {
       console.error("Login exception:", e);
-      // Alguns erros de redirect do NextAuth podem cair aqui
-      if (e.message?.includes("2FA_REQUIRED")) {
-        setSavedCredentials(data);
-        setStep("totp");
-        return;
-      }
       toast.error("Erro ao realizar login.");
     } finally {
       setIsLoading(false);

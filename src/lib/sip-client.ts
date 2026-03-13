@@ -3,8 +3,8 @@ import JsSIP from "jssip";
 export type SipStatus = "online" | "offline" | "connecting" | "error";
 
 class SipClient {
-    private ua: JsSIP.UA | null = null;
-    private session: JsSIP.RTCSession | null = null;
+    private ua: any = null;
+    private session: any = null;
     private statusListeners: ((status: SipStatus) => void)[] = [];
     private currentStatus: SipStatus = "offline";
 
@@ -38,7 +38,7 @@ class SipClient {
         const socket = new JsSIP.WebSocketInterface(config.sipDomain);
         const configuration = {
             sockets: [socket],
-            uri: `sip:${config.sipUser}@${config.sipDomain.split('/')[2].split(':')[0]}`,
+            uri: `sip:${config.sipUser}@${config.sipDomain.replace('wss://', '').replace('ws://', '').split('/')[0]}`,
             password: config.sipPassword,
             display_name: config.sipUser,
             register: true
@@ -55,12 +55,12 @@ class SipClient {
                 this.updateStatus("offline");
             });
 
-            this.ua.on("registrationFailed", (e) => {
+            this.ua.on("registrationFailed", (e: any) => {
                 console.error("SIP Registration Failed", e);
                 this.updateStatus("error");
             });
 
-            this.ua.on("newRTCSession", (data) => {
+            this.ua.on("newRTCSession", (data: any) => {
                 this.session = data.session;
                 // Handle incoming/outgoing session events here if needed
             });

@@ -225,6 +225,3 @@ export function Softphone() {
         </Card>
     );
 }
-        </Card >
-    );
-}

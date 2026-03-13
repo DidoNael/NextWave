@@ -124,9 +124,9 @@ export default async function RootLayout({
                   duration: 3000,
                 }}
               />
+              {session?.user && <Softphone />}
             </ColorProvider>
           </ThemeProvider>
-          <Softphone />
         </SessionProvider>
       </body>
     </html>
