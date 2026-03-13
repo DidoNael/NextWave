@@ -29,7 +29,7 @@ interface ChatListProps {
 
 export function ChatList({ onSelect, selectedId }: ChatListProps) {
     return (
-        <div className="flex flex-col h-full border-r border-border bg-card/50">
+        <div className="flex flex-col h-full md:border-r border-border bg-card/50 w-full">
             <div className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold tracking-tight">Conversas</h2>

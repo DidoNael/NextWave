@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
     Send, Paperclip, MoreVertical, Phone, Video,
-    Smile, Image as ImageIcon, FileText, User, Mic
+    Smile, Image as ImageIcon, FileText, User, Mic, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ const MOCK_MESSAGES: Message[] = [
     { id: "4", body: "Claro! O plano Pro inclui automações avançadas e o módulo de WhatsApp que estamos usando agora.", fromMe: true, time: "10:31", status: "delivered" },
 ];
 
-export function ChatWindow({ chat }: { chat: any }) {
+export function ChatWindow({ chat, onBack }: { chat: any, onBack?: () => void }) {
     const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,18 +54,32 @@ export function ChatWindow({ chat }: { chat: any }) {
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950/20">
             {/* Header */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-border">
-                        <AvatarFallback className="bg-primary/5 text-primary">
-                            {chat.customerName ? chat.customerName.charAt(0) : <User className="h-5 w-5" />}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                        <h3 className="text-sm font-bold leading-none">{chat.customerName || `+${chat.phone}`}</h3>
-                        <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            online agora
-                        </span>
+                <div className="flex items-center gap-2">
+                    {onBack && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="md:hidden -ml-2 h-9 w-9"
+                            onClick={onBack}
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    )}
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-border">
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                                {chat.customerName ? chat.customerName.charAt(0) : <User className="h-5 w-5" />}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                            <h3 className="text-sm font-bold leading-none truncate max-w-[140px] sm:max-w-none">
+                                {chat.customerName || `+${chat.phone}`}
+                            </h3>
+                            <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                online agora
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 text-muted-foreground">
