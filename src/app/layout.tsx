@@ -50,7 +50,12 @@ async function getBranding() {
     return await prisma.systemBranding.findFirst({
       where: { id: "default" }
     });
-  } catch (e) {
+  } catch (e: any) {
+    // Silencia erro de conexão durante o build
+    if (e.message?.includes("Unable to open the database file") || e.code === 'P2024') {
+      return null;
+    }
+    console.warn("Branding load failed", e.message);
     return null;
   }
 }
@@ -89,8 +94,10 @@ export default async function RootLayout({
         dbColor = user.accentColor as AccentColor;
         dbLayout = user.layoutTheme as LayoutTheme;
       }
-    } catch (e) {
-      console.error("Erro ao carregar tema do banco no layout", e);
+    } catch (e: any) {
+      if (!e.message?.includes("Unable to open the database file")) {
+        console.error("Erro ao carregar tema do banco no layout", e.message);
+      }
     }
   }
 
