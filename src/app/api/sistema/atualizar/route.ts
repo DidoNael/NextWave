@@ -14,15 +14,36 @@ const ALLOWED_COMMANDS = {
   build: "npm run build",
 };
 
+const TRANSLATIONS: Record<string, string> = {
+  "Already up to date.": "O sistema já está na versão mais recente.",
+  "Everything up-to-date": "Tudo atualizado.",
+  "Fast-forward": "Atualização rápida aplicada.",
+  "Aborting": "Abortando operação.",
+  "Permission denied": "Permissão negada.",
+  "Command failed": "O comando falhou.",
+  "up to date": "atualizado",
+  "added": "adicionado",
+  "removed": "removido",
+  "changed": "alterado",
+};
+
+function translateOutput(text: string) {
+  if (!text) return text;
+  let translated = text;
+  Object.entries(TRANSLATIONS).forEach(([en, pt]) => {
+    translated = translated.replace(new RegExp(en, 'g'), pt);
+  });
+  return translated;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
     
-    // Restrição para usuários administrativos
     if (!session || (session.user?.role !== "master" && session.user?.role !== "admin")) {
       return NextResponse.json({ 
         success: false, 
-        error: "Não autorizado. Apenas administradores podem executar atualizações." 
+        error: "Não autorizado." 
       }, { status: 403 });
     }
 
@@ -31,28 +52,27 @@ export async function POST(req: Request) {
     if (!command || !ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS]) {
       return NextResponse.json({ 
         success: false, 
-        error: "Comando inválido ou não permitido." 
+        error: "Comando inválido." 
       }, { status: 400 });
     }
 
     const shellCommand = ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS];
-    
-    console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand} in /app`);
+    console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand}`);
     
     const { stdout, stderr } = await execPromise(shellCommand, { cwd: "/app" });
 
     return NextResponse.json({
       success: true,
-      stdout,
-      stderr,
+      stdout: translateOutput(stdout),
+      stderr: translateOutput(stderr),
     });
   } catch (error: any) {
     console.error("[SYSTEM_UPDATE_ERROR]", error);
     return NextResponse.json({
       success: false,
-      error: error.message,
-      stdout: error.stdout,
-      stderr: error.stderr,
+      error: translateOutput(error.message),
+      stdout: translateOutput(error.stdout),
+      stderr: translateOutput(error.stderr),
     }, { status: 500 });
   }
 }

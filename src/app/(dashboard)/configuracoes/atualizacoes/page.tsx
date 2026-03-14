@@ -133,26 +133,54 @@ export default function AtualizacoesPage() {
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-3">
+              <Button 
+                variant="default"
+                className="w-full bg-gradient-to-r from-primary to-primary-foreground/20 h-auto py-4 mb-2 animate-pulse hover:animate-none"
+                disabled={loading !== null}
+                onClick={async () => {
+                  const steps = [
+                    { id: 'pull', label: 'Buscando arquivos' },
+                    { id: 'install', label: 'Instalando dependências' },
+                    { id: 'generate', label: 'Configurando ORM' },
+                    { id: 'push', label: 'Sincronizando banco' },
+                    { id: 'build', label: 'Compilando sistema' },
+                  ];
+                  for (const step of steps) {
+                    await runUpdate(step.id, step.label);
+                  }
+                  toast.success("Sistema totalmente atualizado!");
+                }}
+              >
+                <div className="flex items-center gap-3 text-left w-full">
+                  <RefreshCw className={cn("h-6 w-6", loading && "animate-spin")} />
+                  <div>
+                    <p className="font-bold text-sm uppercase italic">🚀 Atualização Completa</p>
+                    <p className="text-[10px] opacity-80">Baixar, Instalar e Compilar (Um clique)</p>
+                  </div>
+                </div>
+              </Button>
+
+              <Separator className="my-2 bg-primary/10" />
+
               {[
-                { id: 'pull', label: 'Buscar Atualizações', icon: RefreshCw, desc: 'Executa git pull' },
-                { id: 'reset', label: 'Limpar Alterações Locais', icon: AlertCircle, desc: 'Resolve erros de git checkout' },
-                { id: 'install', label: 'Instalar Dependências', icon: Download, desc: 'Executa npm install' },
-                { id: 'generate', label: 'Gerar Prisma Client', icon: Package, desc: 'Atualiza o ORM' },
-                { id: 'push', label: 'Sincronizar Banco de Dados', icon: ShieldCheck, desc: 'Aplica migrations' },
+                { id: 'pull', label: 'Buscar Atualizações', icon: RefreshCw, desc: 'Sincronizar com GitHub' },
+                { id: 'install', label: 'Instalar Dependências', icon: Download, desc: 'npm install' },
                 { id: 'build', label: 'Reconstruir Sistema', icon: Terminal, desc: 'Build de produção' },
+                { id: 'push', label: 'Sincronizar Banco', icon: ShieldCheck, desc: 'Prisma db push' },
+                { id: 'reset', label: 'Resetar Alterações', icon: AlertCircle, desc: 'Limpar modificações locais' },
               ].map((btn) => (
                 <Button 
                   key={btn.id}
                   variant="outline" 
-                  className="w-full justify-start h-auto py-3 px-4 hover:bg-primary/10 transition-all border-primary/10"
+                  className="w-full justify-start h-auto py-2 px-3 hover:bg-primary/10 transition-all border-primary/10 bg-white/50 dark:bg-slate-900/20"
                   disabled={loading !== null}
                   onClick={() => runUpdate(btn.id, btn.label)}
                 >
                   <div className="flex items-center gap-3 text-left w-full">
-                    {loading === btn.id ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <btn.icon className="h-5 w-5 text-primary" />}
+                    {loading === btn.id ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <btn.icon className="h-4 w-4 text-primary" />}
                     <div>
-                      <p className="font-bold text-xs">{btn.label}</p>
-                      <p className="text-[10px] text-muted-foreground font-normal">{btn.desc}</p>
+                      <p className="font-bold text-[10px]">{btn.label}</p>
+                      <p className="text-[9px] text-muted-foreground font-normal">{btn.desc}</p>
                     </div>
                   </div>
                 </Button>
