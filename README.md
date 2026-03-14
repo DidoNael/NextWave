@@ -28,6 +28,20 @@ npm run dev
 
 Acesse: http://localhost:3000
 
+## Zerando o Banco de Dados
+
+Se precisar limpar todos os dados e começar do zero (mantendo apenas o admin):
+
+```bash
+# Se estiver rodando LOCALMENTE:
+npx prisma db push --force-reset
+npm run db:seed
+
+# Se estiver rodando via DOCKER:
+chmod +x reset-db.sh
+./reset-db.sh
+```
+
 ## Tecnologias
 
 - **Framework:** Next.js 14 (App Router)

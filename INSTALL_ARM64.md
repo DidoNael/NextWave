@@ -91,6 +91,14 @@ docker compose up -d
 
 O sistema estará disponível em `http://localhost:3000`. O banco de dados SQLite será persistido no volume `crm-data`.
 
+### Como Zerar o Banco de Dados (Docker)
+Para limpar todos os dados do CRM e manter apenas o usuário administrador:
+
+```bash
+chmod +x reset-db.sh
+./reset-db.sh
+```
+
 ---
 ## Host vs Docker: Qual usar?
 
@@ -104,4 +112,4 @@ O sistema estará disponível em `http://localhost:3000`. O banco de dados SQLit
 **Recomendação**: Mantenha as duas formas. Use o **Host** para fazer alterações e testar rápido, e o **Docker** para colocar o sistema "no ar" de forma profissional.
 
 ---
-*Documentação atualizada em 11/03/2026*
+*Documentação atualizada em 14/03/2026*
