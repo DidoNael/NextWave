@@ -24,6 +24,9 @@ RUN npm run build
 RUN chmod +x docker-entrypoint.sh
 RUN chmod +x -R ./node_modules/.bin || true
 
+# Permitir ao git operar no bind mount sem conflito de permissões de dono (Evita erro: not a git repository)
+RUN git config --global --add safe.directory '*'
+
 # Criar pasta pro SQLite
 RUN mkdir -p /app/data
 
