@@ -135,6 +135,7 @@ export default function AtualizacoesPage() {
             <CardContent className="p-4 pt-0 space-y-3">
               {[
                 { id: 'pull', label: 'Buscar Atualizações', icon: RefreshCw, desc: 'Executa git pull' },
+                { id: 'reset', label: 'Limpar Alterações Locais', icon: AlertCircle, desc: 'Resolve erros de git checkout' },
                 { id: 'install', label: 'Instalar Dependências', icon: Download, desc: 'Executa npm install' },
                 { id: 'generate', label: 'Gerar Prisma Client', icon: Package, desc: 'Atualiza o ORM' },
                 { id: 'push', label: 'Sincronizar Banco de Dados', icon: ShieldCheck, desc: 'Aplica migrations' },

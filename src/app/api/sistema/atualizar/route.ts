@@ -7,6 +7,7 @@ const execPromise = promisify(exec);
 
 const ALLOWED_COMMANDS = {
   pull: "git pull",
+  reset: "git checkout . && git clean -fd",
   install: "npm install",
   generate: "npx prisma generate",
   push: "npx prisma db push",

@@ -258,11 +258,16 @@ export default function ServicosPage() {
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{service.description}</p>
                   )}
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
-                    <div>
-                      {service.client && <p className="text-xs text-muted-foreground">{service.client.name}</p>}
-                      {service.category && <p className="text-xs text-muted-foreground">{service.category}</p>}
+                    <div className="min-w-0">
+                      {service.client && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <User className="h-3 w-3 text-indigo-500" />
+                          <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">{service.client.name}</p>
+                        </div>
+                      )}
+                      {service.category && <p className="text-[10px] text-muted-foreground uppercase font-medium">{service.category}</p>}
                     </div>
-                    <p className="text-lg font-bold text-primary">{formatCurrency(service.amount)}</p>
+                    <p className="text-lg font-black text-primary ml-2">{formatCurrency(service.amount)}</p>
                   </div>
                 </CardContent>
               </Card>

@@ -69,6 +69,20 @@ export function ClientProfile({ clientId, open, onOpenChange }: ClientProfilePro
         interval: "monthly",
         nextBillingDate: new Date().toISOString().split("T")[0],
     });
+    
+    // Service CRUD
+    const [svcDialogOpen, setSvcDialogOpen] = useState(false);
+    const [svcSaving, setSvcSaving] = useState(false);
+    const [svcForm, setSvcForm] = useState({
+        title: "",
+        description: "",
+        amount: "",
+        category: "Desenvolvimento",
+        status: "rascunho",
+        startDate: "",
+        endDate: "",
+        notes: "",
+    });
 
     useEffect(() => {
         if (open && clientId) {
@@ -203,6 +217,42 @@ export function ClientProfile({ clientId, open, onOpenChange }: ClientProfilePro
             toast.error("Erro ao criar assinatura");
         } finally {
             setSubSaving(false);
+        }
+    };
+
+    // ── Service CRUD ────────────────────────────────────────
+    const openCreateSvc = () => {
+        setSvcForm({
+            title: "", description: "", amount: "", category: "Desenvolvimento",
+            status: "rascunho", startDate: "", endDate: "", notes: "",
+        });
+        setSvcDialogOpen(true);
+    };
+
+    const saveSvc = async () => {
+        if (!svcForm.title || !svcForm.amount) {
+            toast.error("Preencha os campos obrigatórios");
+            return;
+        }
+        setSvcSaving(true);
+        try {
+            const res = await fetch("/api/servicos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...svcForm,
+                    amount: parseFloat(svcForm.amount),
+                    clientId,
+                }),
+            });
+            if (!res.ok) throw new Error();
+            toast.success("Serviço vinculado com sucesso!");
+            setSvcDialogOpen(false);
+            fetchClientDetails();
+        } catch {
+            toast.error("Erro ao criar serviço");
+        } finally {
+            setSvcSaving(false);
         }
     };
 
@@ -440,7 +490,7 @@ export function ClientProfile({ clientId, open, onOpenChange }: ClientProfilePro
 
                                     <TabsContent value="servicos" className="mt-0 space-y-4 pr-1">
                                         <div className="flex justify-end mb-2">
-                                            <Button size="sm" className="rounded-xl bg-blue-600 hover:bg-blue-700" onClick={() => window.location.href = '/servicos'}>
+                                            <Button size="sm" className="rounded-xl bg-blue-600 hover:bg-blue-700" onClick={openCreateSvc}>
                                                 <Plus className="h-4 w-4 mr-1" /> Novo Serviço
                                             </Button>
                                         </div>
@@ -472,8 +522,8 @@ export function ClientProfile({ clientId, open, onOpenChange }: ClientProfilePro
                                                     <Briefcase className="h-8 w-8 text-muted-foreground/40" />
                                                 </div>
                                                 <p className="text-sm text-muted-foreground font-medium">Nenhum serviço vinculado a este cliente.</p>
-                                                <Button variant="outline" size="sm" className="rounded-full px-8" onClick={() => window.location.href = '/servicos'}>
-                                                    <Plus className="h-4 w-4 mr-2" /> Vincular Serviço
+                                                <Button variant="outline" size="sm" className="rounded-full px-8" onClick={openCreateSvc}>
+                                                    <Plus className="h-4 w-4 mr-2" /> Cadastrar Serviço
                                                 </Button>
                                             </div>
                                         )}
@@ -613,6 +663,57 @@ export function ClientProfile({ clientId, open, onOpenChange }: ClientProfilePro
                         <Button className="bg-purple-600 hover:bg-purple-700" onClick={saveSub} disabled={subSaving}>
                             {subSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                             Criar Assinatura
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* ── Dialog: Novo Serviço ── */}
+            <Dialog open={svcDialogOpen} onOpenChange={setSvcDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Novo Serviço / Orçamento</DialogTitle>
+                        <DialogDescription>Cadastre um novo serviço para {client?.name}.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Título do Serviço *</Label>
+                            <Input placeholder="Ex: Criação de Logotipo" value={svcForm.title} onChange={(e) => setSvcForm({ ...svcForm, title: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Descrição</Label>
+                            <Textarea placeholder="Detalhes do serviço..." value={svcForm.description} onChange={(e) => setSvcForm({ ...svcForm, description: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Valor (R$) *</Label>
+                                <Input type="number" step="0.01" placeholder="0,00" value={svcForm.amount} onChange={(e) => setSvcForm({ ...svcForm, amount: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Categoria</Label>
+                                <Select value={svcForm.category} onValueChange={(v) => setSvcForm({ ...svcForm, category: v })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {CATEGORIAS_RECEITA.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Data de Início</Label>
+                                <Input type="date" value={svcForm.startDate} onChange={(e) => setSvcForm({ ...svcForm, startDate: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Previsão de Entrega</Label>
+                                <Input type="date" value={svcForm.endDate} onChange={(e) => setSvcForm({ ...svcForm, endDate: e.target.value })} />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSvcDialogOpen(false)}>Cancelar</Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700" onClick={saveSvc} disabled={svcSaving}>
+                            {svcSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                            Salvar Serviço
                         </Button>
                     </DialogFooter>
                 </DialogContent>
