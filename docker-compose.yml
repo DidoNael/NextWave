@@ -80,6 +80,8 @@ services:
         max-file: "3"
 
   mcp-server:
+    profiles:
+      - mcp
     build:
       context: .
       dockerfile: mcp-server/Dockerfile
