@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.7.4",
+    "date": "2026-03-14",
+    "title": "Melhorias de Estabilidade e UX",
+    "description": "Correções críticas relacionadas à falta de espaço de disco no Docker e melhorias na UX de Sessões/Configurações.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Limpeza forçada do cache do NPM no Dockerfile para evitar estourar Inodes no servidor",
+      "Fix: Resolvido crash do Radix UI ao tentar abrir o modal de 'Novo Serviço'",
+      "Fix: Persistência real das opções de notificações Push e E-mail no Banco de Dados",
+      "Hotfix: Aceleração da queda de sincronia do 'Single Device Access'",
+      "Fix: Menu lateral agora exibe a versão correta do sistema dinamicamente"
+    ]
+  },
+  {
     "version": "1.6.7",
     "date": "2026-03-14",
     "title": "Build & Estabilidade",
