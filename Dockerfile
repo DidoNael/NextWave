@@ -26,7 +26,7 @@ RUN npm run build
 
 # ===== STAGE 3: Produção =====
 FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat git openssh
 
 WORKDIR /app
 
