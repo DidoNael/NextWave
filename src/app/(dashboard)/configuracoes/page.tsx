@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Moon, Sun, Monitor, User, Bell, Shield, Palette, Puzzle, Mail, Phone, DollarSign, CreditCard } from "lucide-react";
+import { Moon, Sun, Monitor, User, Bell, Shield, Palette, Puzzle, Mail, Phone, DollarSign, CreditCard, Server } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -225,6 +225,20 @@ export default function ConfiguracoesPage() {
                 <div>
                   <CardTitle className="text-lg">Notas Fiscais (NFE)</CardTitle>
                   <CardDescription>Configurar rotinas de emissão em lote.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/configuracoes/mcp">
+            <Card className="hover:border-primary/50 transition-colors group">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500 group-hover:bg-violet-500 group-hover:text-white transition-colors">
+                  <Server className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">MCP Server</CardTitle>
+                  <CardDescription>Integre com agentes de IA via Model Context Protocol.</CardDescription>
                 </div>
               </CardHeader>
             </Card>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight, ChevronDown,
-  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone
+  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ const navItems: NavItem[] = [
 const bottomItems = [
   { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush },
   { href: "/configuracoes/agendador", label: "Agendador", icon: Clock },
+  { href: "/configuracoes/mcp", label: "MCP Server", icon: Server },
   { href: "/configuracoes", label: "Sistema", icon: Settings },
   { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database },
 ];

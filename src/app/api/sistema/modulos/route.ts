@@ -24,6 +24,7 @@ export async function GET() {
                 { key: 'usuarios', name: 'Usuários', enabled: true },
                 { key: 'whatsapp', name: 'WhatsApp', enabled: true },
                 { key: 'evolution', name: 'Evolution API', enabled: false },
+                { key: 'mcp', name: 'MCP Server', description: 'Integração com agentes de IA via Model Context Protocol', enabled: false },
             ];
 
             for (const mod of defaultModules) {

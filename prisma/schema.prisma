@@ -367,3 +367,16 @@ model PaymentGatewayConfig {
   isActive    Boolean  @default(false)
   updatedAt   DateTime @updatedAt
 }
+
+model McpConfig {
+  id              String   @id @default("default")
+  apiKey          String?
+  allowedIps      String   @default("127.0.0.1")
+  allowedOrigins  String   @default("*")
+  rateLimit       Int      @default(100)
+  rateWindow      Int      @default(60)
+  logLevel        String   @default("info")
+  port            Int      @default(3001)
+  isActive        Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}

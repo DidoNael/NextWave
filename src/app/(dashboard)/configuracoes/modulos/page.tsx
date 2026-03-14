@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
     Puzzle, Save, RefreshCw, CheckCircle2, XCircle,
-    MessageSquare, DollarSign, Users, Briefcase, Calendar, LayoutDashboard, Database
+    MessageSquare, DollarSign, Users, Briefcase, Calendar, LayoutDashboard, Database, Server
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const ICON_MAP: Record<string, any> = {
     agenda: Calendar,
     usuarios: Users,
     whatsapp: MessageSquare,
+    mcp: Server,
 };
 
 export default function ModulosPage() {
