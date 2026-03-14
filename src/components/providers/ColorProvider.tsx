@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type AccentColor = "blue" | "orange" | "green" | "purple" | "rose";
+export type AccentColor = "blue" | "orange" | "green" | "purple" | "rose" | "pink";
 export type LayoutTheme = "default" | "professional";
 
 interface ColorContextType {
@@ -14,7 +14,7 @@ interface ColorContextType {
 
 const ColorContext = createContext<ColorContextType | undefined>(undefined);
 
-const VALID_COLORS: AccentColor[] = ["blue", "orange", "green", "purple", "rose"];
+const VALID_COLORS: AccentColor[] = ["blue", "orange", "green", "purple", "rose", "pink"];
 const VALID_LAYOUTS: LayoutTheme[] = ["default", "professional"];
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 ano
 

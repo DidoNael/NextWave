@@ -25,13 +25,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-type AccentColor = "blue" | "orange" | "green" | "purple" | "rose";
+type AccentColor = "blue" | "orange" | "green" | "purple" | "rose" | "pink";
 type LayoutTheme = "default" | "professional";
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-const VALID_COLORS: AccentColor[] = ["blue", "orange", "green", "purple", "rose"];
+const VALID_COLORS: AccentColor[] = ["blue", "orange", "green", "purple", "rose", "pink"];
 const VALID_LAYOUTS: LayoutTheme[] = ["default", "professional"];
 
 async function getLicenseStatus() {

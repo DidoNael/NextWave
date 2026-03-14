@@ -92,6 +92,12 @@
     --ring: 347 77% 50%;
   }
 
+  [data-color='pink'] {
+    --primary: 322 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 322 100% 50%;
+  }
+
   /* Dark + cor (especificidade 0,2,0 — garante override sobre .dark isolado) */
   .dark[data-color='blue'] {
     --primary: 182 100% 50%;
@@ -121,6 +127,12 @@
     --primary: 347 77% 50%;
     --primary-foreground: 0 0% 100%;
     --ring: 347 77% 50%;
+  }
+
+  .dark[data-color='pink'] {
+    --primary: 322 80% 60%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 322 80% 60%;
   }
 
   .primary-gradient {

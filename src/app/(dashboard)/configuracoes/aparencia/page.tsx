@@ -13,6 +13,7 @@ const ACCENT_COLORS: { value: AccentColor; label: string; hex: string; dark: boo
     { value: "green",  label: "Esmeralda", hex: "#10b981", dark: false },
     { value: "purple", label: "Violeta",   hex: "#8b5cf6", dark: false },
     { value: "rose",   label: "Rosa",      hex: "#f43f5e", dark: false },
+    { value: "pink",   label: "Rosa Claro", hex: "#ec4899", dark: false },
 ];
 
 const DISPLAY_MODES = [

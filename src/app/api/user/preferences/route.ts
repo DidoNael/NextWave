@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         const { accentColor, layoutTheme } = await req.json();
 
         // Validação básica
-        const VALID_COLORS = ["blue", "orange", "green", "purple", "rose"];
+        const VALID_COLORS = ["blue", "orange", "green", "purple", "rose", "pink"];
         const VALID_LAYOUTS = ["default", "professional"];
 
         if (accentColor && !VALID_COLORS.includes(accentColor)) {
