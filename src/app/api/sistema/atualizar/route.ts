@@ -3,7 +3,11 @@ import { auth } from "@/auth";
 import { exec } from "child_process";
 import { promisify } from "util";
 
+import { existsSync, writeFileSync, unlinkSync } from "fs";
+import { join } from "path";
+
 const execPromise = promisify(exec);
+const LOCK_FILE = "/tmp/nextwave_update.lock";
 
 const ALLOWED_COMMANDS = {
   pull: "git pull",
@@ -12,6 +16,7 @@ const ALLOWED_COMMANDS = {
   generate: "npx prisma generate",
   push: "npx prisma db push",
   build: "npm run build",
+  checkout: "git checkout",
 };
 
 const TRANSLATIONS: Record<string, string> = {
@@ -41,31 +46,45 @@ export async function POST(req: Request) {
     const session = await auth();
     
     if (!session || (session.user?.role !== "master" && session.user?.role !== "admin")) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Não autorizado." 
-      }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Não autorizado." }, { status: 403 });
     }
 
-    const { command } = await req.json();
+    const { command, version } = await req.json();
 
     if (!command || !ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS]) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Comando inválido." 
-      }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Comando inválido." }, { status: 400 });
     }
 
-    const shellCommand = ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS];
-    console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand}`);
-    
-    const { stdout, stderr } = await execPromise(shellCommand, { cwd: "/app" });
+    // Verificar trava (Lock)
+    if (existsSync(LOCK_FILE)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Uma operação de sistema já está em andamento. Aguarde a conclusão." 
+      }, { status: 409 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      stdout: translateOutput(stdout),
-      stderr: translateOutput(stderr),
-    });
+    // Criar trava
+    writeFileSync(LOCK_FILE, Date.now().toString());
+
+    try {
+      let shellCommand = ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS];
+      
+      if (command === "checkout" && version) {
+        shellCommand = `${shellCommand} v${version.replace('v', '')}`;
+      }
+
+      console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand}`);
+      const { stdout, stderr } = await execPromise(shellCommand, { cwd: "/app" });
+
+      return NextResponse.json({
+        success: true,
+        stdout: translateOutput(stdout),
+        stderr: translateOutput(stderr),
+      });
+    } finally {
+      // Remover trava sempre
+      if (existsSync(LOCK_FILE)) unlinkSync(LOCK_FILE);
+    }
   } catch (error: any) {
     console.error("[SYSTEM_UPDATE_ERROR]", error);
     return NextResponse.json({

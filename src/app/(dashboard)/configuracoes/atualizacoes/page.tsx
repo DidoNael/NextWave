@@ -32,14 +32,14 @@ export default function AtualizacoesPage() {
     setLogs(prev => [...prev, { type, text: `[${new Date().toLocaleTimeString()}] ${text}` }]);
   };
 
-  const runUpdate = async (cmd: string, label: string) => {
+  const runUpdate = async (cmd: string, label: string, extra: any = {}) => {
     setLoading(cmd);
     addLog(`Iniciando: ${label}...`);
     try {
       const res = await fetch("/api/sistema/atualizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: cmd }),
+        body: JSON.stringify({ command: cmd, ...extra }),
       });
       const data = await res.json();
       
@@ -96,26 +96,46 @@ export default function AtualizacoesPage() {
                     )}>
                       {i === 0 ? <CheckCircle2 className="h-5 w-5" /> : <Package className="h-4 w-4" />}
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg">{v.title}</h3>
-                          <Badge variant={v.type === 'feature' ? 'success' : 'info'} className="text-[10px] rounded-full px-2">
-                            {v.type}
-                          </Badge>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">{v.title}</h3>
+                            <Badge variant={v.type === 'feature' ? 'success' : 'info'} className="text-[10px] rounded-full px-2">
+                              {v.type}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-medium text-muted-foreground">{v.date}</span>
+                            {i !== 0 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-[10px] gap-1 text-primary hover:bg-primary/5 px-2 font-bold uppercase"
+                                disabled={loading !== null}
+                                onClick={async () => {
+                                  if (!confirm(`Deseja restaurar o sistema para a versão ${v.version}? Isso irá recompilar o sistema.`)) return;
+                                  await runUpdate('checkout', `Voltar para v${v.version}`, { version: v.version });
+                                  await runUpdate('install', 'Instalando dependências');
+                                  await runUpdate('build', 'Reconstruindo sistema');
+                                  toast.success(`Sistema restaurado para v${v.version}`);
+                                }}
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                Restaurar
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs font-medium text-muted-foreground">{v.date}</span>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{v.description}</p>
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          {v.changes.map((c, j) => (
+                            <li key={j} className="text-xs flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                              <ChevronRight className="h-3 w-3 text-primary" />
+                              {c}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{v.description}</p>
-                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                        {v.changes.map((c, j) => (
-                          <li key={j} className="text-xs flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                            <ChevronRight className="h-3 w-3 text-primary" />
-                            {c}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   </div>
                 ))}
               </div>
