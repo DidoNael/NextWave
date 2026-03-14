@@ -83,7 +83,19 @@ export default function ServicosPage() {
 
   const { register, handleSubmit, reset, control, watch, formState: { errors, isSubmitting } } = useForm<ServiceForm>({
     resolver: zodResolver(serviceSchema),
-    defaultValues: { status: "rascunho" },
+    defaultValues: { 
+      status: "rascunho",
+      title: "",
+      amount: 0,
+      description: "",
+      category: "",
+      clientId: "",
+      paymentReceived: false,
+      paymentMethod: "Pix",
+      startDate: "",
+      endDate: "",
+      notes: ""
+    },
   });
 
   const isPaymentReceived = watch("paymentReceived");
@@ -110,8 +122,19 @@ export default function ServicosPage() {
   }, [fetchServices]);
 
   const openCreate = () => {
-    setEditingService(null);
-    reset({ status: "rascunho", paymentReceived: false, paymentMethod: "Pix" });
+    reset({ 
+      title: "",
+      amount: 0,
+      description: "",
+      status: "rascunho", 
+      category: "",
+      clientId: "",
+      paymentReceived: false, 
+      paymentMethod: "Pix",
+      startDate: "",
+      endDate: "",
+      notes: ""
+    });
     setIsDialogOpen(true);
   };
 
@@ -323,7 +346,7 @@ export default function ServicosPage() {
                 name="clientId"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
                     <SelectTrigger><SelectValue placeholder="Vincular a um cliente (Opcional)" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Nenhum</SelectItem>
@@ -345,7 +368,7 @@ export default function ServicosPage() {
                   name="category"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
