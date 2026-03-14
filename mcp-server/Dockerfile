@@ -16,7 +16,7 @@ RUN npx prisma generate --schema=/app/prisma/schema.prisma
 # Copia e compila o código
 COPY tsconfig.json ./
 COPY src/ ./src/
-RUN npx tsc
+RUN ./node_modules/.bin/tsc && ls -la dist/
 
 # ── Production stage ──
 FROM node:20-alpine AS production
