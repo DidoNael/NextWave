@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de Deploy Automatizado do NextWave CRM para ARM64
-# Versão 1.1.4
+# Versão 1.2.0
 
 echo "🚀 Iniciando Deploy do NextWave CRM..."
 
@@ -17,7 +17,41 @@ if ! [ -x "$(command -v docker)" ]; then
   exit 1
 fi
 
-# 2. Verificar se o arquivo .env existe, se não, criar do .env.example
+# 2. Detectar Docker Compose (v2 plugin ou v1 standalone)
+COMPOSE=""
+if docker compose version &>/dev/null; then
+    COMPOSE="docker compose"
+    echo "✅ Docker Compose V2 detectado"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
+    echo "✅ Docker Compose V1 detectado"
+else
+    echo "❌ Docker Compose não está instalado."
+    echo "📦 Instalando Docker Compose V2 plugin..."
+    apt-get update -qq && apt-get install -y -qq docker-compose-plugin 2>/dev/null
+    if docker compose version &>/dev/null; then
+        COMPOSE="docker compose"
+        echo "✅ Docker Compose V2 instalado com sucesso!"
+    else
+        echo "⚠️ Instalação automática falhou. Tentando instalar standalone..."
+        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [ -z "$COMPOSE_VERSION" ]; then
+            COMPOSE_VERSION="v2.27.0"
+        fi
+        ARCH=$(uname -m)
+        curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+        if command -v docker-compose &>/dev/null; then
+            COMPOSE="docker-compose"
+            echo "✅ Docker Compose standalone instalado com sucesso!"
+        else
+            echo "❌ Não foi possível instalar o Docker Compose. Instale manualmente."
+            exit 1
+        fi
+    fi
+fi
+
+# 3. Verificar se o arquivo .env existe, se não, criar do .env.example
 if [ ! -f .env ]; then
     echo "📄 Arquivo .env não encontrado. Criando um padrão..."
     if [ -f .env.example ]; then
@@ -32,19 +66,19 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# 3. Construir e subir os containers
+# 4. Construir e subir os containers
 echo "🏗️ Construindo containers (isso pode levar alguns minutos em ARM64)..."
-docker compose build --pull
+$COMPOSE build --pull
 
 echo "⬆️ Subindo o sistema..."
-docker compose up -d
+$COMPOSE up -d
 
 echo "📊 Verificando status..."
-docker compose ps
+$COMPOSE ps
 
 echo ""
 echo "===================================================="
 echo "✨ NextWave CRM está subindo!"
-echo "📍 Acesse em: http://seu-ip-ou-localhost:3000"
+echo "📍 Acesse em: http://${SERVER_IP}:3000"
 echo "📂 Banco de dados persistido no volume: crm-data"
 echo "===================================================="
