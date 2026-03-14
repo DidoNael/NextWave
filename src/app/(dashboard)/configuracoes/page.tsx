@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Moon, Sun, Monitor, User, Bell, Shield, Palette, Puzzle, Mail, Phone, DollarSign, CreditCard, Server, MessageSquare, History as HistoryIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
@@ -19,10 +19,48 @@ export default function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
   const [notificacoes, setNotificacoes] = useState({
-    email: true,
-    push: false,
-    vencimentos: true,
+    notifyEmail: true,
+    notifyPush: false,
+    notifyDue: true,
   });
+
+  const [loadingConfig, setLoadingConfig] = useState(false);
+
+  // Carregar preferências do banco no primeiro acesso
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch("/api/configuracoes/perfil")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user) {
+            setNotificacoes({
+              notifyEmail: data.user.notifyEmail ?? true,
+              notifyPush: data.user.notifyPush ?? false,
+              notifyDue: data.user.notifyDue ?? true,
+            });
+          }
+        })
+        .catch(console.error);
+    }
+  }, [session?.user?.id]);
+
+  // Função para salvar qualquer alteração de notificação
+  const handleNotificacaoChange = async (key: keyof typeof notificacoes, value: boolean) => {
+    setNotificacoes((prev) => ({ ...prev, [key]: value }));
+    try {
+      const res = await fetch("/api/configuracoes/perfil", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value })
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Preferência atualizada!");
+    } catch {
+      toast.error("Erro ao salvar preferência");
+      // Reverte em caso de erro
+      setNotificacoes((prev) => ({ ...prev, [key]: !value }));
+    }
+  };
 
   const temas = [
     { value: "light", label: "Claro", icon: Sun },
@@ -117,9 +155,9 @@ export default function ConfiguracoesPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {[
-            { key: "email", label: "Notificações por Email", desc: "Receba alertas no seu email cadastrado" },
-            { key: "push", label: "Notificações Push", desc: "Alertas no navegador em tempo real" },
-            { key: "vencimentos", label: "Alertas de Vencimento", desc: "Avise quando transações estão próximas do vencimento" },
+            { key: "notifyEmail", label: "Notificações por Email", desc: "Receba alertas no seu email cadastrado" },
+            { key: "notifyPush", label: "Notificações Push", desc: "Alertas no navegador em tempo real" },
+            { key: "notifyDue", label: "Alertas de Vencimento", desc: "Avise quando transações estão próximas do vencimento" },
           ].map(({ key, label, desc }, i, arr) => (
             <div key={key}>
               <div className="flex items-center justify-between">
@@ -129,7 +167,7 @@ export default function ConfiguracoesPage() {
                 </div>
                 <Switch
                   checked={notificacoes[key as keyof typeof notificacoes]}
-                  onCheckedChange={(v) => setNotificacoes((prev) => ({ ...prev, [key]: v }))}
+                  onCheckedChange={(v) => handleNotificacaoChange(key as keyof typeof notificacoes, v)}
                 />
               </div>
               {i < arr.length - 1 && <Separator className="mt-4" />}
