@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Filter, Briefcase, Trash2, Edit, DollarSign } from "lucide-react";
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  LayoutGrid, 
+  List, 
+  MoreVertical, 
+  Edit, 
+  Trash2, 
+  AlertCircle, 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  Briefcase,
+  User,
+  ExternalLink
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

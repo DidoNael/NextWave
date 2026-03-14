@@ -29,7 +29,7 @@ const clienteSchema = z.object({
   emails: z.array(z.object({ value: z.string().email("Email inválido") })).min(1, "Adicione pelo menos um email"),
   phones: z.array(z.object({ value: z.string().min(1, "Mínimo 1 telefone") })).min(1, "Adicione pelo menos um telefone"),
   document: z.string().min(1, "CPF/CNPJ obrigatório"),
-  company: z.string().optional(),
+  company: z.string().min(2, "Nome da empresa obrigatório"),
   zipCode: z.string().min(8, "CEP obrigatório"),
   address: z.string().min(5, "Endereço obrigatório"),
   city: z.string().min(2, "Cidade obrigatória"),
@@ -454,8 +454,13 @@ export default function ClientesPage() {
                 {errors.zipCode && <p className="text-[10px] text-destructive italic">{errors.zipCode.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Empresa</Label>
-                <Input placeholder="Nome da empresa" {...register("company")} />
+                <Label className={errors.company ? "text-destructive" : ""}>Empresa *</Label>
+                <Input 
+                  placeholder="Nome da empresa" 
+                  {...register("company")} 
+                  className={cn(errors.company && "border-destructive ring-destructive")}
+                />
+                {errors.company && <p className="text-[10px] text-destructive italic">{errors.company.message}</p>}
               </div>
               <div className="col-span-2 space-y-2">
                 <Label className={errors.address ? "text-destructive" : ""}>Endereço *</Label>
