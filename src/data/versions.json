@@ -1,16 +1,40 @@
 [
   {
+    "version": "1.6.7",
+    "date": "2026-03-14",
+    "title": "Build & Estabilidade",
+    "description": "Correção crítica no build Docker e ajuste no schema do banco de dados (campo waVersion).",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Erro de tipo no build production",
+      "Add: Campo waVersion no schema Prisma",
+      "Sincronização de tags v1.6.7 no Git"
+    ]
+  },
+  {
+    "version": "1.6.6",
+    "date": "2026-03-14",
+    "title": "Foco em Serviços",
+    "description": "Melhorias na vinculação entre serviços e clientes, com criação direta no perfil.",
+    "type": "feature",
+    "changes": [
+      "Vinculação direta de serviços no Perfil do Cliente",
+      "Novo formulário de serviço integrado",
+      "Exibição do cliente vinculado no menu de Serviços",
+      "Ajuste de ícone 'DollarSign' ausente"
+    ]
+  },
+  {
     "version": "1.6.5",
     "date": "2026-03-14",
     "title": "Módulos & Segurança",
-    "description": "Integração com Evolution API, campos obrigatórios no cadastro de clientes com feedback visual e vinculação de serviços aos perfis de clientes.",
+    "description": "Integração com Evolution API e validação obrigatória de clientes.",
     "type": "feature",
     "changes": [
-      "Novo módulo WhatsApp API (Evolution)",
-      "Validação obrigatória de CNPJ, CEP e Endereço",
-      "Bordas vermelhas em campos vazios no cadastro",
-      "Vínculo de Serviços com Clientes",
-      "Limpeza de dados de demonstração (Dashboard/WhatsApp)"
+      "Módulo de automação WhatsApp (Evolution API)",
+      "Validação obrigatória (CNPJ, CEP, Endereço)",
+      "Feedback visual de campos obrigatórios (Borda Vermelha)",
+      "Limpeza de dados de demonstração no Dashboard"
     ]
   },
   {
