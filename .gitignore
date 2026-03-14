@@ -46,3 +46,7 @@ prisma/dev.db-journal
 *.rar
 *.zip
 *.7z
+
+# mcp-server
+mcp-server/node_modules
+mcp-server/dist

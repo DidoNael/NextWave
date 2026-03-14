@@ -79,6 +79,42 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: mcp-server/Dockerfile
+    image: nextwave-mcp-server:latest
+    container_name: nextwave-mcp-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_PORT:-3001}:3001"
+    environment:
+      - MCP_PORT=3001
+      - MCP_BIND_ADDRESS=0.0.0.0
+      - MCP_API_KEY=${MCP_API_KEY:-TROQUE-POR-UMA-CHAVE-FORTE}
+      - MCP_ALLOWED_IPS=${MCP_ALLOWED_IPS:-127.0.0.1}
+      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
+      - MCP_RATE_LIMIT=${MCP_RATE_LIMIT:-100}
+      - MCP_RATE_WINDOW=${MCP_RATE_WINDOW:-60}
+      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-info}
+      - DATABASE_URL=file:/app/data/prod.db
+    volumes:
+      - crm-data:/app/data
+    depends_on:
+      nextwave-crm:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3001/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   crm-data:
     driver: local
