@@ -9,10 +9,12 @@ const serviceSchema = z.object({
   amount: z.number().positive("Valor deve ser positivo"),
   status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado"]).default("rascunho"),
   category: z.string().optional(),
-  clientId: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  clientId: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
   notes: z.string().optional(),
+  paymentReceived: z.boolean().optional(),
+  paymentMethod: z.string().optional(),
 });
 
 export async function GET(request: Request) {
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
     const [services, total] = await Promise.all([
       prisma.service.findMany({
         where,
-        include: { client: { select: { id: true, name: true } } },
+        include: { client: { select: { id: true, name: true } }, transactions: true },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
@@ -64,14 +66,30 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const data = serviceSchema.parse(body);
+    const { paymentReceived, paymentMethod, ...serviceData } = data;
 
     const service = await prisma.service.create({
       data: {
-        ...data,
+        ...serviceData,
         userId: session.user.id,
-        clientId: data.clientId || undefined,
-        startDate: data.startDate ? new Date(data.startDate) : undefined,
-        endDate: data.endDate ? new Date(data.endDate) : undefined,
+        clientId: serviceData.clientId || undefined,
+        startDate: serviceData.startDate ? new Date(serviceData.startDate) : undefined,
+        endDate: serviceData.endDate ? new Date(serviceData.endDate) : undefined,
+        ...(paymentReceived && paymentMethod && serviceData.amount > 0 ? {
+          transactions: {
+            create: {
+              description: `Pagamento do seriço: ${serviceData.title}`,
+              amount: serviceData.amount,
+              type: "receita",
+              category: "Serviços",
+              status: "pago",
+              paymentMethod: paymentMethod,
+              paidAt: new Date(),
+              userId: session.user.id,
+              ...(serviceData.clientId ? { clientId: serviceData.clientId } : {}),
+            }
+          }
+        } : {})
       },
     });
 

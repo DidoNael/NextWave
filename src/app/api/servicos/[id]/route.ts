@@ -13,6 +13,8 @@ const updateSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   notes: z.string().optional(),
+  paymentReceived: z.boolean().optional(),
+  paymentMethod: z.string().optional(),
 });
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
@@ -22,18 +24,61 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const body = await request.json();
     const data = updateSchema.parse(body);
+    const { paymentReceived, paymentMethod, ...serviceData } = data;
 
-    const result = await prisma.service.updateMany({
+    const service = await prisma.service.findFirst({
       where: { id: params.id, userId: session.user.id },
+      include: { transactions: true }
+    });
+
+    if (!service) return NextResponse.json({ error: "Serviço não encontrado" }, { status: 404 });
+
+    await prisma.service.update({
+      where: { id: service.id },
       data: {
-        ...data,
-        clientId: data.clientId === null ? null : data.clientId,
-        startDate: data.startDate ? new Date(data.startDate) : undefined,
-        endDate: data.endDate ? new Date(data.endDate) : undefined,
+        ...serviceData,
+        clientId: serviceData.clientId === null ? null : serviceData.clientId,
+        startDate: serviceData.startDate ? new Date(serviceData.startDate) : undefined,
+        endDate: serviceData.endDate ? new Date(serviceData.endDate) : undefined,
       },
     });
 
-    if (!result.count) return NextResponse.json({ error: "Serviço não encontrado" }, { status: 404 });
+    const transaction = service.transactions[0];
+    const updateTitle = serviceData.title ?? service.title;
+    const updateAmount = serviceData.amount ?? service.amount;
+    const clientUpdate = serviceData.clientId === null ? undefined : (serviceData.clientId || service.clientId);
+
+    if (paymentReceived) {
+      if (transaction) {
+        await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            amount: updateAmount,
+            paymentMethod: paymentMethod ?? transaction.paymentMethod,
+            description: `Pagamento do serviço: ${updateTitle}`,
+            clientId: clientUpdate,
+          }
+        });
+      } else if (updateAmount > 0) {
+        await prisma.transaction.create({
+          data: {
+            description: `Pagamento do serviço: ${updateTitle}`,
+            amount: updateAmount,
+            type: "receita",
+            category: "Serviços",
+            status: "pago",
+            paymentMethod: paymentMethod || "Pix",
+            paidAt: new Date(),
+            userId: session.user.id,
+            clientId: clientUpdate,
+            serviceId: service.id,
+          }
+        });
+      }
+    } else if (paymentReceived === false && transaction) {
+      await prisma.transaction.delete({ where: { id: transaction.id } });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors }, { status: 400 });
