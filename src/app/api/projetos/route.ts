@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { syncToAgenda } from "@/lib/agenda-sync";
 
 export async function GET() {
     const session = await auth();
@@ -27,13 +28,14 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     try {
-        const { name, description, color } = await req.json();
+        const { name, description, color, dueDate } = await req.json();
 
         const project = await prisma.project.create({
             data: {
                 name,
                 description,
                 color: color || "#3b82f6",
+                dueDate: dueDate ? new Date(dueDate) : null,
                 userId: session.user?.id!,
                 columns: {
                     create: [
@@ -47,6 +49,17 @@ export async function POST(req: Request) {
                 columns: true
             }
         });
+
+        if (project.dueDate) {
+            await syncToAgenda({
+                type: "project",
+                id: project.id,
+                title: project.name,
+                description: project.description || undefined,
+                dueDate: project.dueDate,
+                userId: session.user.id,
+            });
+        }
 
         return NextResponse.json(project);
     } catch (error) {

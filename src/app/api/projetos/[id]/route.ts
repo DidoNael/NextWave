@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { syncToAgenda } from "@/lib/agenda-sync";
 
 export async function GET(
     req: Request,
@@ -43,14 +44,28 @@ export async function PATCH(
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     try {
-        const { name, description, color } = await req.json();
+        const { name, description, color, dueDate } = await req.json();
 
         const project = await prisma.project.update({
             where: {
                 id: params.id,
                 userId: session.user?.id!
             },
-            data: { name, description, color }
+            data: {
+                name,
+                description,
+                color,
+                dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined
+            }
+        });
+
+        await syncToAgenda({
+            type: "project",
+            id: project.id,
+            title: project.name,
+            description: project.description || undefined,
+            dueDate: project.dueDate,
+            userId: session.user.id,
         });
 
         return NextResponse.json(project);
@@ -67,6 +82,20 @@ export async function DELETE(
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     try {
+        const project = await prisma.project.findFirst({
+            where: { id: params.id, userId: session.user?.id }
+        });
+
+        if (project) {
+            await syncToAgenda({
+                type: "project",
+                id: project.id,
+                title: "",
+                dueDate: null,
+                userId: session.user.id,
+            });
+        }
+
         await prisma.project.delete({
             where: {
                 id: params.id,
