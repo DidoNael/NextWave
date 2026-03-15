@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ interface Task {
     priority: string;
     scope: "empresa" | "pessoal";
     order: number;
+    dueDate: string | null;
 }
 
 interface Column {
@@ -52,6 +54,7 @@ export default function KanbanPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddingTask, setIsAddingTask] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [newTaskDueDate, setNewTaskDueDate] = useState("");
     const [taskScope, setTaskScope] = useState<"empresa" | "pessoal">("empresa");
 
     const fetchProject = async () => {
@@ -136,6 +139,7 @@ export default function KanbanPage() {
                     title: newTaskTitle,
                     columnId,
                     scope: taskScope,
+                    dueDate: newTaskDueDate || null,
                     order: project?.columns.find(c => c.id === columnId)?.tasks.filter(t => t.scope === taskScope).length || 0
                 })
             });
@@ -143,6 +147,7 @@ export default function KanbanPage() {
             if (!res.ok) throw new Error();
 
             setNewTaskTitle("");
+            setNewTaskDueDate("");
             setIsAddingTask(null);
             fetchProject();
             toast.success("Tarefa adicionada");
@@ -251,6 +256,12 @@ export default function KanbanPage() {
                                                                 {task.description && (
                                                                     <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
                                                                 )}
+                                                                {task.dueDate && (
+                                                                    <div className="flex items-center gap-1.5 text-[10px] text-primary font-medium">
+                                                                        <Calendar className="h-3 w-3" />
+                                                                        <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex items-center gap-2 pt-1">
                                                                     <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
                                                                         <div className="h-2 w-2 rounded-full bg-primary/40" />
@@ -275,6 +286,15 @@ export default function KanbanPage() {
                                                             onKeyDown={(e) => e.key === "Enter" && handleCreateTask(column.id)}
                                                             className="bg-muted/50 border-0 focus-visible:ring-1"
                                                         />
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] text-muted-foreground">Vencimento</Label>
+                                                            <Input
+                                                                type="date"
+                                                                value={newTaskDueDate}
+                                                                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                                                className="bg-muted/50 border-0 focus-visible:ring-1 h-8 text-xs"
+                                                            />
+                                                        </div>
                                                         <div className="flex justify-end gap-2">
                                                             <Button variant="ghost" size="sm" onClick={() => setIsAddingTask(null)}>Cancelar</Button>
                                                             <Button size="sm" onClick={() => handleCreateTask(column.id)}>Adicionar</Button>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { syncToAgenda } from "@/lib/agenda-sync";
 
 const serviceSchema = z.object({
   title: z.string().min(2, "Título obrigatório"),
@@ -91,6 +92,18 @@ export async function POST(request: Request) {
         }
       },
     });
+
+    if (service.dueDate) {
+      await syncToAgenda({
+        type: "service",
+        id: service.id,
+        title: service.title,
+        description: service.description || undefined,
+        dueDate: service.dueDate,
+        userId: session.user.id,
+        clientId: service.clientId,
+      });
+    }
 
     return NextResponse.json(service, { status: 201 });
   } catch (error) {

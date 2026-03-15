@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { syncToAgenda } from "@/lib/agenda-sync";
 
 const updateSchema = z.object({
   title: z.string().min(2).optional(),
@@ -80,7 +81,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       });
     }
 
+    await syncToAgenda({
+      type: "service",
+      id: service.id,
+      title: updateTitle,
+      description: service.description || undefined,
+      dueDate: updateDueDate,
+      userId: session.user.id,
+      clientId: clientUpdate,
+    });
+
     return NextResponse.json({ success: true });
+
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors }, { status: 400 });
     console.error("[SERVICO_PUT]", error);
@@ -92,6 +104,21 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const service = await prisma.service.findFirst({
+      where: { id: params.id, userId: session.user.id },
+    });
+
+    if (service) {
+      // Clear agenda event
+      await syncToAgenda({
+        type: "service",
+        id: service.id,
+        title: "",
+        dueDate: null,
+        userId: session.user.id,
+      });
+    }
 
     await prisma.service.deleteMany({ where: { id: params.id, userId: session.user.id } });
     return NextResponse.json({ success: true });

@@ -41,6 +41,7 @@ export default function ProjetosPage() {
         name: "",
         description: "",
         color: "#3b82f6",
+        dueDate: "",
     });
 
     const fetchProjects = async () => {
@@ -74,7 +75,7 @@ export default function ProjetosPage() {
 
             toast.success("Projeto criado com sucesso!");
             setIsModalOpen(false);
-            setFormData({ name: "", description: "", color: "#3b82f6" });
+            setFormData({ name: "", description: "", color: "#3b82f6", dueDate: "" });
             fetchProjects();
         } catch (error) {
             toast.error("Erro ao criar projeto");
@@ -190,6 +191,10 @@ export default function ProjetosPage() {
                             <div className="space-y-2">
                                 <Label>Descrição</Label>
                                 <Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Data de Vencimento (Opcional)</Label>
+                                <Input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Cor de Identificação</Label>
