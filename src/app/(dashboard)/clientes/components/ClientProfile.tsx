@@ -65,6 +65,7 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
     // Service CRUD
     const [svcDialogOpen, setSvcDialogOpen] = useState(false);
     const [svcSaving, setSvcSaving] = useState(false);
+    const [cancelSvcId, setCancelSvcId] = useState<string | null>(null);
     const [svcForm, setSvcForm] = useState({
         title: "",
         description: "",
@@ -208,6 +209,23 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
         }
     };
 
+    const cancelSvc = async () => {
+        if (!cancelSvcId) return;
+        try {
+            const res = await fetch(`/api/servicos/${cancelSvcId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "cancelado" }),
+            });
+            if (!res.ok) throw new Error();
+            toast.success("Serviço marcado como cancelado!");
+            setCancelSvcId(null);
+            fetchClientDetails();
+        } catch {
+            toast.error("Erro ao cancelar o serviço");
+        }
+    };
+
     if (loading && !client) {
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -267,6 +285,7 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                             services={client?.services || []}
                                             openCreateSvc={openCreateSvc}
                                             formatCurrency={formatCurrency}
+                                            onCancelSvc={(id: string) => setCancelSvcId(id)}
                                         />
                                     )}
                                     renderFinanceiro={() => (
@@ -279,6 +298,8 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                           openEditTx={openEditTx}
                                           setDeleteTxId={setDeleteTxId}
                                           formatCurrency={formatCurrency}
+                                          clientPhone={client?.phone}
+                                          clientName={client?.name}
                                         />
                                     )}
                                 />
@@ -372,6 +393,21 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteTxId(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={deleteTx}>Remover</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!cancelSvcId} onOpenChange={() => setCancelSvcId(null)}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Cancelar Serviço</DialogTitle>
+                        <DialogDescription>
+                            Deseja cancelar este serviço? O serviço não será apagado, mas seu status passará para <strong>cancelado</strong>, mantendo o histórico de dados.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCancelSvcId(null)}>Voltar</Button>
+                        <Button variant="destructive" onClick={cancelSvc}>Confirmar Cancelamento</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

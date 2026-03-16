@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { saveWaMessage, getWaMessages } from "@/lib/wa-messages";
 
 async function getActiveConfig() {
     const configs: any[] = await prisma.$queryRawUnsafe(
@@ -60,8 +61,26 @@ export async function sendWhatsAppMessage(to: string, message: string) {
 
         if (!response.ok) {
             const err = await response.json();
-            console.error("[WHATSAPP_SEND_ERROR]", err);
+            console.error("[WHATSAPP_SEND_ERROR]", JSON.stringify(err));
             return false;
+        }
+
+        const sent = await response.json();
+
+        // Persiste a mensagem enviada no banco local (tabela wa_messages)
+        try {
+            await saveWaMessage({
+                id: sent.key?.id || `local-${Date.now()}`,
+                instanceName: instance,
+                remoteJid: `${cleanNumber}@s.whatsapp.net`,
+                messageId: sent.key?.id ?? null,
+                body: message,
+                fromMe: true,
+                status: sent.status || "PENDING",
+                timestamp: sent.messageTimestamp || Math.floor(Date.now() / 1000),
+            });
+        } catch (saveErr) {
+            console.error("[WHATSAPP_SAVE_ERROR]", saveErr);
         }
 
         return true;
@@ -72,46 +91,61 @@ export async function sendWhatsAppMessage(to: string, message: string) {
 }
 
 export async function getWhatsAppMessages(phone: string) {
+    const cleanPhone = phone.replace(/\D/g, "");
+    const remoteJid = `${cleanPhone}@s.whatsapp.net`;
+
     try {
         const config = await getActiveConfig();
-        if (!config) return [];
-
         const instance = await getActiveInstance();
-        if (!instance) return [];
 
-        const remoteJid = `${phone}@s.whatsapp.net`;
-        const url = `${config.apiUrl}/chat/findMessages/${instance}`;
+        // Mensagens salvas localmente (sempre disponíveis)
+        const localMessages = instance
+            ? await getWaMessages(instance, remoteJid)
+            : [];
+        const localIds = new Set(localMessages.map((m: any) => m.id));
 
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": config.apiKey },
-            body: JSON.stringify({
-                where: { key: { remoteJid } },
-                limit: 50,
-            }),
-        });
+        if (!config || !instance) return localMessages;
 
-        if (!response.ok) return [];
+        // Tenta buscar histórico na Evolution API
+        let apiMessages: any[] = [];
+        try {
+            const url = `${config.apiUrl}/chat/findMessages/${instance}`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "apikey": config.apiKey },
+                body: JSON.stringify({ where: { key: { remoteJid } }, limit: 50 }),
+            });
 
-        const data = await response.json();
-        const messages = Array.isArray(data) ? data : data.messages ?? [];
+            if (response.ok) {
+                const data = await response.json();
+                const raw = Array.isArray(data) ? data : data.messages ?? [];
+                apiMessages = raw.map((msg: any) => ({
+                    id: msg.key?.id || String(Date.now()),
+                    body:
+                        msg.message?.conversation ||
+                        msg.message?.extendedTextMessage?.text ||
+                        msg.message?.imageMessage?.caption ||
+                        "[mídia]",
+                    fromMe: msg.key?.fromMe ?? false,
+                    time: msg.messageTimestamp
+                        ? new Date(Number(msg.messageTimestamp) * 1000).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                          })
+                        : "Agora",
+                    timestamp: msg.messageTimestamp ? Number(msg.messageTimestamp) : 0,
+                }));
+            }
+        } catch {
+            // Evolution API indisponível — usa apenas mensagens locais
+        }
 
-        return messages.map((msg: any) => ({
-            id: msg.key?.id || msg.id || String(Date.now()),
-            body:
-                msg.message?.conversation ||
-                msg.message?.extendedTextMessage?.text ||
-                msg.message?.imageMessage?.caption ||
-                "[mídia]",
-            fromMe: msg.key?.fromMe ?? false,
-            time: msg.messageTimestamp
-                ? new Date(Number(msg.messageTimestamp) * 1000).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                  })
-                : "Agora",
-            timestamp: msg.messageTimestamp ? Number(msg.messageTimestamp) : 0,
-        })).sort((a: any, b: any) => a.timestamp - b.timestamp);
+        // Mescla: API tem prioridade, locais preenchem o que a API não retornou
+        const apiIds = new Set(apiMessages.map((m: any) => m.id));
+        const onlyLocal = localMessages.filter((m: any) => !apiIds.has(m.id));
+        const merged = [...apiMessages, ...onlyLocal];
+        merged.sort((a: any, b: any) => a.timestamp - b.timestamp);
+        return merged;
     } catch (error) {
         console.error("[WHATSAPP_GET_MESSAGES_ERROR]", error);
         return [];
