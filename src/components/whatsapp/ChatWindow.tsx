@@ -16,7 +16,7 @@ interface Message {
     body: string;
     fromMe: boolean;
     time: string;
-    status?: "sent" | "delivered" | "read";
+    status?: "sent" | "delivered" | "read" | "error";
 }
 
 export function ChatWindow({ chat, onBack }: { chat: any; onBack?: () => void }) {
@@ -90,12 +90,19 @@ export function ChatWindow({ chat, onBack }: { chat: any; onBack?: () => void })
                 body: JSON.stringify({ number: chat.phone, text: body }),
             });
             if (!response.ok) {
+                // Marca mensagem otimista como erro em vez de removê-la
+                setMessages((prev) =>
+                    prev.map((m) => m.id === optimisticMsg.id ? { ...m, status: "error" } : m)
+                );
                 console.error("Erro ao enviar mensagem");
             } else {
-                // Recarrega mensagens para sincronizar com o servidor
+                // Aguarda 1.5s e sincroniza com o servidor (substitui a msg otimista pela real)
                 setTimeout(() => fetchMessages(chat.phone), 1500);
             }
         } catch (error) {
+            setMessages((prev) =>
+                prev.map((m) => m.id === optimisticMsg.id ? { ...m, status: "error" } : m)
+            );
             console.error("Erro na requisição de envio:", error);
         } finally {
             setSending(false);
@@ -169,7 +176,9 @@ export function ChatWindow({ chat, onBack }: { chat: any; onBack?: () => void })
                             <div className={cn(
                                 "px-4 py-2.5 rounded-2xl text-sm shadow-sm",
                                 msg.fromMe
-                                    ? "bg-primary text-primary-foreground rounded-tr-sm"
+                                    ? msg.status === "error"
+                                        ? "bg-destructive/80 text-destructive-foreground rounded-tr-sm"
+                                        : "bg-primary text-primary-foreground rounded-tr-sm"
                                     : "bg-card border border-border rounded-tl-sm"
                             )}>
                                 {msg.body}
@@ -179,10 +188,12 @@ export function ChatWindow({ chat, onBack }: { chat: any; onBack?: () => void })
                                     {msg.time}
                                 </span>
                                 {msg.fromMe && (
-                                    <span className={cn(
-                                        "text-[10px]",
-                                        msg.status === "read" ? "text-sky-500" : "text-muted-foreground/60"
-                                    )}>✓✓</span>
+                                    msg.status === "error"
+                                        ? <span className="text-[9px] text-destructive">Falha ao enviar</span>
+                                        : <span className={cn(
+                                            "text-[10px]",
+                                            msg.status === "read" ? "text-sky-500" : "text-muted-foreground/60"
+                                        )}>✓✓</span>
                                 )}
                             </div>
                         </div>

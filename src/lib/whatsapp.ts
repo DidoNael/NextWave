@@ -44,7 +44,11 @@ export async function sendWhatsAppMessage(to: string, message: string) {
             return false;
         }
 
-        const cleanNumber = to.replace(/\D/g, "");
+        // Normaliza número: garante código de país 55 (Brasil)
+        let cleanNumber = to.replace(/\D/g, "");
+        if (cleanNumber.length <= 11) {
+            cleanNumber = "55" + cleanNumber;
+        }
         const url = `${config.apiUrl}/message/sendText/${instance}`;
 
         const response = await fetch(url, {
