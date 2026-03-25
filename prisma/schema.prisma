@@ -427,3 +427,20 @@ model WaMessage {
   @@index([instanceName, remoteJid, timestamp(sort: Desc)])
   @@map("wa_messages")
 }
+
+model PluginLicense {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  customerName  String
+  customerEmail String?
+  status        String    @default("active")
+  isTrial       Boolean   @default(false)
+  trialEndsAt   DateTime?
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime?
+  lastValidAt   DateTime?
+  lastIp        String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
