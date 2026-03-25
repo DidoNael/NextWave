@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { syncToAgenda } from "@/lib/agenda-sync";
+import { randomBytes } from "crypto";
 
 const serviceSchema = z.object({
   title: z.string().min(2, "Título obrigatório"),
@@ -101,6 +102,34 @@ export async function POST(request: Request) {
         dueDate: service.dueDate,
         userId: session.user.id,
         clientId: service.clientId,
+      });
+    }
+
+    // Auto-criar licença de plugin se categoria for "Plugin Grafana"
+    if (serviceData.category === "Plugin Grafana") {
+      let customerName = serviceData.title;
+      let customerEmail: string | undefined = undefined;
+
+      if (serviceData.clientId) {
+        const client = await prisma.client.findUnique({
+          where: { id: serviceData.clientId },
+          select: { name: true, email: true },
+        });
+        if (client) {
+          customerName = client.name;
+          if (client.email) customerEmail = client.email;
+        }
+      }
+
+      await prisma.pluginLicense.create({
+        data: {
+          key: "NSTM-" + randomBytes(16).toString("hex"),
+          customerName,
+          customerEmail: customerEmail ?? null,
+          status: "active",
+          serviceId: service.id,
+          clientId: serviceData.clientId || null,
+        },
       });
     }
 

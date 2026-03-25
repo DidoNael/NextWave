@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Filter, Briefcase, Loader2, Save, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, Briefcase, Loader2, Save, Trash2, Key, Copy, Mail, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +26,7 @@ const serviceSchema = z.object({
   title: z.string().min(2, "Título obrigatório"),
   description: z.string().optional(),
   amount: z.number({ invalid_type_error: "Valor inválido" }).positive("Valor deve ser positivo"),
-  status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado"]).default("rascunho"),
+  status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado", "suspenso"]).default("rascunho"),
   category: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -47,9 +47,170 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "warni
   em_andamento: { label: "Em Andamento", variant: "info" },
   concluido: { label: "Concluído", variant: "success" },
   cancelado: { label: "Cancelado", variant: "destructive" },
+  suspenso: { label: "Suspenso", variant: "warning" },
 };
 
-const CATEGORIAS = ["Desenvolvimento", "Consultoria", "Design", "Manutenção", "Marketing", "Suporte", "Infraestrutura", "Outros"];
+const CATEGORIAS = ["Desenvolvimento", "Consultoria", "Design", "Manutenção", "Marketing", "Suporte", "Infraestrutura", "Plugin Grafana", "Outros"];
+
+// ---- Componente de Licença do Plugin Grafana ----
+type PluginLicense = {
+  id: string;
+  key: string;
+  customerName: string;
+  customerEmail: string | null;
+  status: string;
+  lastValidAt: string | null;
+};
+
+function LicenseStatusBadge({ status }: { status: string }) {
+  if (status === "active") return (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-full px-2.5 py-0.5">
+      <CheckCircle2 className="h-3 w-3" /> Ativa
+    </span>
+  );
+  if (status === "suspended") return (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-400 rounded-full px-2.5 py-0.5">
+      <AlertCircle className="h-3 w-3" /> Suspensa
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 rounded-full px-2.5 py-0.5">
+      <XCircle className="h-3 w-3" /> Bloqueada
+    </span>
+  );
+}
+
+function PluginLicenseSection({ serviceId }: { serviceId: string }) {
+  const [license, setLicense] = useState<PluginLicense | null | undefined>(undefined);
+  const [emailInput, setEmailInput] = useState("");
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  useEffect(() => {
+    setLicense(undefined);
+    fetch(`/api/servicos/${serviceId}/license`)
+      .then(r => r.json())
+      .then(data => setLicense(data || null))
+      .catch(() => setLicense(null));
+  }, [serviceId]);
+
+  const handleCopyKey = () => {
+    if (!license) return;
+    navigator.clipboard.writeText(license.key);
+    toast.success("Chave copiada!");
+  };
+
+  const handleSendEmail = async () => {
+    if (!license) return;
+    setSendingEmail(true);
+    try {
+      const res = await fetch(`/api/servicos/${serviceId}/license/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput || license.customerEmail }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Erro ao enviar email");
+      } else {
+        toast.success("Email enviado com sucesso!");
+        setShowEmailInput(false);
+        setEmailInput("");
+      }
+    } catch {
+      toast.error("Erro ao enviar email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  if (license === undefined) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border p-4 bg-white/30 dark:bg-slate-900/30 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando licença...
+      </div>
+    );
+  }
+
+  if (!license) {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-300 dark:border-amber-700 p-4 bg-amber-50/50 dark:bg-amber-900/10 text-sm text-amber-700 dark:text-amber-400 font-medium">
+        Licença ainda não gerada para este serviço. Salve o serviço com categoria "Plugin Grafana" para gerar automaticamente.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-bold text-sm text-slate-700 dark:text-slate-300">
+          <Key className="h-4 w-4 text-primary" />
+          Licença do Plugin Grafana
+        </div>
+        <LicenseStatusBadge status={license.status} />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <code className="flex-1 text-xs bg-white dark:bg-slate-900 rounded-xl px-3 py-2 font-mono font-bold border border-border/50 tracking-wide truncate">
+          {license.key}
+        </code>
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={handleCopyKey}>
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {license.lastValidAt && (
+        <p className="text-xs text-muted-foreground">
+          Última validação: {new Date(license.lastValidAt).toLocaleString("pt-BR")}
+        </p>
+      )}
+
+      {!showEmailInput ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full rounded-xl font-bold h-9"
+          onClick={() => setShowEmailInput(true)}
+        >
+          <Mail className="h-4 w-4 mr-2" /> Enviar por Email
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <Input
+            type="email"
+            placeholder={license.customerEmail || "Email do destinatário"}
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            className="h-9 rounded-xl text-sm"
+          />
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="flex-1 rounded-xl font-bold h-9"
+              onClick={() => { setShowEmailInput(false); setEmailInput(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="flex-1 rounded-xl font-bold h-9"
+              onClick={handleSendEmail}
+              disabled={sendingEmail}
+            >
+              {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Mail className="h-4 w-4 mr-1" />}
+              Enviar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+// ---- Fim PluginLicenseSection ----
 
 export default function ServicosPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -386,6 +547,10 @@ export default function ServicosPage() {
                     )}
                   />
                 </div>
+              )}
+
+              {editingService?.category === "Plugin Grafana" && (
+                <PluginLicenseSection serviceId={editingService.id} />
               )}
 
               <DialogFooter className="pt-4 gap-2">

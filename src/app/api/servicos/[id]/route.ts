@@ -8,7 +8,7 @@ const updateSchema = z.object({
   title: z.string().min(2).optional(),
   description: z.string().optional(),
   amount: z.number().positive().optional(),
-  status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado"]).optional(),
+  status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado", "suspenso"]).optional(),
   category: z.string().optional(),
   clientId: z.string().optional().nullable(),
   dueDate: z.string().optional(),
@@ -90,6 +90,20 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       userId: session.user.id,
       clientId: clientUpdate,
     });
+
+    // Sincronizar status da licença de plugin
+    if (serviceData.status) {
+      const license = await prisma.pluginLicense.findUnique({ where: { serviceId: service.id } });
+      if (license && license.status !== "blocked") {
+        let newLicenseStatus: string | null = null;
+        if (serviceData.status === "cancelado") newLicenseStatus = "blocked";
+        else if (serviceData.status === "suspenso") newLicenseStatus = "suspended";
+        else if (["aprovado", "em_andamento"].includes(serviceData.status) && license.status === "suspended") newLicenseStatus = "active";
+        if (newLicenseStatus) {
+          await prisma.pluginLicense.update({ where: { id: license.id }, data: { status: newLicenseStatus } });
+        }
+      }
+    }
 
     return NextResponse.json({ success: true });
 

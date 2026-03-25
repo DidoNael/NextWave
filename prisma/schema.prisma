@@ -106,23 +106,24 @@ model Transaction {
 }
 
 model Service {
-  id               String        @id @default(cuid())
+  id               String         @id @default(cuid())
   title            String
   description      String?
   amount           Float
-  status           String        @default("rascunho")
+  status           String         @default("rascunho")
   category         String?
   dueDate          DateTime?
-  billingFrequency String?       @default("avulso") // mensal, trimestral, semanal, avulso
+  billingFrequency String?        @default("avulso") // mensal, trimestral, semanal, avulso
   notes            String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   userId           String
   clientId         String?
-  client           Client?       @relation(fields: [clientId], references: [id])
-  user             User          @relation(fields: [userId], references: [id])
+  client           Client?        @relation(fields: [clientId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
   transactions     Transaction[]
   events           Event[]
+  pluginLicense    PluginLicense?
 }
 
 model Event {
@@ -443,4 +444,7 @@ model PluginLicense {
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  serviceId     String?   @unique
+  clientId      String?
+  service       Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 }
