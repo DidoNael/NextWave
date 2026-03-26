@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useColorTheme } from "@/components/providers/ColorProvider";
 import packageInfo from "../../../package.json";
 
@@ -59,7 +60,9 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { layoutTheme } = useColorTheme();
+  const isMaster = (session?.user as any)?.role === "master";
   const [collapsed, setCollapsed] = useState(false);
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
@@ -256,7 +259,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="border-t border-border py-4">
           <nav className="flex flex-col gap-1 px-2">
-            {bottomItems.map(item => {
+            {bottomItems.filter(item => item.href === "/configuracoes/plugin-licenses" ? isMaster : true).map(item => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               if (collapsed) {
