@@ -15,7 +15,7 @@ async function main() {
       name: "Administrador",
       email: "admin@nextwave.com",
       password: hashedPassword,
-      role: "admin",
+      role: "master",
     },
   });
   console.log("Usuário criado:", user.email);
