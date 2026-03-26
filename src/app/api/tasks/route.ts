@@ -22,7 +22,6 @@ export async function POST(req: Request) {
                 columnId,
                 order: order || 0,
                 dueDate: dueDate ? new Date(dueDate) : null,
-                userId: session.user.id,
             },
         });
 
