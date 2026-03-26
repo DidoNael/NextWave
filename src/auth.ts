@@ -82,21 +82,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               // Verificar se a sessão ainda é válida (Single Device Access)
               const user = await prisma.user.findUnique({
                 where: { id: token.id as string },
-                select: { currentSessionId: true }
+                select: { currentSessionId: true, role: true }
               });
 
+              // Atualiza o role sempre com o valor atual do banco
+              if (user?.role) token.role = user.role;
+
               // Se o usuário não existir ou o sessionId for diferente, invalida
-              // Permitimos se currentSessionId for nulo (primeiro acesso após migração)
               if (user && user.currentSessionId && token.sessionId && user.currentSessionId !== (token.sessionId as string)) {
                 console.log(`[AUTH] Sessão inválida para ${session.user.email}. Outro dispositivo logou.`);
                 return {
                   ...session,
-                  user: { ...session.user, id: "INVALID" } 
+                  user: { ...session.user, id: "INVALID" }
                 } as any;
               }
             }
           } catch (e) {
-            // Se der erro (ex: coluna não existe ainda), deixamos passar para não travar o sistema
             console.error("[AUTH] Erro ao validar sessão única:", e);
           }
 
