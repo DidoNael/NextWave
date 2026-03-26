@@ -259,7 +259,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="border-t border-border py-4">
           <nav className="flex flex-col gap-1 px-2">
-            {bottomItems.filter(item => item.href === "/configuracoes/plugin-licenses" ? isMaster : true).map(item => {
+            {bottomItems.map(item => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               if (collapsed) {
