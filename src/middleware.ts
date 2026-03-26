@@ -10,9 +10,10 @@ export default auth((req) => {
   const isSetupRoute = nextUrl.pathname.startsWith("/setup") || nextUrl.pathname.startsWith("/api/setup");
   const isWebhook = nextUrl.pathname === "/api/whatsapp/webhook";
   const isWaEvents = nextUrl.pathname === "/api/whatsapp/events";
+  const isLicenseValidate = nextUrl.pathname === "/api/plugin-licenses/validate";
 
-  // 1. Permitir sempre rotas de API de autenticação, Setup, Webhook e SSE
-  if (isApiAuthRoute || isSetupRoute || isWebhook || isWaEvents) {
+  // 1. Permitir sempre rotas de API de autenticação, Setup, Webhook, SSE e validação de licença
+  if (isApiAuthRoute || isSetupRoute || isWebhook || isWaEvents || isLicenseValidate) {
     return NextResponse.next();
   }
 
