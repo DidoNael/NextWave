@@ -76,7 +76,7 @@ export async function POST(req: Request) {
             });
             // Gravar no runtime.env para ser carregado pelo entrypoint no próximo boot
             const runtimeEnvPath = path.join("/app/data", "runtime.env");
-            const envContent = `NEXTAUTH_URL=${siteUrl}\nNEXT_PUBLIC_APP_URL=${siteUrl}\n`;
+            const envContent = `NEXT_PUBLIC_APP_URL=${siteUrl}\n`;
             try { fs.writeFileSync(runtimeEnvPath, envContent); } catch (_) {}
         }
 
