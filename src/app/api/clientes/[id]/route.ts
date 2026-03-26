@@ -26,7 +26,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       where: { id: params.id },
       include: {
         transactions: { orderBy: { dueDate: "desc" } },
-        services: { orderBy: { createdAt: "desc" } },
+        services: { orderBy: { createdAt: "desc" }, include: { pluginLicense: true } },
         subscriptions: { orderBy: { nextBillingDate: "asc" } },
         _count: { select: { transactions: true, services: true } },
       },

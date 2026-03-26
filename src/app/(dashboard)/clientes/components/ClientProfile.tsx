@@ -36,7 +36,7 @@ interface ClientProfileProps {
     onEdit?: (client: any) => void;
 }
 
-const CATEGORIAS_RECEITA = ["Desenvolvimento", "Consultoria", "Manutenção", "Design", "Marketing", "Suporte", "Outros"];
+const CATEGORIAS_RECEITA = ["Desenvolvimento", "Consultoria", "Manutenção", "Design", "Marketing", "Suporte", "Plugin Grafana", "Outros"];
 const CATEGORIAS_DESPESA = ["Infraestrutura", "Software", "Pessoal", "Marketing", "Equipamentos", "Serviços", "Outros"];
 
 function formatCurrency(value: number) {
@@ -286,6 +286,7 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                             openCreateSvc={openCreateSvc}
                                             formatCurrency={formatCurrency}
                                             onCancelSvc={(id: string) => setCancelSvcId(id)}
+                                            onRefresh={fetchClientDetails}
                                         />
                                     )}
                                     renderFinanceiro={() => (
@@ -460,6 +461,34 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                 <Input type="date" value={svcForm.dueDate} onChange={(e) => setSvcForm({ ...svcForm, dueDate: e.target.value })} />
                             </div>
                         </div>
+
+                        {/* Painel de licença para Plugin Grafana */}
+                        {svcForm.category === "Plugin Grafana" && (
+                            <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-3 space-y-3">
+                                <p className="text-xs font-semibold text-purple-500 flex items-center gap-2">🔑 Plugin Grafana — uma chave de licença será gerada automaticamente.</p>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="isTrial"
+                                        checked={(svcForm as any).isTrial || false}
+                                        onChange={e => setSvcForm({ ...svcForm, isTrial: e.target.checked } as any)}
+                                        className="h-4 w-4 accent-purple-500"
+                                    />
+                                    <label htmlFor="isTrial" className="text-xs font-medium text-muted-foreground cursor-pointer">Período de teste (Trial)</label>
+                                </div>
+                                {(svcForm as any).isTrial && (
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Duração do trial (dias)</Label>
+                                        <Input
+                                            type="number" min="1" max="90"
+                                            value={(svcForm as any).trialDays || "3"}
+                                            onChange={e => setSvcForm({ ...svcForm, trialDays: e.target.value } as any)}
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex flex-row items-center justify-between rounded-xl border border-dashed p-3 bg-slate-50 dark:bg-slate-900/50">
                             <div className="space-y-0.5">
