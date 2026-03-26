@@ -331,7 +331,7 @@ export default function ServicosPage() {
   };
 
   const totalAtivos = services.filter((s) => ["aprovado", "em_andamento"].includes(s.status)).length;
-  const valorTotal = services.reduce((sum, s) => sum + s.amount, 0);
+  const valorTotal = services.reduce((sum, s) => sum + Number(s.amount), 0);
 
   return (
     <div className="space-y-6 animate-in">

@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: ".next_docker",
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
   },

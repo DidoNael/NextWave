@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         ],
       },
       include: {
-        assignee: { select: { name: true, image: true, avatar: true } },
+        assignee: { select: { name: true, avatar: true } },
         client: { select: { name: true } },
         project: { select: { name: true, color: true } },
       },

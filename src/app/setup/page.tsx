@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft, Database, Users, DollarSign, Briefcase, Calendar } from "lucide-react";
+import { Zap, ShieldCheck, UserPlus, CheckCircle2, Loader2, ArrowRight, ChevronLeft, Database, Users, DollarSign, Briefcase, Calendar, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
 const setupSchema = z.object({
+    // Step: URL do sistema
+    siteUrl: z.string().url("URL inválida. Ex: http://192.168.0.10:3010").min(1, "URL obrigatória"),
     // Step: Admin
     name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
     email: z.string().email("Email inválido"),
@@ -73,6 +75,7 @@ export default function SetupPage() {
     const { register, handleSubmit, watch, formState: { errors } } = useForm<SetupForm>({
         resolver: zodResolver(setupSchema),
         defaultValues: {
+            siteUrl: typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}` : "",
             dbType: "sqlite",
             allowedIps: "*",
             workDayStart: "08:00",
@@ -89,6 +92,7 @@ export default function SetupPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    siteUrl: data.siteUrl,
                     name: data.name,
                     email: data.email,
                     password: data.password,
@@ -213,6 +217,23 @@ export default function SetupPage() {
                                             </div>
                                         ))}
                                     </div>
+
+                                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                        <Label htmlFor="siteUrl" className="flex items-center gap-2 font-semibold">
+                                            <Globe className="h-4 w-4 text-primary" />
+                                            URL de Acesso do Sistema
+                                        </Label>
+                                        <Input
+                                            id="siteUrl"
+                                            placeholder="Ex: http://192.168.0.10:3010 ou https://crm.empresa.com"
+                                            {...register("siteUrl")}
+                                        />
+                                        {errors.siteUrl && <p className="text-xs text-destructive">{errors.siteUrl.message}</p>}
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Endereço pelo qual os usuários acessarão o sistema. Usado para autenticação e redirecionamentos.
+                                        </p>
+                                    </div>
+
                                     <Button onClick={() => setStep(2)} className="w-full h-12 text-md transition-all hover:gap-3" size="lg">
                                         Continuar para Personalização <ArrowRight className="h-5 w-5" />
                                     </Button>

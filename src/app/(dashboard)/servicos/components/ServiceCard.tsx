@@ -1,4 +1,5 @@
-import { Edit, Trash2, User, Briefcase } from "lucide-react";
+import { Edit, Trash2, User, Briefcase, KeyRound } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ export function ServiceCard({ service, statusConfig, formatCurrency, onEdit, onD
             )}
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {(service as any).category === "Plugin Grafana" && (
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-primary" asChild>
+                <Link href={`/servicos/${service.id}`}>
+                  <KeyRound className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => onEdit(service)}>
               <Edit className="h-4 w-4" />
             </Button>

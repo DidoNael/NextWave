@@ -66,24 +66,24 @@ async function getFinancialData(userId: string) {
       ]);
       return {
         mes: dataInicio.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").replace(/^\w/, c => c.toUpperCase()),
-        receita: r._sum.amount ?? 0,
-        despesa: d._sum.amount ?? 0,
+        receita: Number(r._sum.amount ?? 0),
+        despesa: Number(d._sum.amount ?? 0),
       };
     })
   );
 
-  const receitaAtual = receitaMes._sum.amount ?? 0;
-  const receitaAnterior = receitaMesAnterior._sum.amount ?? 0;
+  const receitaAtual = Number(receitaMes._sum.amount ?? 0);
+  const receitaAnterior = Number(receitaMesAnterior._sum.amount ?? 0);
   const variacao = receitaAnterior > 0 ? ((receitaAtual - receitaAnterior) / receitaAnterior) * 100 : 0;
-  const lucro = receitaAtual - (despesaMes._sum.amount ?? 0);
+  const lucro = receitaAtual - Number(despesaMes._sum.amount ?? 0);
 
   return {
     receitaMes: receitaAtual,
-    despesaMes: despesaMes._sum.amount ?? 0,
+    despesaMes: Number(despesaMes._sum.amount ?? 0),
     lucroMes: lucro,
-    pendente: pendente._sum.amount ?? 0,
-    atrasado: atrasado._sum.amount ?? 0,
-    totalAno: totalAno._sum.amount ?? 0,
+    pendente: Number(pendente._sum.amount ?? 0),
+    atrasado: Number(atrasado._sum.amount ?? 0),
+    totalAno: Number(totalAno._sum.amount ?? 0),
     variacao,
     chartData,
     ultimasTransacoes,
@@ -126,7 +126,7 @@ export default async function DashboardFinanceiroPage() {
       <GrowthChart data={data.chartData} />
 
       {/* Transações recentes */}
-      <RecentTransactions transactions={data.ultimasTransacoes as Parameters<typeof RecentTransactions>[0]["transactions"]} />
+      <RecentTransactions transactions={data.ultimasTransacoes as unknown as Parameters<typeof RecentTransactions>[0]["transactions"]} />
     </div>
   );
 }

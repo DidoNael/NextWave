@@ -72,8 +72,8 @@ export async function GET() {
 
       chartData.push({
         mes: dataInicio.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").replace(/^\w/, c => c.toUpperCase()),
-        receita: receitaMes._sum.amount ?? 0,
-        despesa: despesaMes._sum.amount ?? 0,
+        receita: Number(receitaMes._sum.amount ?? 0),
+        despesa: Number(despesaMes._sum.amount ?? 0),
       });
     }
 
@@ -91,7 +91,7 @@ export async function GET() {
       .map((c) => ({
         id: c.id,
         name: c.name,
-        totalReceita: c.transactions.reduce((sum, t) => sum + t.amount, 0),
+        totalReceita: c.transactions.reduce((sum, t) => sum + Number(t.amount), 0),
         totalServicos: c.services.length,
       }))
       .sort((a, b) => b.totalReceita - a.totalReceita)
@@ -106,8 +106,8 @@ export async function GET() {
     });
 
     // Calcular variações percentuais
-    const receitaAtualVal = receitaMesAtual._sum.amount ?? 0;
-    const receitaAnteriorVal = receitaMesAnterior._sum.amount ?? 0;
+    const receitaAtualVal = Number(receitaMesAtual._sum.amount ?? 0);
+    const receitaAnteriorVal = Number(receitaMesAnterior._sum.amount ?? 0);
     const variacaoReceita = receitaAnteriorVal > 0
       ? ((receitaAtualVal - receitaAnteriorVal) / receitaAnteriorVal) * 100
       : 0;
@@ -119,8 +119,8 @@ export async function GET() {
     return NextResponse.json({
       stats: {
         totalReceita: receitaAtualVal,
-        totalPendente: pendente._sum.amount ?? 0,
-        totalCancelado: cancelado._sum.amount ?? 0,
+        totalPendente: Number(pendente._sum.amount ?? 0),
+        totalCancelado: Number(cancelado._sum.amount ?? 0),
         totalClientes,
         totalServicos,
         variacaoReceita,

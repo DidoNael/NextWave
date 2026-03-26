@@ -18,6 +18,17 @@ const updateSchema = z.object({
   billingFrequency: z.enum(["semanal", "mensal", "trimestral", "avulso"]).optional(),
 });
 
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const service = await prisma.service.findFirst({
+    where: { id: params.id },
+    include: { client: { select: { id: true, name: true, email: true } }, transactions: true },
+  });
+  if (!service) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+  return NextResponse.json(service);
+}
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await auth();
@@ -45,7 +56,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const transaction = service.transactions[0];
     const updateTitle = serviceData.title ?? service.title;
-    const updateAmount = serviceData.amount ?? service.amount;
+    const updateAmount = serviceData.amount ?? Number(service.amount);
     const clientUpdate = serviceData.clientId === null ? undefined : (serviceData.clientId || service.clientId);
 
     const updateDueDate = serviceData.dueDate ? new Date(serviceData.dueDate) : ((service as any).dueDate as Date | null);

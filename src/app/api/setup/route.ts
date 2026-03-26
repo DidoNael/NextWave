@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules } = body;
+        const { siteUrl, name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules } = body;
 
         // Se houver backup, tentar restaurar primeiro
         if (backupData) {
@@ -67,7 +67,20 @@ export async function POST(req: Request) {
             });
         }
 
-        // 3. Configurar Módulos
+        // 3. Salvar URL do sistema
+        if (siteUrl) {
+            await (prisma as any).systemBranding.upsert({
+                where: { id: "default" },
+                update: { siteUrl },
+                create: { id: "default", siteUrl },
+            });
+            // Gravar no runtime.env para ser carregado pelo entrypoint no próximo boot
+            const runtimeEnvPath = path.join("/app/data", "runtime.env");
+            const envContent = `NEXTAUTH_URL=${siteUrl}\nNEXT_PUBLIC_APP_URL=${siteUrl}\n`;
+            try { fs.writeFileSync(runtimeEnvPath, envContent); } catch (_) {}
+        }
+
+        // 4. Configurar Módulos
         if (modules && Array.isArray(modules)) {
             const allPossibleModules = [
                 { key: "clientes", label: "Clientes" },

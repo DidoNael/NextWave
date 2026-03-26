@@ -57,13 +57,13 @@ export async function GET(request: Request) {
     // Calcular totais
     const totalReceita = resumo
       .filter((r) => r.type === "receita" && r.status === "pago")
-      .reduce((sum, r) => sum + (r._sum.amount ?? 0), 0);
+      .reduce((sum, r) => sum + Number(r._sum.amount ?? 0), 0);
     const totalDespesa = resumo
       .filter((r) => r.type === "despesa" && r.status === "pago")
-      .reduce((sum, r) => sum + (r._sum.amount ?? 0), 0);
+      .reduce((sum, r) => sum + Number(r._sum.amount ?? 0), 0);
     const totalPendente = resumo
       .filter((r) => r.type === "receita" && r.status === "pendente")
-      .reduce((sum, r) => sum + (r._sum.amount ?? 0), 0);
+      .reduce((sum, r) => sum + Number(r._sum.amount ?? 0), 0);
 
     return NextResponse.json({
       transactions,

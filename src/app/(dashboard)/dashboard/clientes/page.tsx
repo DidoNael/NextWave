@@ -45,7 +45,7 @@ async function getClientData(userId: string) {
     .map((c: any) => ({
       id: c.id,
       name: c.name,
-      totalReceita: c.transactions.reduce((sum: number, t: any) => sum + t.amount, 0),
+      totalReceita: c.transactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0),
       totalServicos: c.services.length,
     }))
     .sort((a: any, b: any) => b.totalReceita - a.totalReceita)

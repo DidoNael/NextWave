@@ -360,6 +360,7 @@ model SystemBranding {
   primaryColor String   @default("#3b82f6")
   supportEmail String?
   supportPhone String?
+  siteUrl      String?
   updatedAt    DateTime @updatedAt
 }
 

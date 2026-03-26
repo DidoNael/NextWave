@@ -20,7 +20,7 @@ export async function generatePaymentLink(transactionId: string) {
         const response = await gateway.createCheckout({
             transactionId: transaction.id,
             description: transaction.description,
-            amount: transaction.amount,
+            amount: Number(transaction.amount),
             redirectUrl: `${process.env.NEXTAUTH_URL}/financeiro?status=success&id=${transaction.id}`,
             webhookUrl: `${process.env.NEXTAUTH_URL}/api/webhooks/payments/${gateway.provider}`,
             client: {
