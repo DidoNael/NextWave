@@ -59,7 +59,7 @@ export async function POST(req: Request) {
                     name,
                     email,
                     password: hashedPassword,
-                    role: "admin",
+                    role: "master",
                     allowedIps: allowedIps || "*",
                     workDayStart: workDayStart || null,
                     workDayEnd: workDayEnd || null,

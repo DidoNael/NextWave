@@ -31,17 +31,22 @@ export async function POST(req: Request) {
     trialEndsAt.setDate(trialEndsAt.getDate() + days);
   }
 
-  const license = await prisma.pluginLicense.create({
-    data: {
-      key: generateKey(),
-      customerName: body.customerName,
-      customerEmail: body.customerEmail || null,
-      status: "active",
-      isTrial: !!body.isTrial,
-      trialEndsAt,
-      expiresAt: !body.isTrial && body.expiresAt ? new Date(body.expiresAt) : null,
-      notes: body.notes || null,
-    },
-  });
-  return NextResponse.json(license, { status: 201 });
+  try {
+    const license = await prisma.pluginLicense.create({
+      data: {
+        key: generateKey(),
+        customerName: body.customerName,
+        customerEmail: body.customerEmail || null,
+        status: "active",
+        isTrial: !!body.isTrial,
+        trialEndsAt,
+        expiresAt: !body.isTrial && body.expiresAt ? new Date(body.expiresAt) : null,
+        notes: body.notes || null,
+      },
+    });
+    return NextResponse.json(license, { status: 201 });
+  } catch (err) {
+    console.error("[LICENSES_POST] Prisma error:", err);
+    return NextResponse.json({ error: "Erro interno ao criar licença" }, { status: 500 });
+  }
 }
