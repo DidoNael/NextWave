@@ -15,6 +15,9 @@ export interface Client {
   document?: string | null;
   company?: string | null;
   address?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
