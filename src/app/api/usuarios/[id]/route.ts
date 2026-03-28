@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
     const session = await auth();
 
-    if (!session || session.user?.role !== "admin") {
+    if (!session || !["admin", "master"].includes(session.user?.role as string)) {
         return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -53,7 +53,7 @@ export async function DELETE(
 ) {
     const session = await auth();
 
-    if (!session || session.user?.role !== "admin") {
+    if (!session || !["admin", "master"].includes(session.user?.role as string)) {
         return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 

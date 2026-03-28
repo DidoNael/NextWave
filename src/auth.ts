@@ -56,6 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: user.email,
               role: user.role,
               sessionId: sessionId,
+              allowedIps: user.allowedIps || "*",
             };
           } catch (error: any) {
             console.error("Authorize error detail:", error);
@@ -71,6 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.id = user.id;
           token.role = user.role;
           token.sessionId = (user as any).sessionId;
+          token.allowedIps = (user as any).allowedIps ?? "*";
         }
         return token;
       },
