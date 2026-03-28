@@ -393,7 +393,23 @@ export default function ServiceDetailPage() {
               <FileText className="h-4 w-4 text-primary" />
               Nota Fiscal de Serviço (NFS-e)
             </CardTitle>
-            <Button size="sm" className="gap-1.5" onClick={() => setNfseModal(true)}>
+            <Button size="sm" className="gap-1.5" onClick={() => {
+                setEditingNfseId(null);
+                setNfseForm({
+                  discriminacao: service.description || service.title || "",
+                  valorServicos: String(service.amount || ""),
+                  tomadorNome: service.client?.name || "",
+                  tomadorDoc: service.client?.document || "",
+                  tomadorEmail: service.client?.email || "",
+                  tomadorEndereco: service.client?.address || "",
+                  tomadorNumero: service.client?.number || "",
+                  tomadorBairro: service.client?.neighborhood || "",
+                  tomadorCodigoMunicipio: "3514700",
+                  tomadorUf: service.client?.state || "SP",
+                  tomadorCep: (service.client?.zipCode || "").replace(/\D/g, ""),
+                });
+                setNfseModal(true);
+              }}>
               <Plus className="h-3.5 w-3.5" />
               Emitir NFS-e
             </Button>
