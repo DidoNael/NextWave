@@ -16,12 +16,13 @@ export async function PATCH(
     try {
         const { id } = params;
         const body = await req.json();
-        const { name, email, password, role, allowedIps, workDayStart, workDayEnd } = body;
+        const { name, email, password, role, allowedIps, workDayStart, workDayEnd, groupId } = body;
 
         const data: any = {
             name,
             email,
             role,
+            groupId: groupId || null,
             allowedIps,
             workDayStart,
             workDayEnd,

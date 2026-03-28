@@ -8,6 +8,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  allowedIps  String?  @default("*")
+  permissions String   @default("{}")  // JSON serializado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
 model User {
   id               String         @id @default(cuid())
   name             String
@@ -15,6 +26,8 @@ model User {
   password         String
   avatar           String?
   role             String         @default("admin")
+  groupId          String?
+  group            UserGroup?     @relation(fields: [groupId], references: [id])
   branchId         String?
   branch           Branch?        @relation(fields: [branchId], references: [id])
   allowedIps       String?

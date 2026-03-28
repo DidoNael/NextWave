@@ -21,6 +21,8 @@ export async function GET() {
                 allowedIps: true,
                 workDayStart: true,
                 workDayEnd: true,
+                groupId: true,
+                group: { select: { id: true, name: true } },
                 createdAt: true,
             },
         });
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { name, email, password, role, allowedIps, workDayStart, workDayEnd } = body;
+        const { name, email, password, role, allowedIps, workDayStart, workDayEnd, groupId } = body;
 
         if (!name || !email || !password) {
             return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
@@ -63,6 +65,7 @@ export async function POST(req: Request) {
                 email,
                 password: hashedPassword,
                 role: role || "user",
+                groupId: groupId || null,
                 allowedIps: allowedIps || "*",
                 workDayStart: workDayStart || null,
                 workDayEnd: workDayEnd || null,

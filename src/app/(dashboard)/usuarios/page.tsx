@@ -33,23 +33,31 @@ interface UserRecord {
     allowedIps: string | null;
     workDayStart: string | null;
     workDayEnd: string | null;
+    groupId: string | null;
+    group: { id: string; name: string } | null;
     createdAt: string;
+}
+
+interface GroupOption {
+    id: string;
+    name: string;
 }
 
 export default function UsuariosPage() {
     const { data: session } = useSession();
     const [users, setUsers] = useState<UserRecord[]>([]);
+    const [groups, setGroups] = useState<GroupOption[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
-    // Form states
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: "",
         role: "user",
+        groupId: "",
         allowedIps: "*",
         workDayStart: "08:00",
         workDayEnd: "18:00",
@@ -69,8 +77,16 @@ export default function UsuariosPage() {
         }
     };
 
+    const fetchGroups = async () => {
+        try {
+            const res = await fetch("/api/grupos");
+            if (res.ok) setGroups(await res.json());
+        } catch { /* silencioso */ }
+    };
+
     useEffect(() => {
         fetchUsers();
+        fetchGroups();
     }, []);
 
     const handleOpenModal = (user: UserRecord | null = null) => {
@@ -79,8 +95,9 @@ export default function UsuariosPage() {
             setFormData({
                 name: user.name,
                 email: user.email,
-                password: "", // Senha em branco na edição
+                password: "",
                 role: user.role,
+                groupId: user.groupId || "",
                 allowedIps: user.allowedIps || "*",
                 workDayStart: user.workDayStart || "08:00",
                 workDayEnd: user.workDayEnd || "18:00",
@@ -88,13 +105,9 @@ export default function UsuariosPage() {
         } else {
             setEditingUser(null);
             setFormData({
-                name: "",
-                email: "",
-                password: "",
-                role: "user",
-                allowedIps: "*",
-                workDayStart: "08:00",
-                workDayEnd: "18:00",
+                name: "", email: "", password: "",
+                role: "user", groupId: "", allowedIps: "*",
+                workDayStart: "08:00", workDayEnd: "18:00",
             });
         }
         setIsModalOpen(true);
@@ -183,6 +196,7 @@ export default function UsuariosPage() {
                             <thead>
                                 <tr className="border-b border-border/50 text-muted-foreground">
                                     <th className="text-left py-3 px-4 font-medium">Usuário</th>
+                                    <th className="text-left py-3 px-4 font-medium">Grupo</th>
                                     <th className="text-left py-3 px-4 font-medium">Permissão</th>
                                     <th className="text-left py-3 px-4 font-medium">Segurança</th>
                                     <th className="text-left py-3 px-4 font-medium">Cadastro</th>
@@ -192,13 +206,13 @@ export default function UsuariosPage() {
                             <tbody>
                                 {isLoading && users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-20 text-center">
+                                        <td colSpan={6} className="py-20 text-center">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                                         </td>
                                     </tr>
                                 ) : filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-20 text-center text-muted-foreground">
+                                        <td colSpan={6} className="py-20 text-center text-muted-foreground">
                                             Nenhum usuário encontrado.
                                         </td>
                                     </tr>
@@ -209,6 +223,13 @@ export default function UsuariosPage() {
                                                 <span className="font-semibold text-foreground">{user.name}</span>
                                                 <span className="text-xs text-muted-foreground">{user.email}</span>
                                             </div>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            {user.group ? (
+                                                <Badge variant="outline" className="text-violet-600 border-violet-300">{user.group.name}</Badge>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">—</span>
+                                            )}
                                         </td>
                                         <td className="py-4 px-4">
                                             <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
@@ -308,8 +329,20 @@ export default function UsuariosPage() {
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                     >
                                         <option value="user">Usuário Comum</option>
-                                        <option value="admin">Administrador Master</option>
+                                        <option value="admin">Administrador</option>
                                     </select>
+                                </div>
+                                <div className="space-y-2 col-span-2">
+                                    <Label>Grupo de Permissões</Label>
+                                    <select
+                                        className="w-full p-2 rounded-md border text-sm bg-background"
+                                        value={formData.groupId}
+                                        onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
+                                    >
+                                        <option value="">— Sem grupo —</option>
+                                        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                    </select>
+                                    <p className="text-xs text-muted-foreground">O grupo define permissões e IPs. O IP do usuário, se preenchido, tem prioridade.</p>
                                 </div>
                             </div>
 

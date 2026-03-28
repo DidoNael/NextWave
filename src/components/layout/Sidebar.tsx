@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight, ChevronDown,
-  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key
+  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ const bottomItemsBase = [
   { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush, masterOnly: false },
   { href: "/configuracoes/agendador", label: "Agendador", icon: Clock, masterOnly: false },
   { href: "/configuracoes/mcp", label: "MCP Server", icon: Server, masterOnly: false },
+  { href: "/configuracoes/grupos", label: "Grupos", icon: Shield, masterOnly: false },
   { href: "/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key, masterOnly: true },
   { href: "/configuracoes", label: "Sistema", icon: Settings, masterOnly: false },
   { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database, masterOnly: false },
