@@ -162,7 +162,7 @@ export class GinfesClient {
 
         // Extrair lista de NFS-e se processado com sucesso
         const nfseList: Array<{ numero: string; codigoVerificacao: string }> = [];
-        const nfseMatches = xmlRetorno.matchAll(/<Nfse>(.*?)<\/Nfse>/gs);
+        const nfseMatches = xmlRetorno.matchAll(/<Nfse>([\s\S]*?)<\/Nfse>/g);
         for (const match of nfseMatches) {
             const inner = match[1];
             const numero = extractTagContent(inner, 'Numero') || '';
