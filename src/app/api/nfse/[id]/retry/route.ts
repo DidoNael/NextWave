@@ -53,8 +53,9 @@ export async function POST(
         tipo: config.tipoRps || '1',
         dataEmissao: new Date().toISOString().split('T')[0],
         valorServicos: record.valorServicos,
+        aliquota: config.aliquotaIss || 0.0215,
         issRetido: '2',
-        itemListaServico: config.itemListaServico || '14.06',
+        itemListaServico: config.itemListaServico || '1.07',
         codigoMunicipio: config.codigoMunicipio || '3514700',
         discriminacao: record.discriminacao,
         prestador: {

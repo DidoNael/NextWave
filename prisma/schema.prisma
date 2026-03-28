@@ -369,8 +369,8 @@ model NfeConfig {
   senhaCertificado   String?
   certificadoBase64  String?
   ambiente           String   @default("homologacao")
-  aliquotaIss        Float    @default(0.02)
-  itemListaServico   String   @default("14.06")
+  aliquotaIss        Float    @default(0.0215)
+  itemListaServico   String   @default("1.07")
   codigoMunicipio    String   @default("3514700")
   serieRps           String   @default("1")
   tipoRps            String   @default("1")

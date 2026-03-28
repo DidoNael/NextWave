@@ -4,6 +4,7 @@ export interface RpsData {
     tipo: string;
     dataEmissao: string;
     valorServicos: number;
+    aliquota: number;
     issRetido: string;
     itemListaServico: string;
     codigoMunicipio: string;
@@ -44,7 +45,7 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
             <ValorServicos>${rps.valorServicos.toFixed(2)}</ValorServicos>
             <IssRetido>${rps.issRetido}</IssRetido>
             <BaseCalculo>${rps.valorServicos.toFixed(2)}</BaseCalculo>
-            <Aliquota>0.02</Aliquota>
+            <Aliquota>${rps.aliquota.toFixed(4)}</Aliquota>
           </Valores>
           <ItemListaServico>${rps.itemListaServico}</ItemListaServico>
           <CodigoMunicipio>${rps.codigoMunicipio}</CodigoMunicipio>
