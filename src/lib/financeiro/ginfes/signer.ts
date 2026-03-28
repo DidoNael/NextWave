@@ -54,8 +54,8 @@ export class GinfesSigner {
 
         sig.computeSignature(xmlToSign, {
             location: {
-                reference: `//*[@Id='${elementId}']`,
-                action: 'after',
+                reference: `//*[local-name(.)='${tagToSign}']`,
+                action: 'append',
             },
         });
 
