@@ -55,6 +55,7 @@ export default function ServiceDetailPage() {
   const [nfseModal, setNfseModal] = useState(false);
   const [emitindo, setEmitindo] = useState(false);
   const [checkingNfse, setCheckingNfse] = useState<string | null>(null);
+  const [retryingNfse, setRetryingNfse] = useState<string | null>(null);
   const [nfseForm, setNfseForm] = useState({
     discriminacao: "",
     valorServicos: "",
@@ -121,6 +122,21 @@ export default function ServiceDetailPage() {
       toast.error(err.message);
     } finally {
       setEmitindo(false);
+    }
+  };
+
+  const handleRetryNfse = async (nfseId: string) => {
+    setRetryingNfse(nfseId);
+    try {
+      const res = await fetch(`/api/nfse/${nfseId}/retry`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao reenviar");
+      toast.success(data.protocolo ? `Reenviado! Protocolo: ${data.protocolo}` : "NFS-e reenviada para processamento!");
+      fetchNfse(id);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setRetryingNfse(null);
     }
   };
 
@@ -378,16 +394,37 @@ export default function ServiceDetailPage() {
                         {r.valorServicos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </td>
                       <td className="py-2 px-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st.color}`}>{st.label}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium w-fit ${st.color}`}>{st.label}</span>
+                          {r.errorMessage && (
+                            <span className="text-xs text-red-500 max-w-[160px] truncate" title={r.errorMessage}>{r.errorMessage}</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="py-2 px-2 text-right">
-                        {["aguardando_processamento", "pendente"].includes(r.status) && (
+                      <td className="py-2 px-2 text-right space-x-1">
+                        {r.status === "aguardando_processamento" && (
                           <Button
                             variant="ghost" size="sm" className="h-7 text-xs gap-1"
                             onClick={() => handleCheckNfse(r.id)} disabled={checkingNfse === r.id}
                           >
                             {checkingNfse === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                             Verificar
+                          </Button>
+                        )}
+                        {["erro", "pendente"].includes(r.status) && (
+                          <Button
+                            variant="ghost" size="sm" className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
+                            onClick={() => handleRetryNfse(r.id)} disabled={retryingNfse === r.id}
+                          >
+                            {retryingNfse === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                            Retentar
+                          </Button>
+                        )}
+                        {r.status === "emitida" && r.codigoVerificacao && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-blue-600"
+                            onClick={() => window.open(`https://guarulhos.ginfes.com.br/report/consultarNota?chave=${r.codigoVerificacao}`, "_blank")}>
+                            <ExternalLink className="h-3 w-3" />
+                            Ver NFS-e
                           </Button>
                         )}
                       </td>
