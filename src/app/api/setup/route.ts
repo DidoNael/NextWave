@@ -74,10 +74,8 @@ export async function POST(req: Request) {
                 update: { siteUrl },
                 create: { id: "default", siteUrl },
             });
-            // Gravar no runtime.env para ser carregado pelo entrypoint no próximo boot
-            const runtimeEnvPath = path.join("/app/data", "runtime.env");
-            const envContent = `NEXT_PUBLIC_APP_URL=${siteUrl}\n`;
-            try { fs.writeFileSync(runtimeEnvPath, envContent); } catch (_) {}
+            // runtime.env não grava mais NEXTAUTH_URL/NEXT_PUBLIC_APP_URL —
+            // AUTH_TRUST_HOST=true detecta o host correto pela request automaticamente.
         }
 
         // 4. Configurar Módulos

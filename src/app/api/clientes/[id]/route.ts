@@ -14,7 +14,7 @@ const updateSchema = z.object({
   state: z.string().optional(),
   zipCode: z.string().optional(),
   notes: z.string().optional(),
-  status: z.enum(["ativo", "inativo", "prospecto"]).optional(),
+  status: z.enum(["ativo", "inativo", "prospecto", "pausado", "bloqueado"]).optional(),
 });
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {

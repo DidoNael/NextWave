@@ -6,7 +6,7 @@ import {
     DollarSign, Clock, FileText, Plus, ExternalLink,
     Filter, Download, ChevronRight, Receipt, CreditCard,
     TrendingUp, TrendingDown, Edit, Trash2, MessageSquare,
-    QrCode, Loader2, Save, Briefcase
+    QrCode, Loader2, Save, Briefcase, PauseCircle, Ban, CheckCircle
 } from "lucide-react";
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -62,6 +62,10 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
         notes: "",
     });
 
+    // Status do cliente
+    const [statusDialog, setStatusDialog] = useState<"pausado" | "bloqueado" | "ativo" | null>(null);
+    const [statusSaving, setStatusSaving] = useState(false);
+
     // Service CRUD
     const [svcDialogOpen, setSvcDialogOpen] = useState(false);
     const [svcSaving, setSvcSaving] = useState(false);
@@ -97,6 +101,29 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
             toast.error("Erro ao carregar detalhes do cliente");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const changeClientStatus = async (newStatus: "pausado" | "bloqueado" | "ativo") => {
+        setStatusSaving(true);
+        try {
+            const res = await fetch(`/api/clientes/${clientId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (!res.ok) throw new Error();
+            toast.success(
+                newStatus === "pausado" ? "Acesso pausado com sucesso!" :
+                newStatus === "bloqueado" ? "Cliente bloqueado definitivamente!" :
+                "Cliente reativado com sucesso!"
+            );
+            setStatusDialog(null);
+            fetchClientDetails();
+        } catch {
+            toast.error("Erro ao atualizar status do cliente");
+        } finally {
+            setStatusSaving(false);
         }
     };
 
@@ -251,19 +278,64 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                     <h2 className="text-3xl font-extrabold tracking-tight">{client?.name}</h2>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 rounded-full" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 rounded-full"
                                         onClick={() => onEdit?.(client)}
                                     >
                                         <Edit className="h-4 w-4 text-muted-foreground" />
                                     </Button>
+                                    {client?.status === "ativo" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/30"
+                                            onClick={() => setStatusDialog("pausado")}
+                                        >
+                                            <PauseCircle className="h-3.5 w-3.5" /> Pausar
+                                        </Button>
+                                    )}
+                                    {client?.status === "pausado" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1 border-green-500/50 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                                            onClick={() => setStatusDialog("ativo")}
+                                        >
+                                            <CheckCircle className="h-3.5 w-3.5" /> Reativar
+                                        </Button>
+                                    )}
+                                    {client?.status !== "bloqueado" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1 border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                            onClick={() => setStatusDialog("bloqueado")}
+                                        >
+                                            <Ban className="h-3.5 w-3.5" /> Bloquear
+                                        </Button>
+                                    )}
+                                    {client?.status === "bloqueado" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1 border-green-500/50 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                                            onClick={() => setStatusDialog("ativo")}
+                                        >
+                                            <CheckCircle className="h-3.5 w-3.5" /> Reativar
+                                        </Button>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-muted-foreground font-medium uppercase tracking-wider">
                                     <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> {client?.company || "Pessoa Física"}</span>
                                     <span className="h-1 w-1 rounded-full bg-slate-400" />
-                                    <Badge variant={client?.status === "ativo" ? "success" : "secondary"}>{client?.status}</Badge>
+                                    <Badge variant={
+                                        client?.status === "ativo" ? "success" :
+                                        client?.status === "pausado" ? "warning" :
+                                        client?.status === "bloqueado" ? "destructive" :
+                                        "secondary"
+                                    }>{client?.status}</Badge>
                                     <span className="h-1 w-1 rounded-full bg-slate-400" />
                                     <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500">ID: {client?.registrationId || "N/A"}</span>
                                 </div>
@@ -409,6 +481,37 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setCancelSvcId(null)}>Voltar</Button>
                         <Button variant="destructive" onClick={cancelSvc}>Confirmar Cancelamento</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de confirmação de status */}
+            <Dialog open={!!statusDialog} onOpenChange={() => setStatusDialog(null)}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {statusDialog === "pausado" && "Pausar acesso do cliente"}
+                            {statusDialog === "bloqueado" && "Bloquear cliente definitivamente"}
+                            {statusDialog === "ativo" && "Reativar cliente"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {statusDialog === "pausado" && "O acesso do cliente será suspenso temporariamente. Você pode reativar a qualquer momento."}
+                            {statusDialog === "bloqueado" && "O cliente será bloqueado de forma definitiva. Esta ação pode ser revertida manualmente."}
+                            {statusDialog === "ativo" && "O cliente voltará ao status ativo normalmente."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setStatusDialog(null)} disabled={statusSaving}>Cancelar</Button>
+                        <Button
+                            variant={statusDialog === "ativo" ? "default" : "destructive"}
+                            onClick={() => statusDialog && changeClientStatus(statusDialog)}
+                            disabled={statusSaving}
+                        >
+                            {statusSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            {statusDialog === "pausado" && "Confirmar Pausa"}
+                            {statusDialog === "bloqueado" && "Confirmar Bloqueio"}
+                            {statusDialog === "ativo" && "Confirmar Reativação"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

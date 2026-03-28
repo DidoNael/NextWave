@@ -54,18 +54,19 @@ function CopyKey({ licenseKey }: { licenseKey: string }) {
   );
 }
 
-async function toggleLicenseStatus(serviceId: string, currentStatus: string, onRefresh?: () => void) {
+async function toggleLicenseStatus(licenseId: string, currentStatus: string, onRefresh?: () => void) {
   const newStatus = currentStatus === "suspended" ? "active" : "suspended";
   try {
-    await fetch(`/api/servicos/${serviceId}`, {
-      method: "PUT",
+    const res = await fetch(`/api/plugin-licenses/${licenseId}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus === "active" ? "aprovado" : "suspenso" }),
+      body: JSON.stringify({ status: newStatus }),
     });
+    if (!res.ok) throw new Error();
     toast.success(newStatus === "suspended" ? "Licença suspensa." : "Licença reativada.");
     onRefresh?.();
   } catch {
-    toast.error("Erro ao alterar status.");
+    toast.error("Erro ao alterar status da licença.");
   }
 }
 
@@ -131,7 +132,7 @@ export function ClientServicosTab({
                         <Button
                           variant="ghost" size="sm"
                           className="h-7 gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                          onClick={() => toggleLicenseStatus(svc.id, license.status, onRefresh)}
+                          onClick={() => toggleLicenseStatus(license.id, license.status, onRefresh)}
                           title={license.status === "suspended" ? "Reativar" : "Suspender"}
                         >
                           {license.status === "suspended"

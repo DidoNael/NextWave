@@ -18,6 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface PluginLicense {
   id: string;
@@ -85,6 +87,14 @@ function trialDaysLeft(trialEndsAt: string | null): number {
 }
 
 export default function PluginLicensesPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const isMaster = (session?.user as any)?.role === "master";
+
+  useEffect(() => {
+    if (status === "authenticated" && !isMaster) router.replace("/");
+  }, [status, isMaster, router]);
+
   const [licenses, setLicenses] = useState<PluginLicense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,7 +113,7 @@ export default function PluginLicensesPage() {
   const [licenseToDelete, setLicenseToDelete] = useState<PluginLicense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => { fetchLicenses(); }, []);
+  useEffect(() => { if (isMaster) fetchLicenses(); }, [isMaster]);
 
   const fetchLicenses = async () => {
     setIsLoading(true);

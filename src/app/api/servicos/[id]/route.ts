@@ -135,6 +135,12 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     });
 
     if (service) {
+      // Bloqueia licença de plugin associada antes de deletar o serviço
+      await prisma.pluginLicense.updateMany({
+        where: { serviceId: service.id },
+        data: { status: "blocked" },
+      });
+
       // Clear agenda event
       await syncToAgenda({
         type: "service",

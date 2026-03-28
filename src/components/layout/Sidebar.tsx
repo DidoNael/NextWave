@@ -44,13 +44,13 @@ const navItems: NavItem[] = [
   { href: "/configuracoes/pbx", label: "Telefonia", icon: Phone, module: "pbx" },
 ];
 
-const bottomItems = [
-  { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush },
-  { href: "/configuracoes/agendador", label: "Agendador", icon: Clock },
-  { href: "/configuracoes/mcp", label: "MCP Server", icon: Server },
-  { href: "/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key },
-  { href: "/configuracoes", label: "Sistema", icon: Settings },
-  { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database },
+const bottomItemsBase = [
+  { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush, masterOnly: false },
+  { href: "/configuracoes/agendador", label: "Agendador", icon: Clock, masterOnly: false },
+  { href: "/configuracoes/mcp", label: "MCP Server", icon: Server, masterOnly: false },
+  { href: "/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key, masterOnly: true },
+  { href: "/configuracoes", label: "Sistema", icon: Settings, masterOnly: false },
+  { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database, masterOnly: false },
 ];
 
 interface SidebarProps {
@@ -60,12 +60,14 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
   const { layoutTheme } = useColorTheme();
+  const { data: session } = useSession();
   const isMaster = (session?.user as any)?.role === "master";
   const [collapsed, setCollapsed] = useState(false);
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  const bottomItems = bottomItemsBase.filter(item => !item.masterOnly || isMaster);
 
   const isProfessional = layoutTheme === "professional";
 
@@ -79,7 +81,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     if (saved !== null) setCollapsed(saved === "true");
 
     fetch("/api/sistema/modulos")
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) throw new Error("not ok");
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data))
           setActiveModules(data.filter((m: { enabled: boolean }) => m.enabled).map((m: { key: string }) => m.key));
