@@ -11,7 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
     FileText, Upload, CheckCircle2, XCircle, Loader2,
-    Building2, Key, Settings2, AlertTriangle, RefreshCw
+    Building2, Key, Settings2, AlertTriangle, RefreshCw,
+    RotateCcw, Code2, ExternalLink
 } from "lucide-react";
 
 interface NfeConfig {
@@ -33,11 +34,15 @@ interface NfseRecord {
     id: string;
     rpsNumero: string;
     numeroNfse: string | null;
+    codigoVerificacao: string | null;
     protocolo: string | null;
     status: string;
     valorServicos: number;
     discriminacao: string;
     tomadorNome: string | null;
+    xmlEnviado: string | null;
+    xmlRetorno: string | null;
+    errorMessage: string | null;
     createdAt: string;
     emitidaEm: string | null;
     canceladaEm: string | null;
@@ -57,6 +62,9 @@ export default function NfeConfigPage() {
     const [records, setRecords] = useState<NfseRecord[]>([]);
     const [loadingRecords, setLoadingRecords] = useState(false);
     const [checkingId, setCheckingId] = useState<string | null>(null);
+    const [retryingId, setRetryingId] = useState<string | null>(null);
+    const [xmlModal, setXmlModal] = useState<{ open: boolean; enviado: string; retorno: string; erro: string } | null>(null);
+    const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
 
     const [form, setForm] = useState({
@@ -190,6 +198,21 @@ export default function NfeConfigPage() {
             toast.error("Erro ao consultar status");
         } finally {
             setCheckingId(null);
+        }
+    };
+
+    const handleRetry = async (id: string) => {
+        setRetryingId(id);
+        try {
+            const res = await fetch(`/api/nfse/${id}/retry`, { method: "POST" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao retentar");
+            toast.success(data.protocolo ? `Reenviado! Protocolo: ${data.protocolo}` : "Reenviado para processamento");
+            fetchRecords();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setRetryingId(null);
         }
     };
 
@@ -494,6 +517,46 @@ export default function NfeConfigPage() {
                                                                 Verificar
                                                             </Button>
                                                         )}
+                                                        {r.status === "emitida" && r.codigoVerificacao && (
+                                                            <a
+                                                                href={`https://guarulhos.ginfes.com.br/report/consultarNota?chave=${r.codigoVerificacao}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                                                                    <ExternalLink className="h-3 w-3" />
+                                                                    Ver NFS-e
+                                                                </Button>
+                                                            </a>
+                                                        )}
+                                                        {["erro", "pendente"].includes(r.status) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
+                                                                onClick={() => handleRetry(r.id)}
+                                                                disabled={retryingId === r.id}
+                                                            >
+                                                                {retryingId === r.id
+                                                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                                                    : <RotateCcw className="h-3 w-3" />}
+                                                                Retentar
+                                                            </Button>
+                                                        )}
+                                                        {(r.xmlEnviado || r.xmlRetorno || r.errorMessage) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-7 text-xs gap-1"
+                                                                onClick={() => {
+                                                                    setXmlModal({ open: true, enviado: r.xmlEnviado || "", retorno: r.xmlRetorno || "", erro: r.errorMessage || "" });
+                                                                    setXmlTab(r.errorMessage ? "erro" : r.xmlRetorno ? "retorno" : "enviado");
+                                                                }}
+                                                            >
+                                                                <Code2 className="h-3 w-3" />
+                                                                XML
+                                                            </Button>
+                                                        )}
                                                         {r.status === "emitida" && (
                                                             <Button
                                                                 variant="ghost"
@@ -516,6 +579,51 @@ export default function NfeConfigPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal XML Viewer */}
+            {xmlModal?.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-background w-full max-w-3xl rounded-2xl border shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="p-4 border-b flex items-center justify-between shrink-0">
+                            <h2 className="font-bold flex items-center gap-2"><Code2 className="h-4 w-4 text-primary" /> Visualizador XML</h2>
+                            <Button variant="ghost" size="icon" onClick={() => setXmlModal(null)}><XCircle className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="flex gap-1 px-4 pt-3 shrink-0">
+                            {xmlModal.retorno && (
+                                <button onClick={() => setXmlTab("retorno")}
+                                    className={`px-3 py-1 rounded-t text-xs font-medium border-b-2 transition-colors ${xmlTab === "retorno" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                                    Retorno Ginfes
+                                </button>
+                            )}
+                            {xmlModal.enviado && (
+                                <button onClick={() => setXmlTab("enviado")}
+                                    className={`px-3 py-1 rounded-t text-xs font-medium border-b-2 transition-colors ${xmlTab === "enviado" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                                    XML Enviado
+                                </button>
+                            )}
+                            {xmlModal.erro && (
+                                <button onClick={() => setXmlTab("erro")}
+                                    className={`px-3 py-1 rounded-t text-xs font-medium border-b-2 transition-colors ${xmlTab === "erro" ? "border-orange-500 text-orange-500" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                                    Mensagem de Erro
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex-1 overflow-auto p-4">
+                            <pre className="text-xs bg-muted/50 rounded-lg p-4 overflow-auto whitespace-pre-wrap break-all font-mono leading-relaxed">
+                                {xmlTab === "retorno" ? xmlModal.retorno : xmlTab === "enviado" ? xmlModal.enviado : xmlModal.erro}
+                            </pre>
+                        </div>
+                        <div className="p-4 border-t shrink-0 flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                                const text = xmlTab === "retorno" ? xmlModal.retorno : xmlTab === "enviado" ? xmlModal.enviado : xmlModal.erro;
+                                navigator.clipboard.writeText(text);
+                                toast.success("Copiado!");
+                            }}>Copiar</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setXmlModal(null)}>Fechar</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
