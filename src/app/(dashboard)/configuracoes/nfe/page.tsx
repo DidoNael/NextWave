@@ -63,6 +63,8 @@ export default function NfeConfigPage() {
     const [loadingRecords, setLoadingRecords] = useState(false);
     const [checkingId, setCheckingId] = useState<string | null>(null);
     const [retryingId, setRetryingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [limpando, setLimpando] = useState(false);
     const [xmlModal, setXmlModal] = useState<{ open: boolean; enviado: string; retorno: string; erro: string } | null>(null);
     const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
@@ -213,6 +215,39 @@ export default function NfeConfigPage() {
             toast.error(err.message);
         } finally {
             setRetryingId(null);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Excluir este registro? Ele será removido permanentemente do sistema.")) return;
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/nfse/${id}/excluir`, { method: "DELETE" });
+            if (!res.ok) throw new Error((await res.json()).error);
+            toast.success("Registro excluído");
+            fetchRecords();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handleLimpar = async () => {
+        const pendentes = records.filter(r => ['pendente', 'erro'].includes(r.status));
+        if (pendentes.length === 0) return toast.info("Nenhum registro pendente ou com erro.");
+        if (!confirm(`Excluir ${pendentes.length} registro(s) pendente(s)/erro? Esta ação é irreversível.`)) return;
+        setLimpando(true);
+        try {
+            const res = await fetch("/api/nfse/limpar", { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            toast.success(`${data.removidos} registro(s) removido(s)`);
+            fetchRecords();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setLimpando(false);
         }
     };
 
@@ -465,10 +500,22 @@ export default function NfeConfigPage() {
                         <CardTitle>Notas Fiscais Emitidas</CardTitle>
                         <CardDescription>Histórico de NFS-e processadas pelo sistema.</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loadingRecords} className="gap-1.5">
-                        <RefreshCw className={`h-3.5 w-3.5 ${loadingRecords ? "animate-spin" : ""}`} />
-                        Atualizar
-                    </Button>
+                    <div className="flex gap-2">
+                        {records.some(r => ['pendente', 'erro'].includes(r.status)) && (
+                            <Button
+                                variant="outline" size="sm"
+                                className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={handleLimpar} disabled={limpando}
+                            >
+                                {limpando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                Limpar pendentes/erros
+                            </Button>
+                        )}
+                        <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loadingRecords} className="gap-1.5">
+                            <RefreshCw className={`h-3.5 w-3.5 ${loadingRecords ? "animate-spin" : ""}`} />
+                            Atualizar
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {loadingRecords ? (
@@ -538,18 +585,32 @@ export default function NfeConfigPage() {
                                                             </a>
                                                         )}
                                                         {["erro", "pendente"].includes(r.status) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
-                                                                onClick={() => handleRetry(r.id)}
-                                                                disabled={retryingId === r.id}
-                                                            >
-                                                                {retryingId === r.id
-                                                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                                                    : <RotateCcw className="h-3 w-3" />}
-                                                                Retentar
-                                                            </Button>
+                                                            <>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
+                                                                    onClick={() => handleRetry(r.id)}
+                                                                    disabled={retryingId === r.id}
+                                                                >
+                                                                    {retryingId === r.id
+                                                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                                                        : <RotateCcw className="h-3 w-3" />}
+                                                                    Retentar
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 text-xs gap-1 text-red-600 hover:text-red-700"
+                                                                    onClick={() => handleDelete(r.id)}
+                                                                    disabled={deletingId === r.id}
+                                                                >
+                                                                    {deletingId === r.id
+                                                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                                                        : <XCircle className="h-3 w-3" />}
+                                                                    Excluir
+                                                                </Button>
+                                                            </>
                                                         )}
                                                         {(r.xmlEnviado || r.xmlRetorno || r.errorMessage) && (
                                                             <Button
