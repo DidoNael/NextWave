@@ -23,7 +23,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   const service = await prisma.service.findFirst({
     where: { id: params.id },
-    include: { client: { select: { id: true, name: true, email: true } }, transactions: true },
+    include: {
+      client: {
+        select: {
+          id: true, name: true, email: true, document: true,
+          address: true, number: true, complement: true, neighborhood: true,
+          city: true, state: true, zipCode: true, phone: true,
+        },
+      },
+      transactions: true,
+    },
   });
   if (!service) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   return NextResponse.json(service);
