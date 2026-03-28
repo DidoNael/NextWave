@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, Copy, Mail, KeyRound, CheckCircle2, XCircle,
-  PauseCircle, Clock, RefreshCw, ExternalLink, Loader2
+  PauseCircle, Clock, RefreshCw, ExternalLink, Loader2, FileText, Plus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +31,14 @@ const STATUS_LICENSE: Record<string, { label: string; icon: any; color: string; 
   blocked:   { label: "Bloqueada", icon: XCircle,      color: "text-red-400",     bg: "bg-red-500/10" },
 };
 
+const NFSE_STATUS: Record<string, { label: string; color: string }> = {
+  pendente: { label: "Pendente", color: "bg-slate-100 text-slate-700" },
+  aguardando_processamento: { label: "Aguardando", color: "bg-blue-100 text-blue-700" },
+  emitida: { label: "Emitida", color: "bg-green-100 text-green-700" },
+  cancelada: { label: "Cancelada", color: "bg-red-100 text-red-700" },
+  erro: { label: "Erro", color: "bg-orange-100 text-orange-700" },
+};
+
 export default function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -41,6 +50,32 @@ export default function ServiceDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // NFS-e
+  const [nfseRecords, setNfseRecords] = useState<any[]>([]);
+  const [nfseModal, setNfseModal] = useState(false);
+  const [emitindo, setEmitindo] = useState(false);
+  const [checkingNfse, setCheckingNfse] = useState<string | null>(null);
+  const [nfseForm, setNfseForm] = useState({
+    discriminacao: "",
+    valorServicos: "",
+    tomadorNome: "",
+    tomadorDoc: "",
+    tomadorEmail: "",
+    tomadorEndereco: "",
+    tomadorNumero: "",
+    tomadorBairro: "",
+    tomadorCodigoMunicipio: "3514700",
+    tomadorUf: "SP",
+    tomadorCep: "",
+  });
+
+  const fetchNfse = async (svcId: string) => {
+    try {
+      const res = await fetch(`/api/nfse?serviceId=${svcId}`);
+      if (res.ok) setNfseRecords(await res.json());
+    } catch { /* silencioso */ }
+  };
+
   useEffect(() => {
     if (!id) return;
     Promise.all([
@@ -50,8 +85,56 @@ export default function ServiceDetailPage() {
       setService(svc);
       setLicense(lic);
       if (lic?.customerEmail) setEmailInput(lic.customerEmail);
+      // Pré-preencher form NFS-e
+      setNfseForm(prev => ({
+        ...prev,
+        discriminacao: svc.description || svc.title || "",
+        valorServicos: String(svc.amount || ""),
+        tomadorNome: svc.client?.name || "",
+        tomadorDoc: svc.client?.document || "",
+        tomadorEmail: svc.client?.email || "",
+        tomadorEndereco: svc.client?.address || "",
+        tomadorNumero: svc.client?.number || "",
+        tomadorBairro: svc.client?.neighborhood || "",
+        tomadorUf: svc.client?.state || "SP",
+        tomadorCep: (svc.client?.zipCode || "").replace(/\D/g, ""),
+      }));
+      fetchNfse(id);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const handleEmitirNfse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmitindo(true);
+    try {
+      const res = await fetch("/api/nfse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...nfseForm, serviceId: id, clientId: service?.clientId, valorServicos: parseFloat(nfseForm.valorServicos) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao emitir");
+      toast.success(data.protocolo ? `Lote enviado! Protocolo: ${data.protocolo}` : "NFS-e enviada para processamento!");
+      setNfseModal(false);
+      fetchNfse(id);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setEmitindo(false);
+    }
+  };
+
+  const handleCheckNfse = async (nfseId: string) => {
+    setCheckingNfse(nfseId);
+    try {
+      const res = await fetch(`/api/nfse/${nfseId}`);
+      const data = await res.json();
+      if (data.status === "emitida") toast.success(`NFS-e emitida! Número: ${data.numeroNfse}`);
+      else toast.info(`Status: ${NFSE_STATUS[data.status]?.label || data.status}`);
+      fetchNfse(id);
+    } catch { toast.error("Erro ao consultar"); }
+    finally { setCheckingNfse(null); }
+  };
 
   const copyKey = () => {
     if (!license?.key) return;
@@ -255,6 +338,154 @@ export default function ServiceDetailPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* NFS-e */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Nota Fiscal de Serviço (NFS-e)
+            </CardTitle>
+            <Button size="sm" className="gap-1.5" onClick={() => setNfseModal(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Emitir NFS-e
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {nfseRecords.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma NFS-e emitida para este serviço.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/50 text-muted-foreground">
+                  <th className="text-left py-2 px-2 font-medium">RPS</th>
+                  <th className="text-left py-2 px-2 font-medium">NFS-e</th>
+                  <th className="text-left py-2 px-2 font-medium">Valor</th>
+                  <th className="text-left py-2 px-2 font-medium">Status</th>
+                  <th className="text-right py-2 px-2 font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nfseRecords.map(r => {
+                  const st = NFSE_STATUS[r.status] || { label: r.status, color: "bg-slate-100 text-slate-700" };
+                  return (
+                    <tr key={r.id} className="border-b border-border/40">
+                      <td className="py-2 px-2 font-mono text-xs">{r.rpsNumero}</td>
+                      <td className="py-2 px-2 font-mono text-xs">{r.numeroNfse || "—"}</td>
+                      <td className="py-2 px-2">
+                        {r.valorServicos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </td>
+                      <td className="py-2 px-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st.color}`}>{st.label}</span>
+                      </td>
+                      <td className="py-2 px-2 text-right">
+                        {["aguardando_processamento", "pendente"].includes(r.status) && (
+                          <Button
+                            variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                            onClick={() => handleCheckNfse(r.id)} disabled={checkingNfse === r.id}
+                          >
+                            {checkingNfse === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                            Verificar
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal Emitir NFS-e */}
+      {nfseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-background w-full max-w-xl rounded-2xl border shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b shrink-0">
+              <h2 className="text-lg font-bold">Emitir NFS-e</h2>
+              <p className="text-sm text-muted-foreground">Os dados foram pré-preenchidos com as informações do serviço e cliente.</p>
+            </div>
+            <form onSubmit={handleEmitirNfse} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label>Discriminação do Serviço *</Label>
+                  <Textarea
+                    required
+                    rows={3}
+                    value={nfseForm.discriminacao}
+                    onChange={e => setNfseForm({ ...nfseForm, discriminacao: e.target.value })}
+                    placeholder="Descrição detalhada do serviço prestado"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor dos Serviços (R$) *</Label>
+                  <Input
+                    required
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={nfseForm.valorServicos}
+                    onChange={e => setNfseForm({ ...nfseForm, valorServicos: e.target.value })}
+                  />
+                </div>
+
+                <div className="border-t border-border/50 pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dados do Tomador</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <Label className="text-xs">Nome / Razão Social</Label>
+                      <Input value={nfseForm.tomadorNome} onChange={e => setNfseForm({ ...nfseForm, tomadorNome: e.target.value })} placeholder="Nome do tomador" />
+                    </div>
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <Label className="text-xs">CPF / CNPJ</Label>
+                      <Input value={nfseForm.tomadorDoc} onChange={e => setNfseForm({ ...nfseForm, tomadorDoc: e.target.value })} placeholder="Somente números" />
+                    </div>
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <Label className="text-xs">Email</Label>
+                      <Input type="email" value={nfseForm.tomadorEmail} onChange={e => setNfseForm({ ...nfseForm, tomadorEmail: e.target.value })} />
+                    </div>
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <Label className="text-xs">CEP</Label>
+                      <Input value={nfseForm.tomadorCep} onChange={e => setNfseForm({ ...nfseForm, tomadorCep: e.target.value })} placeholder="00000000" maxLength={8} />
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs">Endereço</Label>
+                      <Input value={nfseForm.tomadorEndereco} onChange={e => setNfseForm({ ...nfseForm, tomadorEndereco: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Número</Label>
+                      <Input value={nfseForm.tomadorNumero} onChange={e => setNfseForm({ ...nfseForm, tomadorNumero: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Bairro</Label>
+                      <Input value={nfseForm.tomadorBairro} onChange={e => setNfseForm({ ...nfseForm, tomadorBairro: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cód. Município (IBGE)</Label>
+                      <Input value={nfseForm.tomadorCodigoMunicipio} onChange={e => setNfseForm({ ...nfseForm, tomadorCodigoMunicipio: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">UF</Label>
+                      <Input value={nfseForm.tomadorUf} onChange={e => setNfseForm({ ...nfseForm, tomadorUf: e.target.value })} maxLength={2} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                <Button type="button" variant="ghost" onClick={() => setNfseModal(false)}>Cancelar</Button>
+                <Button type="submit" disabled={emitindo} className="gap-2">
+                  {emitindo && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <FileText className="h-4 w-4" />
+                  Emitir NFS-e
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Voltar para lista */}
       <div className="flex justify-end">

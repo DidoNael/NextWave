@@ -369,7 +369,37 @@ model NfeConfig {
   senhaCertificado   String?
   certificadoBase64  String?
   ambiente           String   @default("homologacao")
+  aliquotaIss        Float    @default(0.02)
+  itemListaServico   String   @default("14.06")
+  codigoMunicipio    String   @default("3514700")
+  serieRps           String   @default("1")
+  tipoRps            String   @default("1")
+  naturezaOperacao   String   @default("1")
+  optanteSimplesNacional String @default("1")
   updatedAt          DateTime @updatedAt
+}
+
+model NfseRecord {
+  id              String    @id @default(cuid())
+  rpsNumero       String
+  rpsSerie        String    @default("1")
+  protocolo       String?
+  numeroNfse      String?
+  codigoVerificacao String?
+  status          String    @default("pendente") // pendente, emitida, cancelada, erro
+  valorServicos   Float
+  discriminacao   String
+  tomadorNome     String?
+  tomadorDoc      String?
+  xmlEnviado      String?
+  xmlRetorno      String?
+  errorMessage    String?
+  serviceId       String?
+  clientId        String?
+  emitidaEm       DateTime?
+  canceladaEm     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model SystemLicense {
