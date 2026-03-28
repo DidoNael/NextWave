@@ -50,6 +50,9 @@ model Client {
   document       String?
   company        String?
   address        String?
+  number         String?
+  complement     String?
+  neighborhood   String?
   city           String?
   state          String?
   zipCode        String?

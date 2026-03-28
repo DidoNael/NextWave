@@ -97,10 +97,30 @@ export function ClientCadastroTab({ client, onSave, onEdit }: ClientCadastroTabP
             </h4>
             <div className="space-y-3">
               <div>
-                <Label className="text-[10px] uppercase text-muted-foreground">Logradouro</Label>
-                <p className="text-sm font-semibold">{client?.address || "N/A"}</p>
+                <Label className="text-[10px] uppercase text-muted-foreground">CEP</Label>
+                <p className="text-sm font-semibold">{client?.zipCode || "N/A"}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Logradouro</Label>
+                  <p className="text-sm font-semibold">{client?.address || "N/A"}</p>
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase text-muted-foreground">Número</Label>
+                  <p className="text-sm font-semibold">{client?.number || "S/N"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[10px] uppercase text-muted-foreground">Bairro</Label>
+                  <p className="text-sm font-semibold">{client?.neighborhood || "N/A"}</p>
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase text-muted-foreground">Complemento</Label>
+                  <p className="text-sm font-semibold">{client?.complement || "—"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-[10px] uppercase text-muted-foreground">Cidade</Label>
                   <p className="text-sm font-semibold">{client?.city || "N/A"}</p>
@@ -109,10 +129,6 @@ export function ClientCadastroTab({ client, onSave, onEdit }: ClientCadastroTabP
                   <Label className="text-[10px] uppercase text-muted-foreground">Estado</Label>
                   <p className="text-sm font-semibold">{client?.state || "N/A"}</p>
                 </div>
-              </div>
-              <div>
-                <Label className="text-[10px] uppercase text-muted-foreground">CEP</Label>
-                <p className="text-sm font-semibold">{client?.zipCode || "N/A"}</p>
               </div>
             </div>
           </div>

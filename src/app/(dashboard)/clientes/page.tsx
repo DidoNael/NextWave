@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, Search, Filter, Phone, Mail, Building2, Trash2, Edit, Eye, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,10 @@ const clienteSchema = z.object({
   document: z.string().min(1, "CPF/CNPJ obrigatório"),
   company: z.string().min(2, "Nome da empresa obrigatório"),
   zipCode: z.string().min(8, "CEP obrigatório"),
-  address: z.string().min(5, "Endereço obrigatório"),
+  address: z.string().min(3, "Logradouro obrigatório"),
+  number: z.string().optional(),
+  complement: z.string().optional(),
+  neighborhood: z.string().optional(),
   city: z.string().min(2, "Cidade obrigatória"),
   state: z.string().min(2, "UF obrigatória"),
   notes: z.string().optional(),
@@ -65,6 +68,29 @@ export default function ClientesPage() {
     resolver: zodResolver(clienteSchema),
     defaultValues: { status: "ativo", phones: [{ value: "" }], emails: [{ value: "" }] },
   });
+
+  const [cepLoading, setCepLoading] = useState(false);
+  const cepPrev = useRef("");
+
+  const buscarCep = useCallback(async (cep: string) => {
+    const clean = cep.replace(/\D/g, "");
+    if (clean.length !== 8 || clean === cepPrev.current) return;
+    cepPrev.current = clean;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+      if (data.erro) { toast.error("CEP não encontrado"); return; }
+      setValue("address", data.logradouro || "");
+      setValue("neighborhood", data.bairro || "");
+      setValue("city", data.localidade || "");
+      setValue("state", data.uf || "");
+    } catch {
+      toast.error("Erro ao buscar CEP");
+    } finally {
+      setCepLoading(false);
+    }
+  }, [setValue]);
 
   const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
     control,
@@ -100,24 +126,18 @@ export default function ClientesPage() {
 
   const openCreate = () => {
     setEditingCliente(null);
+    cepPrev.current = "";
     reset({
-      name: "",
-      emails: [{ value: "" }],
-      phones: [{ value: "" }],
-      document: "",
-      company: "",
-      zipCode: "",
-      address: "",
-      city: "",
-      state: "",
-      notes: "",
-      status: "ativo"
+      name: "", emails: [{ value: "" }], phones: [{ value: "" }],
+      document: "", company: "", zipCode: "", address: "", number: "",
+      complement: "", neighborhood: "", city: "", state: "", notes: "", status: "ativo"
     });
     setIsDialogOpen(true);
   };
 
   const openEdit = (cliente: ClienteComCount) => {
     setEditingCliente(cliente);
+    cepPrev.current = (cliente.zipCode || "").replace(/\D/g, "");
     reset({
       name: cliente.name,
       emails: cliente.email ? cliente.email.split(",").map(e => ({ value: e.trim() })) : [{ value: "" }],
@@ -126,6 +146,9 @@ export default function ClientesPage() {
       company: cliente.company || "",
       zipCode: cliente.zipCode || "",
       address: cliente.address || "",
+      number: (cliente as any).number || "",
+      complement: (cliente as any).complement || "",
+      neighborhood: (cliente as any).neighborhood || "",
       city: cliente.city || "",
       state: cliente.state || "",
       notes: cliente.notes || "",
@@ -436,57 +459,77 @@ export default function ClientesPage() {
               </div>
               <div className="space-y-2">
                 <Label className={errors.zipCode ? "text-destructive" : ""}>CEP *</Label>
-                <Controller
-                  name="zipCode"
-                  control={control}
-                  render={({ field }) => (
-                    <IMaskInput
-                      mask="00000-000"
-                      className={cn(
-                        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                        errors.zipCode && "border-destructive ring-destructive"
-                      )}
-                      placeholder="00000-000"
-                      value={field.value}
-                      onAccept={(value: string) => field.onChange(value)}
-                    />
+                <div className="relative">
+                  <Controller
+                    name="zipCode"
+                    control={control}
+                    render={({ field }) => (
+                      <IMaskInput
+                        mask="00000-000"
+                        className={cn(
+                          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                          errors.zipCode && "border-destructive ring-destructive"
+                        )}
+                        placeholder="00000-000"
+                        value={field.value}
+                        onAccept={(value: string) => {
+                          field.onChange(value);
+                          buscarCep(value);
+                        }}
+                      />
+                    )}
+                  />
+                  {cepLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   )}
-                />
+                </div>
                 {errors.zipCode && <p className="text-[10px] text-destructive italic">{errors.zipCode.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label className={errors.company ? "text-destructive" : ""}>Empresa *</Label>
-                <Input 
-                  placeholder="Nome da empresa" 
-                  {...register("company")} 
+                <Input
+                  placeholder="Nome da empresa"
+                  {...register("company")}
                   className={cn(errors.company && "border-destructive ring-destructive")}
                 />
                 {errors.company && <p className="text-[10px] text-destructive italic">{errors.company.message}</p>}
               </div>
               <div className="col-span-2 space-y-2">
-                <Label className={errors.address ? "text-destructive" : ""}>Endereço *</Label>
-                <Input 
-                  placeholder="Rua, número, bairro" 
-                  {...register("address")} 
+                <Label className={errors.address ? "text-destructive" : ""}>Logradouro *</Label>
+                <Input
+                  placeholder="Rua, Av, Travessa..."
+                  {...register("address")}
                   className={cn(errors.address && "border-destructive ring-destructive")}
                 />
                 {errors.address && <p className="text-[10px] text-destructive italic">{errors.address.message}</p>}
               </div>
               <div className="space-y-2">
+                <Label>Número</Label>
+                <Input placeholder="123" {...register("number")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Complemento</Label>
+                <Input placeholder="Apto, Sala, Bloco..." {...register("complement")} />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Bairro</Label>
+                <Input placeholder="Bairro" {...register("neighborhood")} />
+              </div>
+              <div className="space-y-2">
                 <Label className={errors.city ? "text-destructive" : ""}>Cidade *</Label>
-                <Input 
-                  placeholder="São Paulo" 
-                  {...register("city")} 
+                <Input
+                  placeholder="São Paulo"
+                  {...register("city")}
                   className={cn(errors.city && "border-destructive ring-destructive")}
                 />
                 {errors.city && <p className="text-[10px] text-destructive italic">{errors.city.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label className={errors.state ? "text-destructive" : ""}>Estado *</Label>
-                <Input 
-                  placeholder="SP" 
-                  maxLength={2} 
-                  {...register("state")} 
+                <Input
+                  placeholder="SP"
+                  maxLength={2}
+                  {...register("state")}
                   className={cn(errors.state && "border-destructive ring-destructive")}
                 />
                 {errors.state && <p className="text-[10px] text-destructive italic">{errors.state.message}</p>}
