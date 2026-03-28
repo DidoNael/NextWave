@@ -131,9 +131,11 @@ export default function ServiceDetailPage() {
     }
   };
 
-  const openRetryModal = (record: any) => {
+  const openRetryModal = async (record: any) => {
     setEditingNfseId(record.id);
-    setNfseForm({
+
+    // Base: dados salvos na nota
+    const base = {
       discriminacao: record.discriminacao || "",
       valorServicos: String(record.valorServicos || ""),
       tomadorNome: record.tomadorNome || "",
@@ -145,7 +147,28 @@ export default function ServiceDetailPage() {
       tomadorCodigoMunicipio: "3514700",
       tomadorUf: "SP",
       tomadorCep: "",
-    });
+    };
+
+    // Complementar com dados do cliente se disponível
+    const clientId = record.clientId || service?.clientId;
+    if (clientId) {
+      try {
+        const res = await fetch(`/api/clientes/${clientId}`);
+        if (res.ok) {
+          const c = await res.json();
+          base.tomadorEmail = c.email || "";
+          base.tomadorEndereco = c.address || "";
+          base.tomadorNumero = c.number || "";
+          base.tomadorBairro = c.neighborhood || "";
+          base.tomadorUf = c.state || "SP";
+          base.tomadorCep = (c.zipCode || "").replace(/\D/g, "");
+          if (!base.tomadorNome) base.tomadorNome = c.name || "";
+          if (!base.tomadorDoc) base.tomadorDoc = c.document || "";
+        }
+      } catch { /* silencioso — usa dados da nota */ }
+    }
+
+    setNfseForm(base);
     setNfseModal(true);
   };
 
