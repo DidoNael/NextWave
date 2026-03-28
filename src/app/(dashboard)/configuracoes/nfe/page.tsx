@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -843,7 +844,7 @@ export default function NfeConfigPage() {
                         <div className="p-4 border-t shrink-0 flex justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
                                 const text = xmlTab === "retorno" ? xmlModal.retorno : xmlTab === "enviado" ? xmlModal.enviado : xmlModal.erro;
-                                navigator.clipboard.writeText(text);
+                                copyToClipboard(text);
                                 toast.success("Copiado!");
                             }}>Copiar</Button>
                             <Button variant="ghost" size="sm" onClick={() => setXmlModal(null)}>Fechar</Button>

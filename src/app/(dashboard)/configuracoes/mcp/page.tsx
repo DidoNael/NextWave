@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { Server, Save, Loader2, Info, ShieldCheck, Key, Globe, Network, RefreshCw, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ export default function McpSettingsPage() {
 
     const handleCopyKey = async () => {
         if (!config.apiKey) return;
-        await navigator.clipboard.writeText(config.apiKey);
+        copyToClipboard(config.apiKey);
         setCopied(true);
         toast.success("API Key copiada!");
         setTimeout(() => setCopied(false), 2000);

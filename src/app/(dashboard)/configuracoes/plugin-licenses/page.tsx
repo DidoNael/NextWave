@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import {
   Key, Copy, Check, Loader2, Plus, Ban, ShieldOff, Trash2, AlertTriangle, FlaskConical
 } from "lucide-react";
@@ -57,7 +58,7 @@ function StatusBadge({ license }: { license: PluginLicense }) {
 function CopyKeyButton({ licenseKey }: { licenseKey: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(licenseKey);
+    copyToClipboard(licenseKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

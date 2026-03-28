@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +226,7 @@ export default function ServiceDetailPage() {
 
   const copyKey = () => {
     if (!license?.key) return;
-    navigator.clipboard.writeText(license.key);
+    copyToClipboard(license.key);
     setCopied(true);
     toast.success("Chave copiada!");
     setTimeout(() => setCopied(false), 2000);

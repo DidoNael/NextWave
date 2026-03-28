@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import Link from "next/link";
 import { Plus, Briefcase, ExternalLink, Clock, Copy, Check, KeyRound, ShieldOff, ShieldCheck, Ban, FlaskConical, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ function LicenseBadge({ license }: { license: any }) {
 function CopyKey({ licenseKey }: { licenseKey: string }) {
   const [copied, setCopied] = useState(false);
   const handle = () => {
-    navigator.clipboard.writeText(licenseKey);
+    copyToClipboard(licenseKey);
     setCopied(true);
     toast.success("Chave copiada!");
     setTimeout(() => setCopied(false), 2000);

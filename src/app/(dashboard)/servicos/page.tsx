@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { Plus, Search, Filter, Briefcase, Loader2, Save, Trash2, Key, Copy, Mail, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +97,7 @@ function PluginLicenseSection({ serviceId }: { serviceId: string }) {
 
   const handleCopyKey = () => {
     if (!license) return;
-    navigator.clipboard.writeText(license.key);
+    copyToClipboard(license.key);
     toast.success("Chave copiada!");
   };
 
