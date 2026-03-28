@@ -17,19 +17,31 @@ export class GinfesSigner {
         this.cert = certBags[forge.pki.oids.certBag]![0].cert!;
     }
 
-    public signXml(xml: string, tagToSign: string): string {
+    /**
+     * Assina um elemento XML identificado por `elementId`.
+     * Se o elemento `tagToSign` ainda não tiver `Id="${elementId}"`, ele é adicionado.
+     */
+    public signXml(xml: string, tagToSign: string, elementId: string): string {
         const privateKeyPem = forge.pki.privateKeyToPem(this.key);
         const certPem = forge.pki.certificateToPem(this.cert);
+
+        // Garantir que o elemento tem o atributo Id correto
+        const idPattern = new RegExp(`<${tagToSign}(\\s[^>]*)?>`);
+        let xmlToSign = xml;
+        if (!xml.includes(`Id="${elementId}"`)) {
+            xmlToSign = xml.replace(idPattern, `<${tagToSign} Id="${elementId}"$1>`);
+        }
 
         const sig = new SignedXml({
             canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#',
             signatureAlgorithm: 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
             privateKey: Buffer.from(privateKeyPem),
             publicCert: Buffer.from(certPem),
+            idAttributes: ['Id', 'id', 'ID'],
         });
 
         sig.addReference({
-            xpath: `//*[local-name(.)='${tagToSign}']`,
+            uri: `#${elementId}`,
             transforms: [
                 'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
                 'http://www.w3.org/2001/10/xml-exc-c14n#',
@@ -40,9 +52,9 @@ export class GinfesSigner {
         sig.getKeyInfoContent = () =>
             `<X509Data><X509Certificate>${this.cleanCert(certPem)}</X509Certificate></X509Data>`;
 
-        sig.computeSignature(xml, {
+        sig.computeSignature(xmlToSign, {
             location: {
-                reference: `//*[local-name(.)='${tagToSign}']`,
+                reference: `//*[@Id='${elementId}']`,
                 action: 'after',
             },
         });

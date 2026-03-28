@@ -121,11 +121,10 @@ export class GinfesClient {
 
     async emitirLote(rpsList: RpsData[], loteId: string): Promise<EmitirLoteResult> {
         const xmlLote = generateLoteRpsXml(loteId, rpsList);
-        const xmlAssinado = this.signer.signXml(xmlLote, 'InfRps');
-        const xmlLoteAssinado = this.signer.signXml(
-            xmlAssinado.replace('<LoteRps', `<LoteRps Id="lote${loteId}"`),
-            'LoteRps'
-        );
+        // Assina cada InfRps (o template já inclui Id="rps{numero}")
+        const xmlAssinado = this.signer.signXml(xmlLote, 'InfRps', `rps${rpsList[0].numero}`);
+        // Assina o LoteRps (o template já inclui Id="lote{loteId}" — sem replace duplicado)
+        const xmlLoteAssinado = this.signer.signXml(xmlAssinado, 'LoteRps', `lote${loteId}`);
 
         try {
             const xmlRetorno = await soapCall(
@@ -159,7 +158,7 @@ export class GinfesClient {
   <Protocolo>${protocolo}</Protocolo>
 </ConsultarSituacaoLoteRpsEnvio>`;
 
-        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarSituacaoLoteRpsEnvio');
+        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarSituacaoLoteRpsEnvio', 'consultaSituacao');
         const xmlRetorno = await soapCall(
             this.baseUrl,
             'ConsultarSituacaoLoteRpsV3',
@@ -201,7 +200,7 @@ export class GinfesClient {
   </Prestador>
 </ConsultarNfsePorRpsEnvio>`;
 
-        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarNfsePorRpsEnvio');
+        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarNfsePorRpsEnvio', 'consultaRps');
         const xmlRetorno = await soapCall(
             this.baseUrl,
             'ConsultarNfsePorRpsV3',
@@ -238,7 +237,7 @@ export class GinfesClient {
   </Pedido>
 </CancelarNfseEnvio>`;
 
-        const xmlAssinado = this.signer.signXml(xmlCancelamento, 'InfPedidoCancelamento');
+        const xmlAssinado = this.signer.signXml(xmlCancelamento, 'InfPedidoCancelamento', `canc${numeroNfse}`);
         const xmlRetorno = await soapCall(
             this.baseUrl,
             'CancelarNfseV3',
