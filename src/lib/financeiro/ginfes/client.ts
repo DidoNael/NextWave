@@ -64,8 +64,15 @@ async function soapCall(
 }
 
 function extractTagContent(xml: string, tag: string): string | null {
-    const match = xml.match(new RegExp(`<${tag}[^>]*>(.*?)<\/${tag}>`, 's'));
+    const match = xml.match(new RegExp(`<${tag}[^>]*>(.*?)<\\/${tag}>`));
     return match ? match[1].trim() : null;
+}
+
+/** Remove dados sensíveis de objetos de erro antes de logar */
+function safeError(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    if (typeof err === 'string') return err;
+    return 'Erro desconhecido';
 }
 
 function parseSoapFault(xml: string): string | null {
@@ -105,7 +112,8 @@ export class GinfesClient {
     private pfxBuffer: Buffer;
 
     constructor(config: GinfesClientConfig) {
-        this.config = config;
+        // Não armazenar o certificado em texto — apenas o buffer já convertido
+        this.config = { ...config, certificadoBase64: '[REDACTED]', senhaCertificado: '[REDACTED]' };
         this.baseUrl = config.ambiente === 'producao' ? URL_PROD : URL_HOMOLOG;
         this.pfxBuffer = Buffer.from(config.certificadoBase64, 'base64');
         this.signer = new GinfesSigner(config.certificadoBase64, config.senhaCertificado);
@@ -119,21 +127,26 @@ export class GinfesClient {
             'LoteRps'
         );
 
-        const xmlRetorno = await soapCall(
-            this.baseUrl,
-            'RecepcionarLoteRpsV3',
-            xmlLoteAssinado,
-            this.pfxBuffer,
-            this.config.senhaCertificado || ''
-        );
+        try {
+            const xmlRetorno = await soapCall(
+                this.baseUrl,
+                'RecepcionarLoteRpsV3',
+                xmlLoteAssinado,
+                this.pfxBuffer,
+                '' // senha já usada no signer; pfx não precisa da senha aqui
+            );
 
-        const fault = parseSoapFault(xmlRetorno);
-        if (fault) return { erro: fault, xmlRetorno };
+            const fault = parseSoapFault(xmlRetorno);
+            if (fault) return { erro: fault, xmlRetorno };
 
-        const protocolo = extractTagContent(xmlRetorno, 'Protocolo') ||
-            extractTagContent(xmlRetorno, 'protocolo');
+            const protocolo = extractTagContent(xmlRetorno, 'Protocolo') ||
+                extractTagContent(xmlRetorno, 'protocolo');
 
-        return { protocolo: protocolo || undefined, xmlRetorno };
+            return { protocolo: protocolo || undefined, xmlRetorno };
+        } catch (err) {
+            console.error('[GINFES_EMITIR_ERROR]', safeError(err));
+            throw new Error(`Erro ao comunicar com Ginfes: ${safeError(err)}`);
+        }
     }
 
     async consultarSituacaoLote(protocolo: string): Promise<ConsultarLoteResult> {

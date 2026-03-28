@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { GinfesClient } from '@/lib/financeiro/ginfes/client';
 import { RpsData } from '@/lib/financeiro/ginfes/templates';
+import { decryptCert } from '@/lib/financeiro/ginfes/cert-crypto';
 
 // GET /api/nfse — listar notas emitidas
 export async function GET(req: Request) {
@@ -108,8 +109,8 @@ export async function POST(req: Request) {
         const client = new GinfesClient({
             cnpj: config.cnpj.replace(/\D/g, ''),
             inscricaoMunicipal: config.inscricaoMunicipal,
-            certificadoBase64: config.certificadoBase64,
-            senhaCertificado: config.senhaCertificado || '',
+            certificadoBase64: decryptCert(config.certificadoBase64),
+            senhaCertificado: config.senhaCertificado ? decryptCert(config.senhaCertificado) : '',
             ambiente: (config.ambiente as 'homologacao' | 'producao') || 'homologacao',
         });
 

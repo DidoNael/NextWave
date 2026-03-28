@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
+import { encryptCert } from '@/lib/financeiro/ginfes/cert-crypto';
 
 export async function GET() {
     const session = await auth();
@@ -72,12 +73,13 @@ export async function PUT(req: Request) {
             optanteSimplesNacional: optanteSimplesNacional || '1',
         };
 
-        // Só atualiza certificado se foi enviado
+        // Só atualiza certificado se foi enviado — criptografa antes de salvar
         if (certificadoBase64) {
-            data.certificadoBase64 = certificadoBase64;
+            data.certificadoBase64 = encryptCert(certificadoBase64);
         }
+        // Senha criptografada com AES também
         if (senhaCertificado) {
-            data.senhaCertificado = senhaCertificado;
+            data.senhaCertificado = encryptCert(senhaCertificado);
         }
 
         const config = await prisma.nfeConfig.upsert({
