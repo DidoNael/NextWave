@@ -53,7 +53,8 @@ export default function ServiceDetailPage() {
   // NFS-e
   const [nfseRecords, setNfseRecords] = useState<any[]>([]);
   const [nfseModal, setNfseModal] = useState(false);
-  const [editingNfseId, setEditingNfseId] = useState<string | null>(null); // id da nota sendo editada p/ retry
+  const [editingNfseId, setEditingNfseId] = useState<string | null>(null);
+  const [tiposServico, setTiposServico] = useState<any[]>([]); // id da nota sendo editada p/ retry
   const [emitindo, setEmitindo] = useState(false);
   const [checkingNfse, setCheckingNfse] = useState<string | null>(null);
   const [retryingNfse, setRetryingNfse] = useState<string | null>(null);
@@ -70,6 +71,22 @@ export default function ServiceDetailPage() {
     tomadorUf: "SP",
     tomadorCep: "",
   });
+
+  const fetchTiposServico = async () => {
+    try {
+      const res = await fetch("/api/nfse/tipos");
+      if (res.ok) setTiposServico(await res.json());
+    } catch { /* silencioso */ }
+  };
+
+  const applyTipo = (tipoId: string) => {
+    const t = tiposServico.find(t => t.id === tipoId);
+    if (!t) return;
+    setNfseForm(f => ({
+      ...f,
+      discriminacao: t.discriminacaoModelo || f.discriminacao,
+    }));
+  };
 
   const fetchNfse = async (svcId: string) => {
     try {
@@ -103,6 +120,7 @@ export default function ServiceDetailPage() {
       }));
       fetchNfse(id);
     }).finally(() => setLoading(false));
+    fetchTiposServico();
   }, [id]);
 
   const handleEmitirNfse = async (e: React.FormEvent) => {
@@ -520,6 +538,24 @@ export default function ServiceDetailPage() {
             </div>
             <form onSubmit={handleEmitirNfse} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {tiposServico.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Modelo de Serviço Fiscal</Label>
+                    <select
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      defaultValue=""
+                      onChange={e => applyTipo(e.target.value)}
+                    >
+                      <option value="">— Selecione um modelo (opcional) —</option>
+                      {tiposServico.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.nome} · Item {t.itemListaServico} · {(t.aliquotaIss * 100).toFixed(2)}%{t.isDefault ? " ★" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">Ao selecionar, preenche a discriminação com o texto padrão do modelo.</p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Discriminação do Serviço *</Label>
                   <Textarea

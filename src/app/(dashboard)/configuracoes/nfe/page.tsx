@@ -69,6 +69,12 @@ export default function NfeConfigPage() {
     const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // Modelos de tipo de serviço fiscal
+    const [tipos, setTipos] = useState<any[]>([]);
+    const [tipoModal, setTipoModal] = useState<{ open: boolean; editing: any | null }>({ open: false, editing: null });
+    const [tipoForm, setTipoForm] = useState({ nome: "", itemListaServico: "", aliquotaIss: "", issRetido: "2", naturezaOperacao: "1", discriminacaoModelo: "", isDefault: false });
+    const [savingTipo, setSavingTipo] = useState(false);
+
     const [form, setForm] = useState({
         cnpj: "",
         inscricaoMunicipal: "",
@@ -127,9 +133,55 @@ export default function NfeConfigPage() {
         }
     };
 
+    const fetchTipos = async () => {
+        try {
+            const res = await fetch("/api/nfse/tipos");
+            if (res.ok) setTipos(await res.json());
+        } catch { /* silencioso */ }
+    };
+
+    const openTipoModal = (editing: any | null = null) => {
+        setTipoForm(editing ? {
+            nome: editing.nome, itemListaServico: editing.itemListaServico,
+            aliquotaIss: String(editing.aliquotaIss * 100),
+            issRetido: editing.issRetido || "2", naturezaOperacao: editing.naturezaOperacao || "1",
+            discriminacaoModelo: editing.discriminacaoModelo || "", isDefault: editing.isDefault,
+        } : { nome: "", itemListaServico: "", aliquotaIss: "", issRetido: "2", naturezaOperacao: "1", discriminacaoModelo: "", isDefault: false });
+        setTipoModal({ open: true, editing });
+    };
+
+    const handleSaveTipo = async () => {
+        if (!tipoForm.nome || !tipoForm.itemListaServico || !tipoForm.aliquotaIss) return toast.error("Preencha nome, item e alíquota");
+        setSavingTipo(true);
+        try {
+            const payload = { ...tipoForm, aliquotaIss: parseFloat(tipoForm.aliquotaIss) / 100 };
+            const url = tipoModal.editing ? `/api/nfse/tipos/${tipoModal.editing.id}` : "/api/nfse/tipos";
+            const method = tipoModal.editing ? "PUT" : "POST";
+            const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error((await res.json()).error);
+            toast.success(tipoModal.editing ? "Modelo atualizado" : "Modelo criado");
+            setTipoModal({ open: false, editing: null });
+            fetchTipos();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setSavingTipo(false);
+        }
+    };
+
+    const handleDeleteTipo = async (id: string) => {
+        if (!confirm("Excluir este modelo?")) return;
+        try {
+            await fetch(`/api/nfse/tipos/${id}`, { method: "DELETE" });
+            toast.success("Modelo excluído");
+            fetchTipos();
+        } catch { toast.error("Erro ao excluir"); }
+    };
+
     useEffect(() => {
         fetchConfig();
         fetchRecords();
+        fetchTipos();
     }, []);
 
     const handleCertUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -493,6 +545,46 @@ export default function NfeConfigPage() {
 
             <Separator />
 
+            {/* Modelos de Tipo de Serviço */}
+            <Card>
+                <CardHeader className="flex-row items-center justify-between pb-3">
+                    <div>
+                        <CardTitle>Modelos de Serviço Fiscal</CardTitle>
+                        <CardDescription>Parâmetros fiscais por tipo de serviço. Selecione um modelo ao emitir NFS-e.</CardDescription>
+                    </div>
+                    <Button size="sm" className="gap-1.5" onClick={() => openTipoModal()}>
+                        <Settings2 className="h-3.5 w-3.5" />
+                        Novo Modelo
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {tipos.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">Nenhum modelo cadastrado. Crie um para agilizar a emissão.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {tipos.map(t => (
+                                <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm">{t.nome}</span>
+                                            {t.isDefault && <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Item {t.itemListaServico} · {(t.aliquotaIss * 100).toFixed(2)}% ISS · {t.issRetido === "1" ? "ISS Retido" : "ISS Não Retido"}
+                                            {t.discriminacaoModelo && ` · "${t.discriminacaoModelo.substring(0, 40)}${t.discriminacaoModelo.length > 40 ? "…" : ""}"`}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-1 shrink-0">
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTipoModal(t)}>Editar</Button>
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs text-red-600 hover:text-red-700" onClick={() => handleDeleteTipo(t.id)}>Excluir</Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Histórico de NFS-e */}
             <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
@@ -648,6 +740,72 @@ export default function NfeConfigPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal Tipo de Serviço */}
+            {tipoModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-background w-full max-w-lg rounded-2xl border shadow-2xl">
+                        <div className="p-5 border-b flex items-center justify-between">
+                            <h2 className="font-bold">{tipoModal.editing ? "Editar Modelo" : "Novo Modelo de Serviço"}</h2>
+                            <Button variant="ghost" size="icon" onClick={() => setTipoModal({ open: false, editing: null })}><XCircle className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Nome do Modelo *</Label>
+                                <Input placeholder="ex: Manutenção em TI" value={tipoForm.nome} onChange={e => setTipoForm(f => ({ ...f, nome: e.target.value }))} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Item da Lista de Serviço *</Label>
+                                    <Input placeholder="ex: 1.07" value={tipoForm.itemListaServico} onChange={e => setTipoForm(f => ({ ...f, itemListaServico: e.target.value }))} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Alíquota ISS (%) *</Label>
+                                    <Input type="number" step="0.01" placeholder="ex: 2.15" value={tipoForm.aliquotaIss} onChange={e => setTipoForm(f => ({ ...f, aliquotaIss: e.target.value }))} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">ISS Retido</Label>
+                                    <Select value={tipoForm.issRetido} onValueChange={v => setTipoForm(f => ({ ...f, issRetido: v }))}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="2">Não Retido</SelectItem>
+                                            <SelectItem value="1">Retido na Fonte</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Natureza da Operação</Label>
+                                    <Select value={tipoForm.naturezaOperacao} onValueChange={v => setTipoForm(f => ({ ...f, naturezaOperacao: v }))}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1">1 - Tributação no Município</SelectItem>
+                                            <SelectItem value="2">2 - Tributação Fora do Município</SelectItem>
+                                            <SelectItem value="3">3 - Isenção</SelectItem>
+                                            <SelectItem value="4">4 - Imune</SelectItem>
+                                            <SelectItem value="5">5 - Exigibilidade Suspensa</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Discriminação padrão (opcional)</Label>
+                                <Input placeholder="Texto que será pré-preenchido na emissão" value={tipoForm.discriminacaoModelo} onChange={e => setTipoForm(f => ({ ...f, discriminacaoModelo: e.target.value }))} />
+                            </div>
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input type="checkbox" checked={tipoForm.isDefault} onChange={e => setTipoForm(f => ({ ...f, isDefault: e.target.checked }))} className="rounded" />
+                                Definir como modelo padrão
+                            </label>
+                        </div>
+                        <div className="p-5 border-t flex justify-end gap-3">
+                            <Button variant="ghost" onClick={() => setTipoModal({ open: false, editing: null })}>Cancelar</Button>
+                            <Button onClick={handleSaveTipo} disabled={savingTipo} className="gap-2">
+                                {savingTipo && <Loader2 className="h-4 w-4 animate-spin" />}
+                                {tipoModal.editing ? "Salvar" : "Criar Modelo"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal XML Viewer */}
             {xmlModal?.open && (
