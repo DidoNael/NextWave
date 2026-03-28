@@ -1,6 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { User, Briefcase, DollarSign } from "lucide-react";
+import { User, Briefcase, DollarSign, Paperclip } from "lucide-react";
 import { Client } from "@/types";
 
 interface ClientDashboardTabsProps {
@@ -8,13 +7,15 @@ interface ClientDashboardTabsProps {
   renderCadastro: () => React.ReactNode;
   renderServicos: () => React.ReactNode;
   renderFinanceiro: () => React.ReactNode;
+  renderAnexos: () => React.ReactNode;
 }
 
-export function ClientDashboardTabs({ 
-  client, 
-  renderCadastro, 
-  renderServicos, 
-  renderFinanceiro 
+export function ClientDashboardTabs({
+  client,
+  renderCadastro,
+  renderServicos,
+  renderFinanceiro,
+  renderAnexos,
 }: ClientDashboardTabsProps) {
   return (
     <Tabs defaultValue="cadastro" className="w-full">
@@ -31,18 +32,26 @@ export function ClientDashboardTabs({
           <DollarSign className="h-4 w-4" />
           <span className="hidden sm:inline">Financeiro</span>
         </TabsTrigger>
+        <TabsTrigger value="anexos" className="gap-2">
+          <Paperclip className="h-4 w-4" />
+          <span className="hidden sm:inline">Anexos</span>
+        </TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="cadastro" className="space-y-4 animate-in">
         {renderCadastro()}
       </TabsContent>
-      
+
       <TabsContent value="servicos" className="space-y-4 animate-in">
         {renderServicos()}
       </TabsContent>
-      
+
       <TabsContent value="financeiro" className="space-y-4 animate-in">
         {renderFinanceiro()}
+      </TabsContent>
+
+      <TabsContent value="anexos" className="space-y-4 animate-in">
+        {renderAnexos()}
       </TabsContent>
     </Tabs>
   );

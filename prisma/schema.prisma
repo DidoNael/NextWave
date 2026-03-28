@@ -69,6 +69,20 @@ model Client {
   services       Service[]
   subscriptions  Subscription[]
   transactions   Transaction[]
+  attachments    ClientAttachment[]
+}
+
+model ClientAttachment {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name        String
+  fileName    String
+  mimeType    String
+  size        Int
+  path        String
+  createdAt   DateTime @default(now())
+  uploadedBy  String
 }
 
 model Branch {

@@ -28,6 +28,7 @@ import { ClientDashboardTabs } from "./ClientDashboardTabs";
 import { ClientCadastroTab } from "./ClientCadastroTab";
 import { ClientServicosTab } from "./ClientServicosTab";
 import { ClientFinanceiroTab } from "./ClientFinanceiroTab";
+import { ClientAnexosTab } from "./ClientAnexosTab";
 
 interface ClientProfileProps {
     clientId: string;
@@ -374,6 +375,9 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                           clientPhone={client?.phone}
                                           clientName={client?.name}
                                         />
+                                    )}
+                                    renderAnexos={() => (
+                                        <ClientAnexosTab clientId={clientId} />
                                     )}
                                 />
                             </div>
