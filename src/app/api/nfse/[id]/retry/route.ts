@@ -5,7 +5,7 @@ import { GinfesClient } from '@/lib/financeiro/ginfes/client';
 import { RpsData } from '@/lib/financeiro/ginfes/templates';
 import { decryptCert } from '@/lib/financeiro/ginfes/cert-crypto';
 
-// POST /api/nfse/[id]/retry — reenvia uma nota com erro
+// POST /api/nfse/[id]/retry — reenvia uma nota com erro (aceita dados corrigidos no body)
 export async function POST(
     req: Request,
     { params }: { params: { id: string } }
@@ -27,6 +27,25 @@ export async function POST(
         return NextResponse.json({ error: 'Configuração NFS-e incompleta' }, { status: 400 });
     }
 
+    // Dados corrigidos vindos do body (opcionais — usa os do registro se não informados)
+    let overrides: Record<string, any> = {};
+    try {
+        const text = await req.text();
+        if (text) overrides = JSON.parse(text);
+    } catch { /* body vazio ou inválido — sem overrides */ }
+
+    const discriminacao = overrides.discriminacao || record.discriminacao;
+    const valorServicos = overrides.valorServicos != null ? Number(overrides.valorServicos) : record.valorServicos;
+    const tomadorNome = overrides.tomadorNome ?? record.tomadorNome;
+    const tomadorDoc = overrides.tomadorDoc ?? record.tomadorDoc;
+    const tomadorEndereco = overrides.tomadorEndereco || 'Não informado';
+    const tomadorNumero = overrides.tomadorNumero || 'SN';
+    const tomadorBairro = overrides.tomadorBairro || 'Não informado';
+    const tomadorCodigoMunicipio = overrides.tomadorCodigoMunicipio || config.codigoMunicipio || '3514700';
+    const tomadorUf = overrides.tomadorUf || 'SP';
+    const tomadorCep = (overrides.tomadorCep || '').replace(/\D/g, '') || '07000000';
+    const tomadorEmail = overrides.tomadorEmail || undefined;
+
     // Gerar novo número RPS para evitar duplicata no Ginfes
     const lastRecord = await prisma.nfseRecord.findFirst({
         orderBy: { createdAt: 'desc' },
@@ -35,7 +54,7 @@ export async function POST(
     const nextRpsNumero = lastRecord ? String(parseInt(lastRecord.rpsNumero) + 1) : '1';
     const loteId = `${Date.now()}`;
 
-    // Atualizar número RPS e limpar erro
+    // Atualizar registro com dados corrigidos + limpar erro
     await prisma.nfseRecord.update({
         where: { id: params.id },
         data: {
@@ -44,6 +63,10 @@ export async function POST(
             errorMessage: null,
             protocolo: null,
             xmlRetorno: null,
+            discriminacao,
+            valorServicos,
+            tomadorNome: tomadorNome || null,
+            tomadorDoc: tomadorDoc || null,
         },
     });
 
@@ -52,25 +75,26 @@ export async function POST(
         serie: record.rpsSerie || config.serieRps || '1',
         tipo: config.tipoRps || '1',
         dataEmissao: new Date().toISOString().split('T')[0],
-        valorServicos: record.valorServicos,
+        valorServicos,
         aliquota: config.aliquotaIss || 0.0215,
         issRetido: '2',
         itemListaServico: config.itemListaServico || '1.07',
         codigoMunicipio: config.codigoMunicipio || '3514700',
-        discriminacao: record.discriminacao,
+        discriminacao,
         prestador: {
             cnpj: config.cnpj.replace(/\D/g, ''),
             inscricaoMunicipal: config.inscricaoMunicipal,
         },
         tomador: {
-            cpfCnpj: (record.tomadorDoc || '').replace(/\D/g, '') || '00000000000',
-            razaoSocial: record.tomadorNome || 'Consumidor Final',
-            endereco: 'Não informado',
-            numero: 'SN',
-            bairro: 'Não informado',
-            codigoMunicipio: config.codigoMunicipio || '3514700',
-            uf: 'SP',
-            cep: '07000000',
+            cpfCnpj: (tomadorDoc || '').replace(/\D/g, '') || '00000000000',
+            razaoSocial: tomadorNome || 'Consumidor Final',
+            endereco: tomadorEndereco,
+            numero: tomadorNumero,
+            bairro: tomadorBairro,
+            codigoMunicipio: tomadorCodigoMunicipio,
+            uf: tomadorUf,
+            cep: tomadorCep,
+            email: tomadorEmail,
         },
     };
 

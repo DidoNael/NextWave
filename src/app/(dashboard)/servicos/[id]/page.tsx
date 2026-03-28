@@ -53,6 +53,7 @@ export default function ServiceDetailPage() {
   // NFS-e
   const [nfseRecords, setNfseRecords] = useState<any[]>([]);
   const [nfseModal, setNfseModal] = useState(false);
+  const [editingNfseId, setEditingNfseId] = useState<string | null>(null); // id da nota sendo editada p/ retry
   const [emitindo, setEmitindo] = useState(false);
   const [checkingNfse, setCheckingNfse] = useState<string | null>(null);
   const [retryingNfse, setRetryingNfse] = useState<string | null>(null);
@@ -106,6 +107,11 @@ export default function ServiceDetailPage() {
 
   const handleEmitirNfse = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Se está editando uma nota existente, chama retry
+    if (editingNfseId) {
+      await handleRetryNfse(editingNfseId);
+      return;
+    }
     setEmitindo(true);
     try {
       const res = await fetch("/api/nfse", {
@@ -125,13 +131,37 @@ export default function ServiceDetailPage() {
     }
   };
 
+  const openRetryModal = (record: any) => {
+    setEditingNfseId(record.id);
+    setNfseForm({
+      discriminacao: record.discriminacao || "",
+      valorServicos: String(record.valorServicos || ""),
+      tomadorNome: record.tomadorNome || "",
+      tomadorDoc: record.tomadorDoc || "",
+      tomadorEmail: "",
+      tomadorEndereco: "",
+      tomadorNumero: "",
+      tomadorBairro: "",
+      tomadorCodigoMunicipio: "3514700",
+      tomadorUf: "SP",
+      tomadorCep: "",
+    });
+    setNfseModal(true);
+  };
+
   const handleRetryNfse = async (nfseId: string) => {
     setRetryingNfse(nfseId);
     try {
-      const res = await fetch(`/api/nfse/${nfseId}/retry`, { method: "POST" });
+      const res = await fetch(`/api/nfse/${nfseId}/retry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...nfseForm, valorServicos: parseFloat(nfseForm.valorServicos) }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao reenviar");
       toast.success(data.protocolo ? `Reenviado! Protocolo: ${data.protocolo}` : "NFS-e reenviada para processamento!");
+      setNfseModal(false);
+      setEditingNfseId(null);
       fetchNfse(id);
     } catch (err: any) {
       toast.error(err.message);
@@ -414,10 +444,10 @@ export default function ServiceDetailPage() {
                         {["erro", "pendente"].includes(r.status) && (
                           <Button
                             variant="ghost" size="sm" className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
-                            onClick={() => handleRetryNfse(r.id)} disabled={retryingNfse === r.id}
+                            onClick={() => openRetryModal(r)}
                           >
-                            {retryingNfse === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                            Retentar
+                            <RefreshCw className="h-3 w-3" />
+                            Editar e Retentar
                           </Button>
                         )}
                         {r.status === "emitida" && r.codigoVerificacao && (
@@ -442,8 +472,12 @@ export default function ServiceDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background w-full max-w-xl rounded-2xl border shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-6 border-b shrink-0">
-              <h2 className="text-lg font-bold">Emitir NFS-e</h2>
-              <p className="text-sm text-muted-foreground">Os dados foram pré-preenchidos com as informações do serviço e cliente.</p>
+              <h2 className="text-lg font-bold">{editingNfseId ? "Corrigir e Reenviar NFS-e" : "Emitir NFS-e"}</h2>
+              <p className="text-sm text-muted-foreground">
+                {editingNfseId
+                  ? "Corrija os dados abaixo e clique em Reenviar."
+                  : "Os dados foram pré-preenchidos com as informações do serviço e cliente."}
+              </p>
             </div>
             <form onSubmit={handleEmitirNfse} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -512,11 +546,11 @@ export default function ServiceDetailPage() {
                 </div>
               </div>
               <div className="p-6 border-t flex justify-end gap-3 shrink-0">
-                <Button type="button" variant="ghost" onClick={() => setNfseModal(false)}>Cancelar</Button>
-                <Button type="submit" disabled={emitindo} className="gap-2">
-                  {emitindo && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Button type="button" variant="ghost" onClick={() => { setNfseModal(false); setEditingNfseId(null); }}>Cancelar</Button>
+                <Button type="submit" disabled={emitindo || retryingNfse !== null} className="gap-2">
+                  {(emitindo || retryingNfse !== null) && <Loader2 className="h-4 w-4 animate-spin" />}
                   <FileText className="h-4 w-4" />
-                  Emitir NFS-e
+                  {editingNfseId ? "Reenviar NFS-e" : "Emitir NFS-e"}
                 </Button>
               </div>
             </form>
