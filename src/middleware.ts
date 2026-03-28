@@ -36,7 +36,7 @@ export default auth((req) => {
 
   // 3. Se estiver logado, verificar restrição de IP
   if (isLoggedIn && !isAuthPage) {
-    const allowedIps = (req.auth?.token as any)?.allowedIps as string ?? "*";
+    const allowedIps = ((req.auth?.user as any)?.allowedIps as string) ?? "*";
     if (allowedIps !== "*") {
       const clientIp = getClientIp(req as any);
       if (!isIpAllowed(clientIp, allowedIps)) {
