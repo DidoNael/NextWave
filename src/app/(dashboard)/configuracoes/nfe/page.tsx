@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
     FileText, Upload, CheckCircle2, XCircle, Loader2,
     Building2, Key, Settings2, AlertTriangle, RefreshCw,
-    RotateCcw, Code2, ExternalLink
+    RotateCcw, Code2, ExternalLink, Bug
 } from "lucide-react";
 
 interface NfeConfig {
@@ -237,11 +237,19 @@ export default function NfeConfigPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-extrabold tracking-tight">NFS-e / Notas Fiscais</h1>
-                <p className="text-muted-foreground text-sm">
-                    Configure a integração com o sistema Ginfes de Guarulhos para emissão de Notas Fiscais de Serviço.
-                </p>
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-extrabold tracking-tight">NFS-e / Notas Fiscais</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Configure a integração com o sistema Ginfes de Guarulhos para emissão de Notas Fiscais de Serviço.
+                    </p>
+                </div>
+                <a href="/configuracoes/nfe/debug">
+                    <button className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors">
+                        <Bug className="h-4 w-4" />
+                        Diagnóstico
+                    </button>
+                </a>
             </div>
 
             {form.ambiente === "homologacao" && (
