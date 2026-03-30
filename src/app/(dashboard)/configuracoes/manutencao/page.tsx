@@ -56,11 +56,12 @@ export default function ManutencaoPage() {
         setIsCreating(true);
         try {
             const res = await fetch("/api/sistema/manutencao", { method: "POST" });
-            if (!res.ok) throw new Error();
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.details || data.error || 'Erro desconhecido');
             toast.success("Backup gerado com sucesso!");
             fetchBackups();
-        } catch (error) {
-            toast.error("Erro ao gerar backup");
+        } catch (error: any) {
+            toast.error(`Erro ao gerar backup: ${error.message}`);
         } finally {
             setIsCreating(false);
         }

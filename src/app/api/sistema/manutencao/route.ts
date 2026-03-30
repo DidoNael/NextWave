@@ -8,7 +8,7 @@ const BACKUP_DIR = path.join(process.cwd(), 'data', 'backups');
 
 export async function GET() {
     const session = await auth();
-    if (!session || session.user?.role?.toUpperCase() !== "ADMIN") {
+    if (!session || !['admin', 'master'].includes(session.user?.role?.toLowerCase() as string)) {
         return NextResponse.json({ error: "Acesso restrito ao administrador" }, { status: 403 });
     }
 
@@ -46,7 +46,8 @@ export async function POST(req: Request) {
         const scriptPath = path.join(process.cwd(), 'scripts', 'backup.mjs');
         execSync(`node "${scriptPath}"`, {
             stdio: 'pipe',
-            env: { ...process.env, NODE_ENV: 'production' }
+            cwd: process.cwd(),
+            env: { ...process.env, NODE_ENV: 'production', DATABASE_URL: process.env.DATABASE_URL || 'file:/app/data/prod.db' }
         });
         return NextResponse.json({ success: true, message: "Backup gerado com sucesso" });
     } catch (error: any) {
