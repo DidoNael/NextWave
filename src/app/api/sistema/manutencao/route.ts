@@ -43,8 +43,8 @@ export async function POST(req: Request) {
 
     try {
         // Executa o script de backup via node com tsx register para evitar npx/shell issues no Windows
-        const scriptPath = path.join(process.cwd(), 'scripts', 'backup.ts');
-        execSync(`node --import tsx "${scriptPath}"`, {
+        const scriptPath = path.join(process.cwd(), 'scripts', 'backup.mjs');
+        execSync(`node "${scriptPath}"`, {
             stdio: 'pipe',
             env: { ...process.env, NODE_ENV: 'production' }
         });
