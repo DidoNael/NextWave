@@ -98,7 +98,7 @@ export async function POST(
         },
     };
 
-    const client = new GinfesClient({
+    const ginfesClient = new GinfesClient({
         cnpj: config.cnpj.replace(/\D/g, ''),
         inscricaoMunicipal: config.inscricaoMunicipal,
         certificadoBase64: decryptCert(config.certificadoBase64),
@@ -106,7 +106,17 @@ export async function POST(
         ambiente: (config.ambiente as 'homologacao' | 'producao') || 'homologacao',
     });
 
-    const result = await client.emitirLote([rpsData], loteId);
+    let result;
+    try {
+        result = await ginfesClient.emitirLote([rpsData], loteId);
+    } catch (err: any) {
+        const msg = err?.message || 'Erro desconhecido na emissão';
+        await prisma.nfseRecord.update({
+            where: { id: params.id },
+            data: { status: 'erro', errorMessage: msg },
+        });
+        return NextResponse.json({ error: msg }, { status: 500 });
+    }
 
     if (result.erro) {
         const updated = await prisma.nfseRecord.update({
