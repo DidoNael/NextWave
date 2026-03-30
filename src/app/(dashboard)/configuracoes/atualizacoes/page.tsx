@@ -20,12 +20,19 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import versions from "@/data/versions.json";
 import { cn } from "@/lib/utils";
+
+type Version = { version: string; date: string; title: string; description: string; type: string; changes: string[] };
 
 export default function AtualizacoesPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ type: 'info' | 'error' | 'success', text: string }[]>([]);
+  const [versions, setVersions] = useState<Version[]>([]);
+
+  useEffect(() => {
+    fetch('/api/sistema/versoes').then(r => r.json()).then(setVersions).catch(() => {});
+  }, []);
+
   const currentVersion = versions[0];
 
   const addLog = (text: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -69,7 +76,7 @@ export default function AtualizacoesPage() {
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
           <GitBranch className="h-4 w-4 text-primary" />
-          <span className="text-sm font-bold text-primary">v{currentVersion.version}</span>
+          <span className="text-sm font-bold text-primary">v{currentVersion?.version ?? '...'}</span>
         </div>
       </div>
 
