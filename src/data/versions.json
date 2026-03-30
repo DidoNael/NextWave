@@ -1,5 +1,63 @@
 [
   {
+    "version": "1.9.3",
+    "date": "2026-03-30",
+    "title": "Fix NFS-e: Assinatura XML e Backup",
+    "description": "Correção definitiva do erro XPath parse error na assinatura XML do NFS-e e criação do script de backup que estava faltando.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Reescrita do GinfesSigner usando DOMParser + ExclusiveCanonicalization + crypto nativo, eliminando XPath interno do xml-crypto",
+      "Fix: Adicionado try-catch em POST /api/nfse/[id]/retry para evitar 'Unexpected end of JSON input'",
+      "Fix: Criado scripts/backup.mjs (faltava) que causava 'Erro ao gerar backup'",
+      "Fix: Rota de backup corrigida para chamar backup.mjs em vez de backup.ts inexistente",
+      "Fix: Copy-to-clipboard agora funciona em HTTP com fallback via execCommand"
+    ]
+  },
+  {
+    "version": "1.9.2",
+    "date": "2026-03-29",
+    "title": "NFS-e: Modelos de Serviço Fiscal e Exclusão de Registros",
+    "description": "Adição de modelos de tipo de serviço fiscal reutilizáveis e funcionalidades de exclusão de registros NFS-e com erro.",
+    "type": "feature",
+    "changes": [
+      "Add: Modelo NfseTipoServico para parâmetros fiscais por tipo de serviço",
+      "Add: CRUD de tipos de serviço em Configurações → NFS-e",
+      "Add: Exclusão individual de registros NFS-e com status pendente/erro",
+      "Add: Limpeza em massa de registros pendentes/com erro",
+      "Add: Seletor de tipo de serviço no modal de emissão com pré-preenchimento de discriminação",
+      "Fix: Porta NEXTAUTH_URL corrigida de :3000 para :3010 (conflito com Grafana)"
+    ]
+  },
+  {
+    "version": "1.9.1",
+    "date": "2026-03-28",
+    "title": "NFS-e: Página de Diagnóstico e Reenvio com Correção",
+    "description": "Diagnóstico visual passo a passo da assinatura NFS-e e modal de edição para reenvio de notas com erro.",
+    "type": "feature",
+    "changes": [
+      "Add: Página /configuracoes/nfe/debug com diagnóstico passo a passo",
+      "Add: Modal 'Corrigir e Reenviar NFS-e' para notas com erro",
+      "Add: Botão Retry com exibição da mensagem de erro na tabela de serviços",
+      "Fix: Dados do cliente (CPF/CNPJ, CEP, endereço) agora são pré-carregados no formulário",
+      "Fix: API /servicos/[id] expandida para retornar todos os campos de endereço do cliente"
+    ]
+  },
+  {
+    "version": "1.9.0",
+    "date": "2026-03-27",
+    "title": "Módulo NFS-e Ginfes",
+    "description": "Implementação completa de emissão de NFS-e via Ginfes SOAP com assinatura digital XMLDSig.",
+    "type": "feature",
+    "changes": [
+      "Add: Integração com Ginfes (RecepcionarLoteRpsV3, ConsultarSituacaoLoteRpsV3, CancelarNfseV3)",
+      "Add: Assinatura digital XMLDSig com certificado A1 (.pfx)",
+      "Add: Configuração de NFS-e (certificado, alíquota, série, ambiente)",
+      "Add: Emissão de NFS-e direto da página de serviço",
+      "Add: Registro e histórico de NFS-e emitidas por serviço",
+      "Fix: Alíquota ISS dinâmica via NfeConfig (era hardcoded 0.02)"
+    ]
+  },
+  {
     "version": "1.8.8",
     "date": "2026-03-14",
     "title": "Arquitetura Isolada de Build",
