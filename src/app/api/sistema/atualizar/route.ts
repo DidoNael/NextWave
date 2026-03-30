@@ -15,7 +15,7 @@ const ALLOWED_COMMANDS = {
   install: "npm install",
   generate: "npx prisma generate",
   push: "npx prisma db push",
-  build: "npm run build",
+  build: "rm -rf .next && npm run build",
   checkout: "git checkout",
 };
 
