@@ -1,0 +1,545 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  allowedIps  String?  @default("*")
+  permissions String   @default("{}") // JSON serializado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  name               String
+  email              String         @unique
+  password           String
+  avatar             String?
+  role               String         @default("admin")
+  organizationId     String?
+  organization       Organization?  @relation(fields: [organizationId], references: [id])
+  groupId            String?
+  group              UserGroup?     @relation(fields: [groupId], references: [id])
+  branchId           String?
+  branch             Branch?        @relation(fields: [branchId], references: [id])
+  allowedIps         String?
+  workDayStart       String?
+  workDayEnd         String?
+  twoFactorSecret    String?
+  twoFactorEnabled   Boolean        @default(false)
+  accentColor        String         @default("blue")
+  layoutTheme        String         @default("default")
+  currentSessionId   String?
+  notifyEmail        Boolean        @default(true)
+  notifyPush         Boolean        @default(false)
+  notifyDue          Boolean        @default(true)
+  googleAccessToken  String?
+  googleRefreshToken String?
+  googleTokenExpiry  DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  callLogs           CallLog[]
+  clients            Client[]
+  events             Event[]
+  projects           Project[]
+  services           Service[]
+  subscriptions      Subscription[]
+  transactions       Transaction[]
+}
+
+model Client {
+  id             String             @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  document       String?
+  company        String?
+  address        String?
+  number         String?
+  complement     String?
+  neighborhood   String?
+  city           String?
+  state          String?
+  zipCode        String?
+  notes          String?
+  status         String             @default("ativo")
+  registrationId Int?               @unique
+  branchId       String?
+  branch         Branch?            @relation(fields: [branchId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  userId         String
+  callLogs       CallLog[]
+  user           User               @relation(fields: [userId], references: [id])
+  services       Service[]
+  subscriptions  Subscription[]
+  transactions   Transaction[]
+  attachments    ClientAttachment[]
+}
+
+model ClientAttachment {
+  id         String   @id @default(cuid())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name       String
+  fileName   String
+  mimeType   String
+  size       Int
+  path       String
+  createdAt  DateTime @default(now())
+  uploadedBy String
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  cnpj      String?
+  address   String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  clients   Client[]
+}
+
+model Transaction {
+  id              String    @id @default(cuid())
+  description     String
+  amount          Float
+  type            String
+  category        String
+  status          String    @default("pendente")
+  dueDate         DateTime?
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  gatewayProvider String?
+  gatewayId       String?
+  paymentUrl      String?
+  paymentMethod   String?
+  userId          String
+  clientId        String?
+  serviceId       String?
+  service         Service?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  client          Client?   @relation(fields: [clientId], references: [id])
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model Service {
+  id               String         @id @default(cuid())
+  title            String
+  description      String?
+  amount           Float
+  status           String         @default("rascunho")
+  category         String?
+  dueDate          DateTime?
+  billingFrequency String?        @default("avulso") // mensal, trimestral, semanal, avulso
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  userId           String
+  clientId         String?
+  client           Client?        @relation(fields: [clientId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
+  organizationId   String?
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  transactions     Transaction[]
+  events           Event[]
+  pluginLicense    PluginLicense?
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime?
+  allDay        Boolean   @default(false)
+  type          String    @default("reuniao")
+  status        String    @default("agendado")
+  location      String?
+  googleEventId String?
+  clientId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  // Links to other models
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String?      @default("#3b82f6")
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  columns     TaskColumn[]
+  events      Event[]
+}
+
+model TaskColumn {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  tasks     Task[]
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  priority    String     @default("media")
+  scope       String     @default("empresa")
+  order       Int        @default(0)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  columnId    String
+  column      TaskColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  events      Event[]
+}
+
+model SystemModule {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  enabled     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppFlow {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  edges       WhatsAppEdge[]
+  nodes       WhatsAppNode[]
+}
+
+model WhatsAppNode {
+  id        String       @id @default(cuid())
+  type      String
+  data      String
+  positionX Float
+  positionY Float
+  flowId    String
+  flow      WhatsAppFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppEdge {
+  id           String       @id @default(cuid())
+  source       String
+  target       String
+  sourceHandle String?
+  flowId       String
+  flow         WhatsAppFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppConfig {
+  id           String   @id @default("default")
+  apiUrl       String?  @default("")
+  globalApiKey String?  @default("")
+  instanceName String?  @default("")
+  token        String?  @default("")
+  waVersion    String?  @default("")
+  isActive     Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+model WhatsAppChannel {
+  id           String                @id @default(cuid())
+  name         String
+  instanceName String
+  apiUrl       String?
+  apiKey       String?
+  webhookUrl   String?
+  status       String                @default("disconnected")
+  isActive     Boolean               @default(true)
+  updatedAt    DateTime              @updatedAt
+  interactions WhatsAppInteraction[]
+}
+
+model WhatsAppInteraction {
+  id            String            @id @default(cuid())
+  phone         String            @unique
+  customerName  String?
+  lastFlowId    String?
+  currentNodeId String?
+  state         String?
+  lastMessageAt DateTime          @default(now())
+  status        String            @default("ativo")
+  channelId     String
+  channel       WhatsAppChannel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  messages      WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id            String              @id @default(cuid())
+  fromMe        Boolean             @default(false)
+  body          String
+  type          String              @default("chat")
+  timestamp     DateTime            @default(now())
+  interactionId String
+  interaction   WhatsAppInteraction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+}
+
+model SmtpConfig {
+  id        String   @id @default(cuid())
+  name      String
+  host      String
+  port      Int
+  user      String
+  pass      String
+  fromEmail String
+  fromName  String?
+  secure    Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model CommunicationTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  type      String
+  content   String
+  subject   String?
+  createdAt DateTime @default(now())
+}
+
+model ScheduledTask {
+  id        String    @id @default(cuid())
+  name      String
+  type      String
+  cron      String
+  lastRun   DateTime?
+  nextRun   DateTime?
+  status    String    @default("active")
+  config    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  description     String
+  amount          Float
+  interval        String   @default("monthly")
+  status          String   @default("active")
+  nextBillingDate DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model NfeConfig {
+  id                     String   @id @default("default")
+  cnpj                   String
+  inscricaoMunicipal     String
+  razaoSocial            String
+  senhaCertificado       String?
+  certificadoBase64      String?
+  ambiente               String   @default("homologacao")
+  aliquotaIss            Float    @default(0.0215)
+  itemListaServico       String   @default("1.07")
+  codigoMunicipio        String   @default("3514700")
+  serieRps               String   @default("1")
+  tipoRps                String   @default("1")
+  naturezaOperacao       String   @default("1")
+  optanteSimplesNacional String   @default("1")
+  updatedAt              DateTime @updatedAt
+}
+
+model NfseTipoServico {
+  id                  String   @id @default(cuid())
+  nome                String // ex: "Manutenção em TI", "Consultoria"
+  itemListaServico    String // ex: "1.07", "17.01"
+  aliquotaIss         Float // ex: 0.0215
+  issRetido           String   @default("2") // 1=retido, 2=não retido
+  naturezaOperacao    String   @default("1")
+  discriminacaoModelo String? // texto padrão de discriminação (opcional)
+  isDefault           Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model NfseRecord {
+  id                String    @id @default(cuid())
+  rpsNumero         String
+  rpsSerie          String    @default("1")
+  protocolo         String?
+  numeroNfse        String?
+  codigoVerificacao String?
+  status            String    @default("pendente") // pendente, emitida, cancelada, erro
+  valorServicos     Float
+  discriminacao     String
+  tomadorNome       String?
+  tomadorDoc        String?
+  xmlEnviado        String?
+  xmlRetorno        String?
+  errorMessage      String?
+  serviceId         String?
+  clientId          String?
+  emitidaEm         DateTime?
+  canceladaEm       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model SystemLicense {
+  id           String    @id @default("default")
+  key          String?   @unique
+  status       String    @default("active")
+  validUntil   DateTime?
+  lastCheck    DateTime  @default(now())
+  customerName String?
+  updatedAt    DateTime  @updatedAt
+}
+
+model SystemBranding {
+  id           String   @id @default("default")
+  name         String   @default("NextWave CRM")
+  logoUrl      String?
+  faviconUrl   String?
+  primaryColor String   @default("#3b82f6")
+  supportEmail String?
+  supportPhone String?
+  siteUrl      String?
+  updatedAt    DateTime @updatedAt
+}
+
+model CallLog {
+  id           String   @id @default(cuid())
+  direction    String
+  from         String
+  to           String
+  duration     Int      @default(0)
+  status       String   @default("completed")
+  recordingUrl String?
+  notes        String?
+  timestamp    DateTime @default(now())
+  userId       String
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model PbxConfig {
+  id          String   @id @default("default")
+  provider    String   @default("simulator")
+  apiKey      String?
+  apiSecret   String?
+  accountSid  String?
+  sipDomain   String?
+  sipUser     String?
+  sipPassword String?
+  isActive    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model PaymentGatewayConfig {
+  id          String   @id @default(cuid())
+  name        String
+  provider    String   @unique
+  credentials String
+  isActive    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model McpConfig {
+  id             String   @id @default("default")
+  apiKey         String
+  allowedIps     String?  @default("[]")
+  allowedOrigins String?  @default("[]")
+  rateLimit      Int      @default(100)
+  rateWindow     Int      @default(60000)
+  logLevel       String   @default("info")
+  port           Int      @default(3001)
+  isActive       Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+}
+
+model WaMessage {
+  id           String   @id
+  instanceName String   @map("instance_name")
+  remoteJid    String   @map("remote_jid")
+  messageId    String?  @map("message_id")
+  body         String
+  fromMe       Boolean  @default(false) @map("from_me")
+  status       String   @default("PENDING")
+  timestamp    Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([instanceName, remoteJid, timestamp(sort: Desc)])
+  @@map("wa_messages")
+}
+
+model Organization {
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  siteUrl        String?
+  settings       String?         @default("{}") // JSON como string
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  users          User[]
+  services       Service[]
+  pluginLicenses PluginLicense[]
+}
+
+model PluginLicense {
+  id             String        @id @default(cuid())
+  key            String        @unique
+  secretKey      String?
+  customerName   String
+  customerEmail  String?
+  status         String        @default("active")
+  isTrial        Boolean       @default(false)
+  trialEndsAt    DateTime?
+  issuedAt       DateTime      @default(now())
+  expiresAt      DateTime?
+  lastValidAt    DateTime?
+  lastIp         String?
+  domain         String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  serviceId      String?       @unique
+  clientId       String?
+  organizationId String?
+  service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+}

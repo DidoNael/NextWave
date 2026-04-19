@@ -1,0 +1,119 @@
+services:
+  evolution-api:
+    build:
+      context: .
+      dockerfile: evolution-api.Dockerfile
+    image: evolution-api-patched:latest
+    container_name: evolution-api
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_TYPE=http
+      - SERVER_PORT=8081
+      - SERVER_URL=http://evolution-api:8081
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=422A33A0-5E46-4A1C-91B1-65114660AF93
+      - LOG_LEVEL=ERROR
+      - LOG_BAILEYS=error
+      - DEL_INSTANCE=false
+      - DATABASE_ENABLED=true
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://root:Q2aw3@se4dr5@nextwave-db:5432/nextwave_crm?schema=public
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_LOCAL_ENABLED=true
+      - WA_VERSION=2.3000.1035214861
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1035214861
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - STORE_MESSAGES=true
+      - STORE_MESSAGE_UP=true
+      - STORE_CONTACTS=true
+      - STORE_CHATS=true
+    volumes:
+      - evolution-data:/app/evolution/instances
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - nextwave_network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: nextwave-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=Q2aw3@se4dr5
+      - POSTGRES_DB=nextwave_crm
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d nextwave_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nextwave_network
+
+  mcp-server:
+    profiles:
+      - mcp
+    build:
+      context: .
+      dockerfile: mcp-server/Dockerfile
+    image: nextwave-mcp-server:latest
+    container_name: nextwave-mcp-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_PORT:-3001}:3001"
+    environment:
+      - MCP_PORT=3001
+      - MCP_BIND_ADDRESS=0.0.0.0
+      - MCP_API_KEY=${MCP_API_KEY:-TROQUE-POR-UMA-CHAVE-FORTE}
+      - MCP_ALLOWED_IPS=${MCP_ALLOWED_IPS:-127.0.0.1}
+      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
+      - MCP_RATE_LIMIT=${MCP_RATE_LIMIT:-100}
+      - MCP_RATE_WINDOW=${MCP_RATE_WINDOW:-60}
+      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-info}
+      - DATABASE_URL=file:/app/data/prod.db
+    volumes:
+      - crm-data:/app/data
+    depends_on:
+      nextwave-crm:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3001/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - nextwave_network
+
+volumes:
+  crm-data:
+    name: crm-data
+    driver: local
+  evolution-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  nextwave_network:
+    name: nextwave_network
+    driver: bridge

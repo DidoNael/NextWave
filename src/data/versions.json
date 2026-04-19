@@ -1,0 +1,221 @@
+[
+  {
+    "version": "2.0.4",
+    "date": "2026-03-30",
+    "title": "Fix Web Updater: limpeza de cache no build",
+    "description": "Correção do build via interface que falhava com 'Module not found' por cache .next antigo.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Web Updater agora limpa o cache .next antes de compilar",
+      "Fix: Backup via interface corrigido para roles admin e master",
+      "Fix: Exibe erro detalhado ao falhar o backup em vez de mensagem genérica",
+      "Fix: Histórico de versões carregado dinamicamente via API"
+    ]
+  },
+  {
+    "version": "1.9.3",
+    "date": "2026-03-30",
+    "title": "Fix NFS-e: Assinatura XML e Backup",
+    "description": "Correção definitiva do erro XPath parse error na assinatura XML do NFS-e e criação do script de backup que estava faltando.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Reescrita do GinfesSigner usando DOMParser + ExclusiveCanonicalization + crypto nativo, eliminando XPath interno do xml-crypto",
+      "Fix: Adicionado try-catch em POST /api/nfse/[id]/retry para evitar 'Unexpected end of JSON input'",
+      "Fix: Criado scripts/backup.mjs (faltava) que causava 'Erro ao gerar backup'",
+      "Fix: Rota de backup corrigida para chamar backup.mjs em vez de backup.ts inexistente",
+      "Fix: Copy-to-clipboard agora funciona em HTTP com fallback via execCommand"
+    ]
+  },
+  {
+    "version": "1.9.2",
+    "date": "2026-03-29",
+    "title": "NFS-e: Modelos de Serviço Fiscal e Exclusão de Registros",
+    "description": "Adição de modelos de tipo de serviço fiscal reutilizáveis e funcionalidades de exclusão de registros NFS-e com erro.",
+    "type": "feature",
+    "changes": [
+      "Add: Modelo NfseTipoServico para parâmetros fiscais por tipo de serviço",
+      "Add: CRUD de tipos de serviço em Configurações → NFS-e",
+      "Add: Exclusão individual de registros NFS-e com status pendente/erro",
+      "Add: Limpeza em massa de registros pendentes/com erro",
+      "Add: Seletor de tipo de serviço no modal de emissão com pré-preenchimento de discriminação",
+      "Fix: Porta NEXTAUTH_URL corrigida de :3000 para :3010 (conflito com Grafana)"
+    ]
+  },
+  {
+    "version": "1.9.1",
+    "date": "2026-03-28",
+    "title": "NFS-e: Página de Diagnóstico e Reenvio com Correção",
+    "description": "Diagnóstico visual passo a passo da assinatura NFS-e e modal de edição para reenvio de notas com erro.",
+    "type": "feature",
+    "changes": [
+      "Add: Página /configuracoes/nfe/debug com diagnóstico passo a passo",
+      "Add: Modal 'Corrigir e Reenviar NFS-e' para notas com erro",
+      "Add: Botão Retry com exibição da mensagem de erro na tabela de serviços",
+      "Fix: Dados do cliente (CPF/CNPJ, CEP, endereço) agora são pré-carregados no formulário",
+      "Fix: API /servicos/[id] expandida para retornar todos os campos de endereço do cliente"
+    ]
+  },
+  {
+    "version": "1.9.0",
+    "date": "2026-03-27",
+    "title": "Módulo NFS-e Ginfes",
+    "description": "Implementação completa de emissão de NFS-e via Ginfes SOAP com assinatura digital XMLDSig.",
+    "type": "feature",
+    "changes": [
+      "Add: Integração com Ginfes (RecepcionarLoteRpsV3, ConsultarSituacaoLoteRpsV3, CancelarNfseV3)",
+      "Add: Assinatura digital XMLDSig com certificado A1 (.pfx)",
+      "Add: Configuração de NFS-e (certificado, alíquota, série, ambiente)",
+      "Add: Emissão de NFS-e direto da página de serviço",
+      "Add: Registro e histórico de NFS-e emitidas por serviço",
+      "Fix: Alíquota ISS dinâmica via NfeConfig (era hardcoded 0.02)"
+    ]
+  },
+  {
+    "version": "1.8.8",
+    "date": "2026-03-14",
+    "title": "Arquitetura Isolada de Build",
+    "description": "Correção definitiva do erro 'Production build missing' através do isolamento do diretório de build (.next_docker) no Docker Desktop.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Mapeamento de .next_docker para evitar conflitos com pastas vazias do Windows",
+      "Fix: Atualização do docker-compose para proteção de volumes anônimos",
+      "Improvement: Estabilidade do startup do container"
+    ]
+  },
+  {
+    "version": "1.8.7",
+    "date": "2026-03-14",
+    "title": "Trava de Segurança & Seleção de Versão",
+    "description": "Implementação de trava contra atualizações simultâneas e suporte à restauração de versões anteriores.",
+    "type": "feature",
+    "changes": [
+      "Add: Lock de sistema (/tmp/nextwave_update.lock) contra build concorrente",
+      "Add: Botão de 'Restaurar' em cada versão da timeline para rollback fácil",
+      "Add: Comando git checkout integrado à interface"
+    ]
+  },
+  {
+    "version": "1.8.6",
+    "date": "2026-03-14",
+    "title": "Tradução & Experiência do Usuário",
+    "description": "Melhorias no console do Web Updater e facilitação do processo de atualização.",
+    "type": "feature",
+    "changes": [
+      "Add: Botão de 'Atualização Completa' (Pull + Install + Build em um clique)",
+      "Improvement: Tradução das saídas do Git e NPM para Português no console",
+      "UI: Novo layout da Central de Comando com ações simplificadas"
+    ]
+  },
+  {
+    "version": "1.8.5",
+    "date": "2026-03-14",
+    "title": "Teste de Web Updater",
+    "description": "Versão de teste para validação do fluxo completo de atualização via interface.",
+    "type": "feature",
+    "changes": [
+      "Verify: Teste de pull bem-sucedido após correção de Git Ownership",
+      "Test: Sincronização entre repositório remoto e container local"
+    ]
+  },
+  {
+    "version": "1.8.4",
+    "date": "2026-03-14",
+    "title": "Fix: Controle de Ownership Git no Docker",
+    "description": "O Web Updater retornava erro de 'Not a git repository' porque o container Docker tratava o diretório montado do host como não seguro (ownership mismatch).",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Adicionado safe.directory global no ambiente Docker para autorizar pull nativo"
+    ]
+  },
+  {
+    "version": "1.7.5",
+    "date": "2026-03-14",
+    "title": "Busca Avançada & Web Updater Fix",
+    "description": "Implementação do ID de cadastro para clientes e correção do sistema de atualizações via interface.",
+    "type": "feature",
+    "changes": [
+      "Add: Campo de busca avançada de clientes em Serviços (Busca por Nome, CNPJ, ID, Endereço)",
+      "Add: registrationId sequencial para clientes (ID de Cadastro amigável)",
+      "Fix: Resolvido erro 'not a git repository' no Web Updater mapeando volumes Docker",
+      "Fix: Sincronização de CWD para comandos shell na Central de Comando"
+    ]
+  },
+  {
+    "version": "1.7.4",
+    "date": "2026-03-14",
+    "title": "Melhorias de Estabilidade e UX",
+    "description": "Correções críticas relacionadas à falta de espaço de disco no Docker e melhorias na UX de Sessões/Configurações.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Limpeza forçada do cache do NPM no Dockerfile para evitar estourar Inodes no servidor",
+      "Fix: Resolvido crash do Radix UI ao tentar abrir o modal de 'Novo Serviço'",
+      "Fix: Persistência real das opções de notificações Push e E-mail no Banco de Dados",
+      "Hotfix: Aceleração da queda de sincronia do 'Single Device Access'",
+      "Fix: Menu lateral agora exibe a versão correta do sistema dinamicamente"
+    ]
+  },
+  {
+    "version": "1.6.7",
+    "date": "2026-03-14",
+    "title": "Build & Estabilidade",
+    "description": "Correção crítica no build Docker e ajuste no schema do banco de dados (campo waVersion).",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Erro de tipo no build production",
+      "Add: Campo waVersion no schema Prisma",
+      "Sincronização de tags v1.6.7 no Git"
+    ]
+  },
+  {
+    "version": "1.6.6",
+    "date": "2026-03-14",
+    "title": "Foco em Serviços",
+    "description": "Melhorias na vinculação entre serviços e clientes, com criação direta no perfil.",
+    "type": "feature",
+    "changes": [
+      "Vinculação direta de serviços no Perfil do Cliente",
+      "Novo formulário de serviço integrado",
+      "Exibição do cliente vinculado no menu de Serviços",
+      "Ajuste de ícone 'DollarSign' ausente"
+    ]
+  },
+  {
+    "version": "1.6.5",
+    "date": "2026-03-14",
+    "title": "Módulos & Segurança",
+    "description": "Integração com Evolution API e validação obrigatória de clientes.",
+    "type": "feature",
+    "changes": [
+      "Módulo de automação WhatsApp (Evolution API)",
+      "Validação obrigatória (CNPJ, CEP, Endereço)",
+      "Feedback visual de campos obrigatórios (Borda Vermelha)",
+      "Limpeza de dados de demonstração no Dashboard"
+    ]
+  },
+  {
+    "version": "1.6.4",
+    "date": "2026-03-12",
+    "title": "Estabilidade do Fluxo",
+    "description": "Correções no botão de notificações, ajustes no quadro Kanban e melhorias no script de deploy Docker.",
+    "type": "bugfix",
+    "changes": [
+      "Fix: Botão de notificação",
+      "Ajustes no drag-and-drop do Kanban",
+      "Refatoração do script deploy.sh",
+      "Adicionado script de reset de banco de dados"
+    ]
+  },
+  {
+    "version": "1.6.0",
+    "date": "2026-03-01",
+    "title": "Lançamento Base",
+    "description": "Estrutura inicial do CRM com Dashboard, Gestão de Clientes e Financeiro.",
+    "type": "feature",
+    "changes": [
+      "Módulo de Autenticação com 2FA",
+      "Gestão de Clientes e Financeiro",
+      "Dashboard com KPIs em tempo real",
+      "Sistema de Temas (Claro/Escuro)"
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+node_modules
+.next
+.next_docker
+*.db
+*.db-journal
+.env.local
+npm-debug.log*
+README.md
+.dockerignore
+mcp-server

@@ -1,0 +1,93 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: nextwave-traefik
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=nextwave_network
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      - --entryPoints.web.address=:3010
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "3010:3010"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml
+    networks:
+      - nextwave_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nextwave-crm-blue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nextwave-crm:blue
+    container_name: nextwave-crm-blue
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - SLOT=blue
+    volumes:
+      - crm-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/auth/session').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - nextwave_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nextwave-crm-green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nextwave-crm:green
+    container_name: nextwave-crm-green
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - SLOT=green
+    volumes:
+      - crm-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/auth/session').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - nextwave_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  crm-data:
+    name: crm-data
+    external: true
+
+networks:
+  nextwave_network:
+    name: nextwave_network
+    external: true

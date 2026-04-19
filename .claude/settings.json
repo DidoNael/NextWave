@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec nextwave-crm sh -c \"ls /app/ && find /app -name ''page.js'' | grep whatsapp 2>&1 | head -5\")",
+      "Bash(docker exec nextwave-crm sh -c \"grep -c ''isQrDialogOpenRef'' /app/.next_docker/server/app/\\\\\\(dashboard\\\\\\)/whatsapp/configuracoes/page.js\")",
+      "Bash(docker exec nextwave-crm sh -c \"grep -c ''isQrDialogOpenRef'' /app/src/app/\\\\\\(dashboard\\\\\\)/whatsapp/configuracoes/page.tsx 2>&1\")",
+      "Bash(docker compose build --no-cache nextwave-crm)",
+      "Bash(docker compose up -d nextwave-crm)",
+      "Bash(docker exec nextwave-crm sh -c \"grep -c ''isQrDialogOpenRef'' /app/.next_docker/server/app/\\\\\\(dashboard\\\\\\)/whatsapp/configuracoes/page.js 2>&1\")",
+      "Bash(docker exec nextwave-crm sh -c \"stat /app/.next_docker/server/app/\\\\\\(dashboard\\\\\\)/whatsapp/configuracoes/page.js\")",
+      "Bash(docker ps --format \"table {{.Names}}\\\\t{{.Status}}\\\\t{{.Ports}}\")"
+    ]
+  }
+}

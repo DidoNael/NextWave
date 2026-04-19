@@ -1,0 +1,26 @@
+http:
+  routers:
+    nextwave:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - web
+      service: nextwave-blue
+
+  services:
+    nextwave-blue:
+      loadBalancer:
+        servers:
+          - url: "http://nextwave-crm-blue:3000"
+        healthCheck:
+          path: /api/auth/session
+          interval: 10s
+          timeout: 5s
+
+    nextwave-green:
+      loadBalancer:
+        servers:
+          - url: "http://nextwave-crm-green:3000"
+        healthCheck:
+          path: /api/auth/session
+          interval: 10s
+          timeout: 5s
