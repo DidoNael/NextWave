@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { PrismaClient } from '@prisma/client';
-import Database from 'better-sqlite3';
+// import Database from 'better-sqlite3'; // REMOVIDO: Sistema agora é PostgreSQL-only
 
 /**
  * Utilitário para migrar dados de um arquivo SQLite para o banco conectado via Prisma.
@@ -49,57 +49,11 @@ export class DBMigrator {
   }
 
   /**
-   * Executa a migração de um arquivo .db para o banco atual
+   * [DESATIVADO] Migração de SQLite para o banco atual.
+   * Removido para suportar arquitetura PostgreSQL-only sem dependências nativas extras.
    */
   async migrateFromSQLite(sqlitePath: string) {
-    const sqlite = new Database(sqlitePath);
-    console.log(`[DB_MIGRATOR] Iniciando migração de: ${sqlitePath}`);
-
-    // Lista de tabelas para migrar na ordem correta de dependência
-    const tables = [
-      'Organization',
-      'SystemBranding',
-      'SystemModule',
-      'User',
-      'Customer',
-      'Service',
-      'Project',
-      'Task',
-      'Transaction',
-      'Agendador',
-      'WhatsappConfig',
-      'WhatsappChannel',
-    ];
-
-    try {
-      for (const table of tables) {
-        // Verificar se a tabela existe no SQLite
-        const tableCheck = sqlite.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${table}'`).get();
-        if (!tableCheck) continue;
-
-        console.log(`[DB_MIGRATOR] Migrando tabela: ${table}`);
-        const rows = sqlite.prepare(`SELECT * FROM ${table}`).all();
-        
-        for (const row of rows) {
-          const data = this.processObject(row);
-          
-          // Upsert para garantir que não dupliquemos e possamos rodar múltiplas vezes
-          if ((this.prisma as any)[table.toLowerCase()]) {
-             await (this.prisma as any)[table.toLowerCase()].upsert({
-               where: { id: data.id || '' },
-               update: data,
-               create: data,
-             });
-          }
-        }
-      }
-      return { success: true, count: tables.length };
-    } catch (error) {
-      console.error('[DB_MIGRATOR_ERROR]', error);
-      throw error;
-    } finally {
-      sqlite.close();
-    }
+    throw new Error('Migração direta de arquivos .db (SQLite) não é mais suportada nesta versão PostgreSQL-only.');
   }
 
   /**

@@ -50,25 +50,13 @@ export async function POST(req: Request) {
             fs.writeFileSync(tempPath, buffer);
 
             try {
-                if (isSQLite && !isSQLFile) {
-                    // Cenário: SQLite -> SQLite (Sobrescrita direta)
-                    let dbPath: string;
-                    const rel = dbUrl.replace('file:', '');
-                    dbPath = path.isAbsolute(rel) ? rel : path.join(process.cwd(), rel);
-                    
-                    await prisma.$disconnect();
-                    fs.copyFileSync(tempPath, dbPath);
-                    console.log(`[SETUP] Banco SQLite sobrescrito em: ${dbPath}`);
-                } 
-                else if (!isSQLite && !isSQLFile) {
-                    // Cenário: Instalação Limpa / Banco Remoto
-                    console.log(`[SETUP] Iniciando configuração de Banco de Dados PostgreSQL`);
-                }
-                else if (isSQLFile) {
-                    // Cenário: SQL (.sql) -> Qualquer Banco (Execução de Script)
-                    console.log(`[SETUP] Executando dump SQL no banco atual`);
+                // cenário: Script SQL (.sql) -> PostgreSQL
+                if (isSQLFile) {
+                    console.log(`[SETUP] Executando dump SQL no banco PostgreSQL atual`);
                     const sqlContent = buffer.toString('utf-8');
                     await migrator.executeRawSQL(sqlContent);
+                } else {
+                    throw new Error("Formato de backup não suportado. Use apenas arquivos .sql para este ambiente PostgreSQL.");
                 }
 
                 // Limpar arquivo temporário
