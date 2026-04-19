@@ -44,7 +44,7 @@ export const config: McpServerConfig = {
   rateLimit: parseInt(getEnvOrDefault("MCP_RATE_LIMIT", "100"), 10),
   rateWindow: parseInt(getEnvOrDefault("MCP_RATE_WINDOW", "60"), 10),
   logLevel: getEnvOrDefault("MCP_LOG_LEVEL", "info") as McpServerConfig["logLevel"],
-  databaseUrl: getEnvOrDefault("DATABASE_URL", "file:../data/prod.db"),
+  databaseUrl: getEnvOrDefault("DATABASE_URL", "postgresql://root:Q2aw3@se4dr5@localhost:5432/nextwave_crm?schema=public"),
 };
 
 // Validações

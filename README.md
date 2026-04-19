@@ -48,7 +48,7 @@ chmod +x reset-db.sh
 - **Linguagem:** TypeScript
 - **Estilizacao:** Tailwind CSS
 - **UI Components:** Radix UI + CVA (similar ao shadcn/ui)
-- **Banco de Dados:** SQLite (via Prisma ORM)
+- **Banco de Dados:** PostgreSQL (via Prisma ORM)
 - **Autenticacao:** NextAuth v5
 - **Graficos:** Recharts
 - **Formularios:** React Hook Form + Zod

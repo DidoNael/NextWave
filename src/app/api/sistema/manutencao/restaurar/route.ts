@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import fs from 'fs';
 import path from 'path';
 
-const DATABASE_FILE = path.join(process.cwd(), 'data', 'prod.db'); // Ajustar conforme o env se necessário
+const DATABASE_URL = process.env.DATABASE_URL; // Usar URL do PostgreSQL do ambiente
+
 const BACKUP_DIR = path.join(process.cwd(), 'data', 'backups');
 
 export async function POST(req: Request) {

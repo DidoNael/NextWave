@@ -37,7 +37,7 @@ O MCP Server é um **processo standalone** separado do Next.js, rodando em sua p
 │                      ▼                                    │
 │              ┌──────────────┐                             │
 │              │  crm-data    │                             │
-│              │  (SQLite DB) │                             │
+│              │ (PostgreSQL DB)│                             │
 │              └──────────────┘                             │
 └───────────────────────────────────────────────────────────┘
                        ▲
@@ -139,7 +139,7 @@ Todas as opções são via variáveis de ambiente (arquivo `.env`):
 | `MCP_RATE_LIMIT` | `100` | Máximo de requests por janela |
 | `MCP_RATE_WINDOW` | `60` | Janela de rate limit em segundos |
 | `MCP_LOG_LEVEL` | `info` | Nível de log: `debug`, `info`, `warn`, `error` |
-| `DATABASE_URL` | `file:../data/prod.db` | Caminho do banco SQLite |
+| `DATABASE_URL` | `postgresql://...` | URL de conexão PostgreSQL |
 
 ### Gerando uma API Key segura
 

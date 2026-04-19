@@ -84,7 +84,7 @@ services:
       - MCP_RATE_LIMIT=${MCP_RATE_LIMIT:-100}
       - MCP_RATE_WINDOW=${MCP_RATE_WINDOW:-60}
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-info}
-      - DATABASE_URL=file:/app/data/prod.db
+      - DATABASE_URL=postgresql://root:Q2aw3@se4dr5@nextwave-db:5432/nextwave_crm?schema=public
     volumes:
       - crm-data:/app/data
     depends_on:

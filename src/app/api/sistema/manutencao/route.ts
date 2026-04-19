@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         execSync(`node "${scriptPath}"`, {
             stdio: 'pipe',
             cwd: process.cwd(),
-            env: { ...process.env, NODE_ENV: 'production', DATABASE_URL: process.env.DATABASE_URL || 'file:/app/data/prod.db' }
+            env: { ...process.env, NODE_ENV: 'production' }
         });
         return NextResponse.json({ success: true, message: "Backup gerado com sucesso" });
     } catch (error: any) {

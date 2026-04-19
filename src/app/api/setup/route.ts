@@ -35,8 +35,8 @@ export async function POST(req: Request) {
             const { DBMigrator } = await import("@/lib/db-migrator");
             const migrator = new DBMigrator(prisma);
             
-            const dbUrl = process.env.DATABASE_URL || 'file:./data/prod.db';
-            const isSQLite = dbUrl.startsWith('file:');
+            const dbUrl = process.env.DATABASE_URL;
+            const isSQLite = dbUrl?.startsWith('file:') || false;
             const isSQLFile = backupName.toLowerCase().endsWith('.sql');
 
             // 1. Salvar o conteúdo do backup em um arquivo temporário
@@ -60,9 +60,8 @@ export async function POST(req: Request) {
                     console.log(`[SETUP] Banco SQLite sobrescrito em: ${dbPath}`);
                 } 
                 else if (!isSQLite && !isSQLFile) {
-                    // Cenário: SQLite (.db) -> Postgres/MySQL (Migração de Dados)
-                    console.log(`[SETUP] Iniciando migração SQLite -> Database Remoto`);
-                    await migrator.migrateFromSQLite(tempPath);
+                    // Cenário: Instalação Limpa / Banco Remoto
+                    console.log(`[SETUP] Iniciando configuração de Banco de Dados PostgreSQL`);
                 }
                 else if (isSQLFile) {
                     // Cenário: SQL (.sql) -> Qualquer Banco (Execução de Script)
