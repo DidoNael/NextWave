@@ -20,7 +20,26 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+
+export default async function LoginPage() {
+  // Verificar setup no SERVIDOR (evita flash de tela e é mais rápido)
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount === 0) {
+      redirect("/setup");
+    }
+  } catch (error) {
+    // Se o banco falhar (ex: conexão inicial), ainda tentamos mandar pro setup 
+    // para que o Wizard tente corrigir a conexão do DB
+    redirect("/setup");
+  }
+
+  return <LoginClient />;
+}
+
+function LoginClient() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
