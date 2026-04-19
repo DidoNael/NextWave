@@ -31,6 +31,9 @@ export default auth((req) => {
 
   // 2. Redirecionar para login se não estiver logado
   if (!isLoggedIn && !isAuthPage) {
+    // Se for a raiz, deixa a página tratar para evitar loops no redirecionamento do SASS
+    if (nextUrl.pathname === "/") return NextResponse.next();
+    
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 

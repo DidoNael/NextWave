@@ -24,7 +24,15 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 
 export default async function LoginPage() {
-  // Verificar setup no SERVIDOR (evita flash de tela e é mais rápido)
+  const session = await auth();
+
+  // 1. Se já estiver logado, manda direto pro dashboard (quebra o loop)
+  if (session?.user) {
+    const orgSlug = (session.user as any).orgSlug || "default";
+    redirect(`/${orgSlug}`);
+  }
+
+  // 2. Verificar setup no SERVIDOR (evita flash de tela e é mais rápido)
   try {
     const userCount = await prisma.user.count();
     if (userCount === 0) {
