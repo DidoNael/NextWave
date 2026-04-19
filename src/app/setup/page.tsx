@@ -86,7 +86,6 @@ export default function SetupPage() {
             siteUrl: typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}` : "",
             orgName: "Minha Empresa",
             orgSlug: "minha-empresa",
-            dbType: "sqlite",
             allowedIps: "*",
             workDayStart: "08:00",
             workDayEnd: "18:00",
