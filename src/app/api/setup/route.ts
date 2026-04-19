@@ -145,8 +145,6 @@ export async function POST(req: Request) {
             },
         });
 
-        }
-
         // 3. Salvar URL do sistema no banco
         if (siteUrl) {
             await (prisma as any).systemBranding.upsert({
