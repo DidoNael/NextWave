@@ -41,7 +41,7 @@ docker-compose up -d
 ## 🚀 Passo 3: Configuração Final (Setup Wizard)
 Acesse o seu navegador para finalizar a instalação:
 
-1. Acesse: **`http://localhost:3000/setup`**
+1. Acesse: **`http://localhost:3010/setup`**
 2. O sistema detectará o ambiente novo.
 3. Preencha o formulário:
    - **Banco de Dados**: Deixe as configurações padrão se estiver no Docker (host: `nextwave-db`, user: `root`).

@@ -52,17 +52,17 @@ services:
     container_name: nextwave-crm
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3010:3010"
     environment:
       - DATABASE_URL=postgresql://root:${POSTGRES_PASSWORD:-nextwave_setup_2026}@nextwave-db:5432/nextwave_crm?schema=public
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3010}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-nextwave_setup_secret_2026}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-nextwave_evo_temp_key}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3010/api/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -87,7 +87,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d nextwave_crm"]
+      test: [ "CMD-SHELL", "pg_isready -U root -d nextwave_crm" ]
       interval: 10s
       timeout: 5s
       retries: 5

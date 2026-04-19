@@ -539,7 +539,7 @@ export default function SetupPage() {
 
                         <CardFooter className="justify-center border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-4 rounded-b-xl">
                             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                                NextWave v2.0.4 • Security Gateway Active
+                                NextWave v2.0.5 • Security Gateway Active
                             </p>
                         </CardFooter>
                     </Card>
