@@ -23,7 +23,7 @@ services:
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://root:Q2aw3@se4dr5@nextwave-db:5432/nextwave_crm?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://root:${POSTGRES_PASSWORD:-nextwave_setup_2026}@nextwave-db:5432/nextwave_crm?schema=public
       - CACHE_REDIS_ENABLED=false
       - CACHE_LOCAL_ENABLED=true
       - WA_VERSION=2.3000.1035214861
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=Q2aw3@se4dr5
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-nextwave_setup_2026}
       - POSTGRES_DB=nextwave_crm
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -84,7 +84,7 @@ services:
       - MCP_RATE_LIMIT=${MCP_RATE_LIMIT:-100}
       - MCP_RATE_WINDOW=${MCP_RATE_WINDOW:-60}
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-info}
-      - DATABASE_URL=postgresql://root:Q2aw3@se4dr5@nextwave-db:5432/nextwave_crm?schema=public
+      - DATABASE_URL=postgresql://root:${POSTGRES_PASSWORD:-nextwave_setup_2026}@nextwave-db:5432/nextwave_crm?schema=public
     volumes:
       - crm-data:/app/data
     depends_on:

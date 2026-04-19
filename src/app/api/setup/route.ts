@@ -93,6 +93,16 @@ export async function POST(req: Request) {
             const dbUrl = `postgresql://${user}:${dbPassword}@${host}:${port}/${database}?schema=public`;
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
+
+            // NOVA LÓGICA: Sincronizar senha com o banco PostgreSQL
+            try {
+                // Tentamos mudar a senha do usuário administrativo no banco
+                // Isso permitirá que a nova senha escolhida no Wizard funcione imediatamente
+                await prisma.$executeRawUnsafe(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
+                console.log(`[SETUP] Senha do banco sincronizada com sucesso.`);
+            } catch (dbErr) {
+                console.warn(`[SETUP] Aviso: Não foi possível mudar a senha no banco (talvez já esteja correta).`, dbErr);
+            }
             
             // Salvar no .env (Para persistência entre reinicializações)
             const envPath = path.join(process.cwd(), ".env");
@@ -108,13 +118,16 @@ export async function POST(req: Request) {
             } else {
                 envContent = `DATABASE_URL="${dbUrl}"\n`;
             }
+
+            // Também salvamos a senha do POSTGRES base para o Docker
+            if (envContent.includes("POSTGRES_PASSWORD=")) {
+                envContent = envContent.replace(/POSTGRES_PASSWORD=.*/, `POSTGRES_PASSWORD="${dbPassword}"`);
+            } else {
+                envContent += `POSTGRES_PASSWORD="${dbPassword}"\n`;
+            }
             
             fs.writeFileSync(envPath, envContent);
             console.log(`[SETUP] Arquivo .env atualizado com sucesso.`);
-            
-            // ATENÇÃO: Em ambiente de produção Docker, o ideal é que o DATABASE_URL
-            // seja passado como variável de ambiente, mas para setup inicial
-            // gravar no .env permite que o próximo boot do container pegue a info.
         }
 
         // 3. Criar o usuário administrador

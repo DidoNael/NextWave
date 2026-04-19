@@ -24,65 +24,33 @@ cd NextWave
 cp .env.example .env
 ```
 
-> [!IMPORTANT]
-> Edite o arquivo `.env` e altere as chaves `NEXTAUTH_SECRET` e `AUTH_SECRET` para valores aleatórios e seguros.
+> **Instalação Automática**: Você **não precisa** editar nenhum arquivo agora. Basta copiar o `.env.example` para `.env` e rodar o sistema. O CRM solicitará suas senhas no navegador (Passo 4).
 
 ---
 
-## 🐘 Passo 2: Subindo a Infraestrutura (Banco de Dados)
-O NextWave v2.0.5 exige **PostgreSQL**. Vamos subir o banco de dados oficial via Docker:
+## 🛠️ Passo 2: Subindo o CRM (Docker)
+Agora, vamos subir toda a plataforma de uma só vez:
 
 ```bash
 docker-compose up -d
 ```
-*Isso vai iniciar o PostgreSQL (nextwave-db) e a Evolution API automaticamente no Docker.*
+*Isso vai iniciar o Banco de Dados (PostgreSQL) e o CRM automaticamente. Nenhuma configuração prévia é necessária.*
 
 ---
 
-## 🚀 Passo 3: Iniciando a Aplicação
+## 🚀 Passo 3: Configuração Final (Setup Wizard)
+Acesse o seu navegador para finalizar a instalação:
 
-### Opção A: Modo Desenvolvimento (Local)
-Se você quer rodar o sistema no seu computador para testes:
+1. Acesse: **`http://localhost:3000/setup`**
+2. O sistema detectará o ambiente novo.
+3. Preencha o formulário:
+   - **Banco de Dados**: Deixe as configurações padrão se estiver no Docker (host: `nextwave-db`, user: `root`).
+   - **Sua Senha**: Escolha aqui a senha que você deseja usar.
+4. Clique em **"Finalizar Instalação"**.
 
-```bash
-# Instale as dependências
-npm install
-
-# Gere o cliente do Banco de Dados
-npx prisma generate
-
-# Inicie o sistema
-npm run dev
-```
-Acesse: [http://localhost:3000](http://localhost:3000)
-
-### Opção B: Modo Produção (Docker)
-Se você for subir no servidor oficial com Traefik:
-
-```bash
-docker-compose -f docker-compose.traefik.yml up -d
-```
-
----
-
-## 🪄 Passo 4: Configuração Final (Setup Wizard)
-Uma vez que o sistema estiver rodando, o NextWave entrará em modo de instalação automática.
-
-1. Acesse: **`http://localhost:3000/setup`** (ou o IP do seu servidor)
-2. O sistema detectará que o banco de dados ainda não foi configurado.
-3. Preencha os dados de conexão que definimos no Docker padrão:
-   - **Host**: `localhost` (ou `nextwave-db` se estiver usando Docker para o CRM também)
-   - **Porta**: `5432`
-   - **Usuário**: `root`
-   - **Senha**: `Q2aw3@se4dr5`
-   - **Banco**: `nextwave_crm`
-4. Clique em **"Testar Conexão"** e, após o sucesso, clique em **"Finalizar Instalação"**.
-
----
-
-## ✅ Pronto!
-O sistema reiniciará já configurado e você poderá criar a sua primeira organização e o seu usuário administrador.
+### ✅ Tudo Pronto!
+O sistema vai configurar automaticamente o seu arquivo `.env`, mudará a senha do banco de dados para a sua escolha e reiniciará pronto para uso.
 
 ---
 > [!TIP]
-> **Segurança**: Como agora o histórico do seu Git está limpo (v2.0.5), mantenha seus dados sensíveis apenas nos arquivos `.env` locais.
+> **Privacidade**: As chaves de segurança (NextAuth) e a senha do banco agora são geradas e configuradas automaticamente pelo Wizard para sua comodidade.

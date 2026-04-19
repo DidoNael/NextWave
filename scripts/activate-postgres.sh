@@ -17,7 +17,7 @@ echo "[2/4] Configurando DATABASE_URL para PostgreSQL..."
 sed -i 's/DATABASE_URL= /DATABASE_URL=/g' .env
 sed -i 's/"//g' .env
 # Apontamos para o container nextwave-db que já está rodando
-sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql://root:Q2aw3@se4dr5@nextwave-db:5432/nextwave_crm?schema=public|g' .env
+sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql://root:SUA_SENHA_AQUI@nextwave-db:5432/nextwave_crm?schema=public|g' .env
 
 # 3. Atualizar Código (Purga do SQLite)
 echo "[3/4] Atualizando código e removendo lógicas obsoletas..."
