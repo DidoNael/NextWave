@@ -80,13 +80,13 @@ export async function POST(req: Request) {
 
                 try {
                     await factoryClient.connect();
-                    await factoryClient.query("SELECT 1");
+                    // Sincronizar Senha SOBERANA: Forçamos o banco a aceitar a senha do usuário AGORA.
+                    await factoryClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
                     await factoryClient.end();
 
                     return NextResponse.json({ 
                         success: true, 
-                        needsSync: true,
-                        message: "Banco detectado! Sua nova senha será aplicada ao concluir o setup."
+                        message: "Sua senha foi sincronizada com sucesso no banco de dados!"
                     });
                 } catch (factoryErr: any) {
                     console.error("[CHECK_FACTORY_FAILED]", factoryErr);
@@ -97,11 +97,13 @@ export async function POST(req: Request) {
                          try {
                              await factoryAdminClient.connect();
                              await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
+                             // Após criar, já mudamos a senha também no banco postgres para garantir sincronia plena
+                             await factoryAdminClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
                              await factoryAdminClient.end();
+                             
                              return NextResponse.json({ 
                                  success: true, 
-                                 needsSync: true,
-                                 message: `Banco '${dbName}' criado do zero via ponte de fábrica!`
+                                 message: `Banco '${dbName}' criado e sua senha sincronizada via ponte de fábrica!`
                              });
                          } catch (e) { console.error("[CHECK_FACTORY_ADMIN_CREATE_FAILED]", e); }
                     }

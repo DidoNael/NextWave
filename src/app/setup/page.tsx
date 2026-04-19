@@ -69,7 +69,7 @@ export default function SetupPage() {
                 const res = await fetch("/api/setup");
                 const data = await res.json();
                 if (data.isConfigured) {
-                    router.push("/login");
+                    window.location.href = "/login";
                 }
             } catch (error) {
                 console.error("Erro ao verificar status", error);
@@ -529,7 +529,7 @@ export default function SetupPage() {
                                             }
                                         </p>
                                     </div>
-                                    <Button onClick={() => router.push("/login")} className="w-full h-14 text-lg bg-emerald-600 hover:bg-emerald-700" size="lg">
+                                    <Button onClick={() => window.location.href = "/login"} className="w-full h-14 text-lg bg-emerald-600 hover:bg-emerald-700" size="lg">
                                         Acessar CRM Seguro
                                     </Button>
                                 </div>

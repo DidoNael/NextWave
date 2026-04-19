@@ -40,8 +40,19 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  // 3. Se estiver logado, verificar restrição de IP
+  // 4. Se estiver logado, verificar se o IP da sessão bate com o IP atual (Single-Location Restriction)
   if (isLoggedIn && !isAuthPage) {
+    const sessionIp = (req.auth?.user as any)?.loginIp;
+    const clientIp = getClientIp(req as any);
+
+    // Se o IP mudou em relação ao login original, invalida o acesso
+    if (sessionIp && sessionIp !== clientIp && sessionIp !== "unknown") {
+       console.log(`[AUTH] IP Divergente Detectado: Sessão vinculada ao ${sessionIp}, acesso tentado do ${clientIp}`);
+       const loginUrl = new URL("/login", nextUrl);
+       loginUrl.searchParams.set("error", "session_conflict");
+       return NextResponse.redirect(loginUrl);
+    }
+
     const allowedIps = ((req.auth?.user as any)?.allowedIps as string) ?? "*";
     if (allowedIps !== "*") {
       const clientIp = getClientIp(req as any);
@@ -63,5 +74,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/code|_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
+  matcher: ["/((?!api/auth|api/setup|setup|_next/code|_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
 };

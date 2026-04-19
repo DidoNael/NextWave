@@ -78,6 +78,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.orgSlug = (user as any).orgSlug;
           token.organizationId = (user as any).organizationId;
           token.allowedIps = (user as any).allowedIps ?? "*";
+          
+          // Captura o IP de origem no momento do login
+          try {
+            const { headers } = await import("next/headers");
+            const headerList = headers();
+            const ip = headerList.get("x-forwarded-for")?.split(",")[0].trim() || 
+                       headerList.get("x-real-ip") || "unknown";
+            token.loginIp = ip;
+          } catch (e) {
+            token.loginIp = "unknown";
+          }
         }
         return token;
       },

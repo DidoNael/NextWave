@@ -60,26 +60,43 @@ async function getBranding() {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headerList = headers();
-  const domain = headerList.get("host") || "";
-  const pathname = headerList.get("x-invoke-path") || ""; // Pode não ser confiável em todos os ambientes
+  // Chamadas dinâmicas protegidas para evitar quebra do Wizard
+  let headerList: any = null;
+  let domain = "";
+  let pathname = "";
+  let session: any = null;
+  let cookieStore: any = null;
 
-  // 1. Verificação de Licença (Trava White-Label)
+  try {
+    headerList = headers();
+    domain = headerList.get("host") || "";
+    pathname = headerList.get("x-invoke-path") || "";
+  } catch (e) {
+    console.log("[LAYOUT] Headers indisponíveis (contexto de setup/build)");
+  }
+
+  try {
+    session = await auth();
+  } catch (e) {
+    console.log("[LAYOUT] Auth indisponível (contexto de setup/build)");
+  }
+
+  try {
+    cookieStore = cookies();
+  } catch (e) {
+    console.log("[LAYOUT] Cookies indisponíveis (contexto de setup/build)");
+  }
+
+  // 1. Verificação de Licença (Trava White-Label) com silenciamento de erro de banco
   const licenseStatus = await getLicenseStatus();
   const branding = await getBranding();
-
-  // Se o sistema estiver suspenso e não estivermos na página de bloqueio
-  // Nota: Next.js server actions / middleware são melhores para isso, mas no layout funciona como última camada
-  // Para simplificar, vamos assumir que o usuário será bloqueado se o status for suspended
-
-  // Tenta carregar do banco se logado, senão usa cookies (flash prevention)
-  const session = await auth();
-  const cookieStore = cookies();
 
   let dbColor = null;
   let dbLayout = null;
@@ -101,8 +118,8 @@ export default async function RootLayout({
     }
   }
 
-  const rawColor = cookieStore.get("nextwave-accent-color")?.value as AccentColor;
-  const rawLayout = cookieStore.get("nextwave-layout-theme")?.value as LayoutTheme;
+  const rawColor = cookieStore?.get("nextwave-accent-color")?.value as AccentColor;
+  const rawLayout = cookieStore?.get("nextwave-layout-theme")?.value as LayoutTheme;
 
   const initialColor: AccentColor = VALID_COLORS.includes(dbColor || rawColor) ? (dbColor || rawColor as any) : "blue";
   const initialLayout: LayoutTheme = VALID_LAYOUTS.includes(dbLayout || rawLayout) ? (dbLayout || rawLayout as any) : "default";

@@ -11,15 +11,27 @@ export async function GET() {
         return NextResponse.json({
             isConfigured: userCount > 0
         });
-    } catch (error) {
-        return NextResponse.json({ error: "Erro ao verificar status do sistema" }, { status: 500 });
+    } catch (error: any) {
+        // Se falhar a autenticação (P1000), assumimos que precisa de setup/reparo
+        if (error?.code === "P1000") {
+            return NextResponse.json({ isConfigured: false, needsRepair: true });
+        }
+        return NextResponse.json({ isConfigured: false, error: "Erro ao verificar status do sistema" });
     }
 }
 
 export async function POST(req: Request) {
     try {
-        // 1. Verificar se já existe algum usuário
-        const userCount = await prisma.user.count();
+        // 1. Verificar se já existe algum usuário (com resiliência a erro de senha)
+        let userCount = 0;
+        try {
+            userCount = await prisma.user.count();
+        } catch (dbErr: any) {
+            // Se falhar por senha, assumimos que userCount é 0 para permitir o setup soberano
+            if (dbErr?.code === "P1000") userCount = 0;
+            else throw dbErr;
+        }
+
         if (userCount > 0) {
             return NextResponse.json(
                 { error: "O sistema já está configurado." },
