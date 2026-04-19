@@ -19,7 +19,6 @@ export default async function IndexPage() {
     redirect("/login");
   }
 
-  // Redireciona para o dashboard da organização do usuário (SASS)
-  const orgSlug = (session.user as any).orgSlug || "default";
-  redirect(`/${orgSlug}`);
+  // Redireciona para o dashboard
+  redirect(`/dashboard`);
 }

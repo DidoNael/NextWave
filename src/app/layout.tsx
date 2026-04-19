@@ -7,9 +7,9 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ColorProvider } from "@/components/providers/ColorProvider";
 import { Toaster } from "sonner";
 import { SessionSecurityProvider } from "@/components/auth/SessionSecurityProvider";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
-const Softphone = dynamic(
+const Softphone = nextDynamic(
   () => import("@/components/pbx/softphone").then((m) => ({ default: m.Softphone })),
   { ssr: false }
 );
