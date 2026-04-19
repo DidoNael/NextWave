@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 export async function GET() {
     try {
@@ -171,6 +172,44 @@ export async function POST(req: Request) {
                     update: { enabled: modules.includes(m.key) },
                     create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
                 });
+            }
+
+            // 5. Configuração Inicial do WhatsApp (Zero Config)
+            if (modules.includes("whatsapp")) {
+                const evolutionKey = crypto.randomUUID();
+                const evolutionUrl = "http://evolution-api:8081";
+                
+                console.log(`[SETUP] Gerando configuração inicial do WhatsApp...`);
+                
+                await (prisma as any).whatsAppConfig.upsert({
+                    where: { id: "default" },
+                    update: { 
+                        globalApiKey: evolutionKey,
+                        apiUrl: evolutionUrl,
+                        isActive: true
+                    },
+                    create: { 
+                        id: "default",
+                        globalApiKey: evolutionKey,
+                        apiUrl: evolutionUrl,
+                        instanceName: "NextWave",
+                        isActive: true,
+                        waVersion: "2.3000.x"
+                    }
+                });
+
+                // Persistir a chave no .env para o Docker ler
+                const envPath = path.join(process.cwd(), ".env");
+                if (fs.existsSync(envPath)) {
+                    let envContent = fs.readFileSync(envPath, "utf-8");
+                    if (envContent.includes("EVOLUTION_API_KEY=")) {
+                        envContent = envContent.replace(/EVOLUTION_API_KEY=.*/, `EVOLUTION_API_KEY="${evolutionKey}"`);
+                    } else {
+                        envContent += `\nEVOLUTION_API_KEY="${evolutionKey}"\n`;
+                    }
+                    fs.writeFileSync(envPath, envContent);
+                    console.log(`[SETUP] EVOLUTION_API_KEY sincronizada no .env`);
+                }
             }
         }
 

@@ -13,7 +13,7 @@ services:
       - SERVER_PORT=8081
       - SERVER_URL=http://evolution-api:8081
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=422A33A0-5E46-4A1C-91B1-65114660AF93
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-nextwave_evo_temp_key}
       - LOG_LEVEL=ERROR
       - LOG_BAILEYS=error
       - DEL_INSTANCE=false

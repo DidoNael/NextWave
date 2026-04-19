@@ -45,12 +45,16 @@ Acesse o seu navegador para finalizar a instalação:
 2. O sistema detectará o ambiente novo.
 3. Preencha o formulário:
    - **Banco de Dados**: Deixe as configurações padrão se estiver no Docker (host: `nextwave-db`, user: `root`).
-   - **Sua Senha**: Escolha aqui a senha que você deseja usar.
+   - **Módulos**: Escolha os módulos desejados (incluindo o WhatsApp).
+   - **Suas Senhas**: Defina sua senha de administrador e a nova senha secreta do banco.
 4. Clique em **"Finalizar Instalação"**.
 
 ### ✅ Tudo Pronto!
-O sistema vai configurar automaticamente o seu arquivo `.env`, mudará a senha do banco de dados para a sua escolha e reiniciará pronto para uso.
+O sistema vai configurar automaticamente:
+- O seu arquivo `.env` com todas as chaves de segurança necessárias.
+- A senha do banco de dados para a sua escolha privada.
+- **WhatsApp**: Gerará uma chave API única e aleatória para a sua Evolution API.
 
 ---
 > [!TIP]
-> **Privacidade**: As chaves de segurança (NextAuth) e a senha do banco agora são geradas e configuradas automaticamente pelo Wizard para sua comodidade.
+> **Segurança Máxima (v2.0.5)**: Este sistema foi sanitizado. Nenhuma senha ou chave de API está "vazada" ou hardcoded no código. Todas as credenciais são geradas de forma aleatória e privada durante o seu Setup.
