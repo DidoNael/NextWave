@@ -130,6 +130,24 @@ export async function POST(req: Request) {
             
             fs.writeFileSync(envPath, envContent);
             console.log(`[SETUP] Arquivo .env atualizado com sucesso.`);
+
+            // NOVO: Sincronizar Schema (Criar tabelas) ANTES de criar o usuário
+            console.log(`[SETUP] Sincronizando schema do banco de dados (prisma db push)...`);
+            try {
+                const { execSync } = await import("child_process");
+                // Usamos a DATABASE_URL atual para o comando
+                process.env.DATABASE_URL = dbUrl;
+                
+                // Executa o push do prisma para criar as tabelas
+                execSync("npx prisma db push --accept-data-loss", { 
+                    env: process.env,
+                    stdio: 'inherit' 
+                });
+                console.log(`[SETUP] Schema sincronizado com sucesso.`);
+            } catch (pushErr) {
+                console.error("[SETUP_SCHEMA_SYNC_ERROR]", pushErr);
+                // Tentamos prosseguir mesmo se falhar o push, o erro original será capturado depois
+            }
         }
 
         // 3. Criar o usuário administrador
