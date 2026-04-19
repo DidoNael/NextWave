@@ -145,7 +145,9 @@ export async function POST(req: Request) {
             },
         });
 
-        // 3. Salvar URL do sistema
+        }
+
+        // 3. Salvar URL do sistema no banco
         if (siteUrl) {
             await (prisma as any).systemBranding.upsert({
                 where: { id: "default" },
@@ -154,7 +156,7 @@ export async function POST(req: Request) {
             });
         }
 
-        // 4. Configurar Módulos
+        // 4. Configurar Módulos no banco
         if (modules && Array.isArray(modules)) {
             const allPossibleModules = [
                 { key: "clientes", label: "Clientes" },
@@ -174,12 +176,10 @@ export async function POST(req: Request) {
                 });
             }
 
-            // 5. Configuração Inicial do WhatsApp (Zero Config)
+            // 5. Configuração Inicial do WhatsApp no banco
             if (modules.includes("whatsapp")) {
                 const evolutionKey = crypto.randomUUID();
                 const evolutionUrl = "http://evolution-api:8081";
-                
-                console.log(`[SETUP] Gerando configuração inicial do WhatsApp...`);
                 
                 await (prisma as any).whatsAppConfig.upsert({
                     where: { id: "default" },
@@ -197,20 +197,58 @@ export async function POST(req: Request) {
                         waVersion: "2.3000.x"
                     }
                 });
+            }
+        }
 
-                // Persistir a chave no .env para o Docker ler
-                const envPath = path.join(process.cwd(), ".env");
-                if (fs.existsSync(envPath)) {
-                    let envContent = fs.readFileSync(envPath, "utf-8");
-                    if (envContent.includes("EVOLUTION_API_KEY=")) {
-                        envContent = envContent.replace(/EVOLUTION_API_KEY=.*/, `EVOLUTION_API_KEY="${evolutionKey}"`);
-                    } else {
-                        envContent += `\nEVOLUTION_API_KEY="${evolutionKey}"\n`;
-                    }
-                    fs.writeFileSync(envPath, envContent);
-                    console.log(`[SETUP] EVOLUTION_API_KEY sincronizada no .env`);
+        // 6. Persistência Consolidada no .env (Zero Config Holístico)
+        try {
+            const envPath = path.join(process.cwd(), ".env");
+            let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
+
+            // Atualizar DATABASE_URL
+            if (dbConfig) {
+                const { host, port, user, password: dbPassword, database } = dbConfig;
+                const dbUrl = `postgresql://${user}:${dbPassword}@${host}:${port}/${database}?schema=public`;
+                
+                if (envContent.includes("DATABASE_URL=")) {
+                    envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${dbUrl}"`);
+                } else {
+                    envContent += `\nDATABASE_URL="${dbUrl}"\n`;
+                }
+
+                if (envContent.includes("POSTGRES_PASSWORD=")) {
+                    envContent = envContent.replace(/POSTGRES_PASSWORD=.*/, `POSTGRES_PASSWORD="${dbPassword}"`);
+                } else {
+                    envContent += `POSTGRES_PASSWORD="${dbPassword}"\n`;
                 }
             }
+
+            // Atualizar NEXTAUTH_URL (Resolve acesso via IP)
+            if (siteUrl) {
+                if (envContent.includes("NEXTAUTH_URL=")) {
+                    envContent = envContent.replace(/NEXTAUTH_URL=.*/, `NEXTAUTH_URL="${siteUrl}"`);
+                } else {
+                    envContent += `NEXTAUTH_URL="${siteUrl}"\n`;
+                }
+            }
+
+            // Atualizar EVOLUTION_API_KEY
+            if (modules && modules.includes("whatsapp")) {
+                const config = await (prisma as any).whatsAppConfig.findUnique({ where: { id: "default" } });
+                if (config?.globalApiKey) {
+                    if (envContent.includes("EVOLUTION_API_KEY=")) {
+                        envContent = envContent.replace(/EVOLUTION_API_KEY=.*/, `EVOLUTION_API_KEY="${config.globalApiKey}"`);
+                    } else {
+                        envContent += `EVOLUTION_API_KEY="${config.globalApiKey}"\n`;
+                    }
+                }
+            }
+
+            fs.writeFileSync(envPath, envContent);
+            console.log(`[SETUP] Arquivo .env consolidado e atualizado com sucesso.`);
+        } catch (envError) {
+            console.error("[SETUP_ENV_PERSISTENCE_ERROR]", envError);
+            // Não travamos o setup se falhar apenas a escrita no arquivo, mas logamos o erro
         }
 
         return NextResponse.json({
