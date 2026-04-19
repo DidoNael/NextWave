@@ -9,9 +9,10 @@ echo "   NextWave CRM - Iniciando..."
 echo "================================================"
 
 # Sincronizar schema (garante que as tabelas existam)
+# Se falhar (ex: senha incorreta antes do setup), ignoramos para permitir que o Next.js suba e o usuário use o /setup
 echo ""
 echo "[1/2] Sincronizando schema do banco de dados..."
-npx prisma db push --accept-data-loss --skip-generate
+npx prisma db push --accept-data-loss --skip-generate || echo "[!] Aviso: Falha na conexão inicial. Prossiga para o Setup Wizard em http://localhost:3010/setup"
 
 # Carregar configurações de runtime salvas pelo setup wizard
 if [ -f /app/data/runtime.env ]; then
