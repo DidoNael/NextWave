@@ -31,10 +31,46 @@ export async function POST(req: Request) {
                 message: "Conexão estabelecida com sucesso com sua senha!"
             });
         } catch (connErr: any) {
-            console.warn("[CHECK] Falha com a senha do usuário, tentando ponte de fábrica...", connErr.code);
+            console.warn("[CHECK] Analisando falha de conexão...", connErr.code, connErr.message);
             
+            // TRATAMENTO: Banco de dados não existe (Código 3D000 no Postgres)
+            // Vamos tentar criar o banco dinamicamente!
+            if (connErr.code === '3D000') {
+                console.log(`[CHECK] Banco ${dbName} não existe. Tentando criar via banco 'postgres'...`);
+                const adminConnStr = `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/postgres`;
+                const adminClient = new Client({ connectionString: adminConnStr, connectionTimeoutMillis: 5000 });
+                
+                try {
+                    await adminClient.connect();
+                    // Importante: CREATE DATABASE não aceita parâmetros, usamos template literal com cuidado
+                    await adminClient.query(`CREATE DATABASE "${dbName}"`);
+                    await adminClient.end();
+                    
+                    return NextResponse.json({ 
+                        success: true, 
+                        message: `Banco de dados '${dbName}' criado e conectado com sucesso!`
+                    });
+                } catch (createErr: any) {
+                    console.error("[CHECK_CREATE_DB_FAILED]", createErr);
+                    // Se falhar por autenticação no banco 'postgres', tentamos com a senha de fábrica
+                    if (createErr.code === '28P01') {
+                         const factoryAdminStr = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/postgres`;
+                         const factoryAdminClient = new Client({ connectionString: factoryAdminStr, connectionTimeoutMillis: 5000 });
+                         try {
+                             await factoryAdminClient.connect();
+                             await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
+                             await factoryAdminClient.end();
+                             return NextResponse.json({ 
+                                 success: true, 
+                                 needsSync: true,
+                                 message: `Banco '${dbName}' criado via ponte de fábrica! Sincronização pendente.`
+                             });
+                         } catch (e) { console.error("[CHECK_FACTORY_CREATE_FAILED]", e); }
+                    }
+                }
+            }
+
             // 2. Se falhar por erro de autenticação (invalid password), tentamos a senha de "fábrica"
-            // Isso acontece se o banco subiu com a padrão e o usuário quer definir uma nova
             if (connErr.code === '28P01' && dbPassword !== DEFAULT_BOOT_PWD) {
                 const factoryConnectionString = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/${dbName}`;
                 const factoryClient = new Client({
@@ -47,14 +83,28 @@ export async function POST(req: Request) {
                     await factoryClient.query("SELECT 1");
                     await factoryClient.end();
 
-                    // Se funcionar com a padrão, avisamos ao frontend que vamos sincronizar no final
                     return NextResponse.json({ 
                         success: true, 
                         needsSync: true,
                         message: "Banco detectado! Sua nova senha será aplicada ao concluir o setup."
                     });
-                } catch (factoryErr) {
+                } catch (factoryErr: any) {
                     console.error("[CHECK_FACTORY_FAILED]", factoryErr);
+                    // Se o banco não existir nem com a senha de fábrica, tentamos criar via 'postgres' com senha de fábrica
+                    if (factoryErr.code === '3D000') {
+                         const factoryAdminStr = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/postgres`;
+                         const factoryAdminClient = new Client({ connectionString: factoryAdminStr, connectionTimeoutMillis: 5000 });
+                         try {
+                             await factoryAdminClient.connect();
+                             await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
+                             await factoryAdminClient.end();
+                             return NextResponse.json({ 
+                                 success: true, 
+                                 needsSync: true,
+                                 message: `Banco '${dbName}' criado do zero via ponte de fábrica!`
+                             });
+                         } catch (e) { console.error("[CHECK_FACTORY_ADMIN_CREATE_FAILED]", e); }
+                    }
                 }
             }
 
