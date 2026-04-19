@@ -83,14 +83,27 @@ export async function POST(req: Request) {
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
 
-            // NOVA LÓGICA: Sincronizar senha com o banco PostgreSQL
+            // NOVA LÓGICA: Sincronizar senha com o banco PostgreSQL de forma resiliente
             try {
-                // Tentamos mudar a senha do usuário administrativo no banco
-                // Isso permitirá que a nova senha escolhida no Wizard funcione imediatamente
-                await prisma.$executeRawUnsafe(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
-                console.log(`[SETUP] Senha do banco sincronizada com sucesso.`);
+                const { Client } = await import("pg");
+                const factoryClient = new Client({
+                    connectionString: `postgresql://${user}:nextwave_setup_2026@${host}:${port}/${database}`,
+                    connectionTimeoutMillis: 5000,
+                });
+
+                await factoryClient.connect();
+                await factoryClient.query(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
+                await factoryClient.end();
+                
+                console.log(`[SETUP] Senha do banco sincronizada com sucesso para a ESCOLHA DO USUÁRIO.`);
             } catch (dbErr) {
-                console.warn(`[SETUP] Aviso: Não foi possível mudar a senha no banco (talvez já esteja correta).`, dbErr);
+                console.warn(`[SETUP] Aviso: Não foi possível sincronizar senha via ponte de fábrica. Tentando conexão direta...`);
+                // Se falhar a ponte, pode ser que a senha já seja a do usuário
+                try {
+                    await prisma.$executeRawUnsafe(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
+                } catch (e) {
+                   console.error("[SETUP_PWD_SYNC_FAILED] Falha total na sincronização de senha.");
+                }
             }
             
             // Salvar no .env (Para persistência entre reinicializações)

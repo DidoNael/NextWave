@@ -13,10 +13,13 @@ export async function POST(req: Request) {
         // Construir string de conexão para teste
         const connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
         
-        const client = new Client({
+        // 1. Tentar conectar com a senha que o usuário digitou
+        let client = new Client({
             connectionString,
-            connectionTimeoutMillis: 5000, // 5 segundos de timeout
+            connectionTimeoutMillis: 5000,
         });
+
+        const DEFAULT_BOOT_PWD = "nextwave_setup_2026";
 
         try {
             await client.connect();
@@ -25,13 +28,38 @@ export async function POST(req: Request) {
             
             return NextResponse.json({ 
                 success: true, 
-                message: "Conexão estabelecida com sucesso!",
-                connectionString
+                message: "Conexão estabelecida com sucesso com sua senha!"
             });
         } catch (connErr: any) {
-            console.error("[TEST_CONN_ERROR]", connErr);
+            console.warn("[CHECK] Falha com a senha do usuário, tentando ponte de fábrica...", connErr.code);
+            
+            // 2. Se falhar por erro de autenticação (invalid password), tentamos a senha de "fábrica"
+            // Isso acontece se o banco subiu com a padrão e o usuário quer definir uma nova
+            if (connErr.code === '28P01' && dbPassword !== DEFAULT_BOOT_PWD) {
+                const factoryConnectionString = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/${dbName}`;
+                const factoryClient = new Client({
+                    connectionString: factoryConnectionString,
+                    connectionTimeoutMillis: 5000,
+                });
+
+                try {
+                    await factoryClient.connect();
+                    await factoryClient.query("SELECT 1");
+                    await factoryClient.end();
+
+                    // Se funcionar com a padrão, avisamos ao frontend que vamos sincronizar no final
+                    return NextResponse.json({ 
+                        success: true, 
+                        needsSync: true,
+                        message: "Banco detectado! Sua nova senha será aplicada ao concluir o setup."
+                    });
+                } catch (factoryErr) {
+                    console.error("[CHECK_FACTORY_FAILED]", factoryErr);
+                }
+            }
+
             return NextResponse.json({ 
-                error: `Falha na conexão: ${connErr.message || "Verifique as credenciais e se o banco está pronto."}` 
+                error: `Falha na conexão: ${connErr.message || "Verifique as credenciais."}` 
             }, { status: 500 });
         }
     } catch (error) {
