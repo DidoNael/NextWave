@@ -108,5 +108,5 @@ class SipClient {
     }
 }
 
-// Singleton for global use
-export const sipClient = new SipClient();
+// Singleton for global use — only instantiated in the browser
+export const sipClient = typeof window !== "undefined" ? new SipClient() : (null as unknown as SipClient);

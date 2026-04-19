@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { toast } from "sonner";
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutos em ms
-const CHECK_INTERVAL = 3 * 1000; // Verificar a cada 3 segundos para logout ultra-rápido
+const CHECK_INTERVAL = 60 * 1000; // Verificar a cada 60 segundos
 
 export function SessionSecurityProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status, update } = useSession();

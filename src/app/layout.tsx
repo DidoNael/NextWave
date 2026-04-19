@@ -6,7 +6,13 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ColorProvider } from "@/components/providers/ColorProvider";
 import { Toaster } from "sonner";
-import { Softphone } from "@/components/pbx/softphone";
+import { SessionSecurityProvider } from "@/components/auth/SessionSecurityProvider";
+import dynamic from "next/dynamic";
+
+const Softphone = dynamic(
+  () => import("@/components/pbx/softphone").then((m) => ({ default: m.Softphone })),
+  { ssr: false }
+);
 import "./globals.css";
 
 // Removendo Google Fonts para evitar timeouts no build Docker ARM64
@@ -133,6 +139,7 @@ export default async function RootLayout({
     >
       <body className="antialiased">
         <SessionProvider>
+          <SessionSecurityProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
@@ -151,6 +158,7 @@ export default async function RootLayout({
               {session?.user && <Softphone />}
             </ColorProvider>
           </ThemeProvider>
+          </SessionSecurityProvider>
         </SessionProvider>
       </body>
     </html>

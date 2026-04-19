@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 
 import { existsSync, writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 
 const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 const LOCK_FILE = "/tmp/nextwave_update.lock";
 
 const ALLOWED_COMMANDS = {
@@ -67,14 +68,27 @@ export async function POST(req: Request) {
     writeFileSync(LOCK_FILE, Date.now().toString());
 
     try {
-      let shellCommand = ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS];
-      
-      if (command === "checkout" && version) {
-        shellCommand = `${shellCommand} v${version.replace('v', '')}`;
-      }
+      const cwd = process.cwd();
+      let stdout: string;
+      let stderr: string;
 
-      console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand}`);
-      const { stdout, stderr } = await execPromise(shellCommand, { cwd: "/app" });
+      if (command === "checkout") {
+        const versionRegex = /^\d+\.\d+\.\d+$/;
+        const cleanVersion = (version ?? "").replace(/^v/, "");
+        if (!versionRegex.test(cleanVersion)) {
+          return NextResponse.json({ success: false, error: "Versão inválida." }, { status: 400 });
+        }
+        console.log(`[SYSTEM_UPDATE] Executing: git checkout v${cleanVersion}`);
+        const result = await execFilePromise("git", ["checkout", `v${cleanVersion}`], { cwd });
+        stdout = result.stdout;
+        stderr = result.stderr;
+      } else {
+        const shellCommand = ALLOWED_COMMANDS[command as keyof typeof ALLOWED_COMMANDS];
+        console.log(`[SYSTEM_UPDATE] Executing: ${shellCommand}`);
+        const result = await execPromise(shellCommand, { cwd });
+        stdout = result.stdout;
+        stderr = result.stderr;
+      }
 
       return NextResponse.json({
         success: true,

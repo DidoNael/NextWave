@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, X, Minus, ChevronUp, History, User, Globe } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, X, Minus, History, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

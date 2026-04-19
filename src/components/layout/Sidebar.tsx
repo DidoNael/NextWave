@@ -5,14 +5,25 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight, ChevronDown,
-  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key, Shield, Receipt
+  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key, Shield, Receipt,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useColorTheme } from "@/components/providers/ColorProvider";
 import packageInfo from "../../../package.json";
 
@@ -67,15 +78,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  // Extrai orgSlug do pathname para prefixar todos os links
   const orgSlug = pathname.split("/")[1] || "";
   const base = orgSlug ? `/${orgSlug}` : "";
-
-  // Caminho relativo ao orgSlug para comparação de estado ativo
   const relativePath = base ? pathname.replace(base, "") || "/" : pathname;
 
   const bottomItems = bottomItemsBase.filter(item => !item.masterOnly || isMaster);
-
   const isProfessional = layoutTheme === "professional";
 
   useEffect(() => {
@@ -111,21 +118,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     setOpenMenus(prev => ({ ...prev, [href]: !prev[href] }));
   };
 
-  const moduleMapping: Record<string, string> = {
-    "/clientes": "clientes",
-    "/financeiro": "financeiro",
-    "/projetos": "projetos",
-    "/servicos": "servicos",
-    "/agenda": "agenda",
-    "/usuarios": "usuarios",
-    "/whatsapp": "whatsapp",
-    "/configuracoes/pbx": "pbx",
-  };
-
   const filteredNavItems = navItems.filter(item => {
     if (!item.module) return true;
-    const key = moduleMapping[item.href];
-    return !key || activeModules.includes(key);
+    return activeModules.includes(item.module);
   });
 
   function getLinkClass(isActive: boolean, isCollapsed: boolean) {
@@ -137,7 +132,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           ? isProfessional
             ? "bg-primary/10 text-primary"
             : "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110"
-          : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       );
     }
     if (isProfessional) {
@@ -235,9 +230,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     );
   }
 
+  const userCard = (
+    <div className={cn(
+      "flex items-center gap-2.5 p-2 rounded-lg bg-muted/40 border border-border/60 hover:bg-muted/70 transition-colors cursor-pointer select-none w-full",
+      collapsed && "justify-center px-1"
+    )}>
+      <Avatar className="h-7 w-7 shrink-0">
+        <AvatarImage src={session?.user?.image ?? ""} />
+        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+          {getInitials(session?.user?.name ?? "U")}
+        </AvatarFallback>
+      </Avatar>
+      {!collapsed && (
+        <div className="flex flex-col min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground truncate leading-tight">{session?.user?.name}</p>
+          <p className="text-[10px] text-muted-foreground truncate leading-tight">{session?.user?.email}</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={0}>
-      {/* Overlay Mobile */}
       {open && (
         <div
           className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm sm:hidden"
@@ -253,8 +267,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           open ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
         )}
       >
+        {/* Logo */}
         <div className={cn("flex h-16 items-center border-b border-border px-4 transition-all", collapsed ? "justify-center" : "gap-3")}>
-          <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center bg-primary", isProfessional ? "rounded-none" : "rounded-lg shadow-lg shadow-primary/20")}>
+          <div className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center bg-primary",
+            isProfessional ? "rounded-none" : "rounded-lg shadow-lg shadow-primary/20"
+          )}>
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
           {!collapsed && (
@@ -265,13 +283,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           )}
         </div>
 
+        {/* Main Nav */}
         <ScrollArea className="flex-1 py-4">
           <nav className="flex flex-col gap-1 px-2">
             {filteredNavItems.map(renderNavItem)}
           </nav>
         </ScrollArea>
 
-        <div className="border-t border-border py-4">
+        {/* Bottom Nav (settings) */}
+        <div className="border-t border-border py-3">
           <nav className="flex flex-col gap-1 px-2">
             {bottomItems.map(item => {
               const fullHref = `${base}${item.href}`;
@@ -299,22 +319,76 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </nav>
         </div>
 
+        {/* User Card */}
+        <div className="border-t border-border px-2 py-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>{userCard}</div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="flex flex-col gap-0.5">
+                    <span className="font-medium">{session?.user?.name}</span>
+                    <span className="text-xs text-muted-foreground">{session?.user?.email}</span>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div>{userCard}</div>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56 mb-1">
+              <DropdownMenuLabel className="font-normal py-2">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={session?.user?.image ?? ""} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                      {getInitials(session?.user?.name ?? "U")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-sm font-semibold truncate">{session?.user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href={`${base}/configuracoes/perfil`} className="flex items-center gap-2" onClick={onClose}>
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  Configurações
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                <LogOut className="h-4 w-4" />
+                Sair da conta
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {!collapsed && (
+            <p className="text-[10px] text-muted-foreground text-center opacity-40 mt-2">
+              v{packageInfo.version}
+            </p>
+          )}
+        </div>
+
+        {/* Collapse toggle */}
         <Button
           variant="outline"
           size="icon"
-          className={cn("absolute -right-3 top-20 z-10 h-6 w-6 border border-border bg-background shadow-md", isProfessional ? "rounded-none" : "rounded-full")}
+          className={cn(
+            "absolute -right-3 top-20 z-10 h-6 w-6 border border-border bg-background shadow-md",
+            isProfessional ? "rounded-none" : "rounded-full"
+          )}
           onClick={toggleSidebar}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
-
-        {!collapsed && (
-          <div className="px-4 py-2 border-t border-border/40">
-            <p className="text-[10px] text-muted-foreground font-medium text-center opacity-50">
-              v{packageInfo.version} - CRM SASS
-            </p>
-          </div>
-        )}
       </aside>
     </TooltipProvider>
   );
