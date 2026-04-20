@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
@@ -173,82 +175,96 @@ export async function POST(req: Request) {
             } catch (pErr) { console.error("Prisma push failed", pErr); }
         }
 
-        // 3. Criar Organização primeiro (Essencial para SASS v3.0.0)
-        console.log(`[SETUP] Criando organização master: ${orgName}`);
-        const organization = await prisma.organization.create({
-            data: {
-                name: orgName || "NextWave Master",
-                slug: orgSlug || "master",
-                siteUrl: siteUrl || "",
-            }
-        });
-
-        // 4. Criar o usuário administrador vinculado à organização
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const userAdmin = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role: "master",
-                allowedIps: allowedIps || "*",
-                workDayStart: workDayStart || null,
-                workDayEnd: workDayEnd || null,
-                organizationId: organization.id,
+        // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
+        console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
+        const tempPrisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: dbUrl,
+                },
             },
         });
 
-        // 5. Salvar Branding
-        if (siteUrl) {
-            await (prisma as any).systemBranding.upsert({
-                where: { id: "default" },
-                update: { siteUrl, name: orgName },
-                create: { id: "default", siteUrl, name: orgName },
+        try {
+            // 3. Criar Organização primeiro (Essencial para SASS v3.0.0)
+            console.log(`[SETUP] Criando organização master: ${orgName}`);
+            const organization = await tempPrisma.organization.create({
+                data: {
+                    name: orgName || "NextWave Master",
+                    slug: orgSlug || "master",
+                    siteUrl: siteUrl || "",
+                }
             });
-        }
 
-        // 6. Configurar Módulos
-        if (modules && Array.isArray(modules)) {
-            const allPossibleModules = [
-                { key: "clientes", label: "Clientes" },
-                { key: "financeiro", label: "Financeiro" },
-                { key: "projetos", label: "Projetos" },
-                { key: "servicos", label: "Serviços" },
-                { key: "agenda", label: "Agenda" },
-                { key: "whatsapp", label: "WhatsApp" },
-                { key: "usuarios", label: "Usuários" }
-            ];
+            // 4. Criar o usuário administrador vinculado à organização
+            const hashedPassword = await bcrypt.hash(password, 12);
+            await tempPrisma.user.create({
+                data: {
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role: "master",
+                    allowedIps: allowedIps || "*",
+                    workDayStart: workDayStart || null,
+                    workDayEnd: workDayEnd || null,
+                    organizationId: organization.id,
+                },
+            });
 
-            for (const m of allPossibleModules) {
-                await (prisma as any).systemModule.upsert({
-                    where: { key: m.key },
-                    update: { enabled: modules.includes(m.key) },
-                    create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
-                });
-            }
-
-            // 5. Configuração Inicial do WhatsApp no banco
-            if (modules.includes("whatsapp")) {
-                const evolutionKey = crypto.randomUUID();
-                const evolutionUrl = "http://evolution-api:8081";
-                
-                await (prisma as any).whatsAppConfig.upsert({
+            // 5. Salvar Branding
+            if (siteUrl) {
+                await (tempPrisma as any).systemBranding.upsert({
                     where: { id: "default" },
-                    update: { 
-                        globalApiKey: evolutionKey,
-                        apiUrl: evolutionUrl,
-                        isActive: true
-                    },
-                    create: { 
-                        id: "default",
-                        globalApiKey: evolutionKey,
-                        apiUrl: evolutionUrl,
-                        instanceName: "NextWave",
-                        isActive: true,
-                        waVersion: "2.3000.x"
-                    }
+                    update: { siteUrl, name: orgName },
+                    create: { id: "default", siteUrl, name: orgName },
                 });
             }
+
+            // 6. Configurar Módulos
+            if (modules && Array.isArray(modules)) {
+                const allPossibleModules = [
+                    { key: "clientes", label: "Clientes" },
+                    { key: "financeiro", label: "Financeiro" },
+                    { key: "projetos", label: "Projetos" },
+                    { key: "servicos", label: "Serviços" },
+                    { key: "agenda", label: "Agenda" },
+                    { key: "whatsapp", label: "WhatsApp" },
+                    { key: "usuarios", label: "Usuários" }
+                ];
+
+                for (const m of allPossibleModules) {
+                    await (tempPrisma as any).systemModule.upsert({
+                        where: { key: m.key },
+                        update: { enabled: modules.includes(m.key) },
+                        create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
+                    });
+                }
+
+                // 7. Configuração Inicial do WhatsApp no banco
+                if (modules.includes("whatsapp")) {
+                    const evolutionKey = crypto.randomUUID();
+                    const evolutionUrl = "http://evolution-api:8081";
+                    
+                    await (tempPrisma as any).whatsAppConfig.upsert({
+                        where: { id: "default" },
+                        update: { 
+                            globalApiKey: evolutionKey,
+                            apiUrl: evolutionUrl,
+                            isActive: true
+                        },
+                        create: { 
+                            id: "default",
+                            globalApiKey: evolutionKey,
+                            apiUrl: evolutionUrl,
+                            instanceName: "NextWave",
+                            isActive: true,
+                            waVersion: "2.3000.x"
+                        }
+                    });
+                }
+            }
+        } finally {
+            await tempPrisma.$disconnect();
         }
 
         // 7. Persistência Consolidada no .env
