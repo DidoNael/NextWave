@@ -118,7 +118,7 @@ export async function POST(req: Request) {
                 }
             }
             
-            // Salvar no .env (Para persistência entre reinicializações)
+            // Salvar no .env
             const envPath = path.join(process.cwd(), ".env");
             let envContent = "";
             
@@ -133,7 +133,6 @@ export async function POST(req: Request) {
                 envContent = `DATABASE_URL="${dbUrl}"\n`;
             }
 
-            // Também salvamos a senha do POSTGRES base para o Docker
             if (envContent.includes("POSTGRES_PASSWORD=")) {
                 envContent = envContent.replace(/POSTGRES_PASSWORD=.*/, `POSTGRES_PASSWORD="${dbPassword}"`);
             } else {
@@ -141,30 +140,29 @@ export async function POST(req: Request) {
             }
             
             fs.writeFileSync(envPath, envContent);
-            console.log(`[SETUP] Arquivo .env atualizado com sucesso.`);
 
-            // NOVO: Sincronizar Schema (Criar tabelas) ANTES de criar o usuário
-            console.log(`[SETUP] Sincronizando schema do banco de dados (prisma db push)...`);
+            // NOVO: Sincronizar Schema
+            console.log(`[SETUP] Sincronizando schema...`);
             try {
                 const { execSync } = await import("child_process");
-                // Usamos a DATABASE_URL atual para o comando
                 process.env.DATABASE_URL = dbUrl;
-                
-                // Executa o push do prisma para criar as tabelas
-                execSync("npx prisma db push --accept-data-loss", { 
-                    env: process.env,
-                    stdio: 'inherit' 
-                });
-                console.log(`[SETUP] Schema sincronizado com sucesso.`);
-            } catch (pushErr) {
-                console.error("[SETUP_SCHEMA_SYNC_ERROR]", pushErr);
-                // Tentamos prosseguir mesmo se falhar o push, o erro original será capturado depois
-            }
+                execSync("npx prisma db push --accept-data-loss", { env: process.env });
+            } catch (pErr) { console.error("Prisma push failed", pErr); }
         }
 
-        // 3. Criar o usuário administrador
+        // 3. Criar Organização primeiro (Essencial para SASS v3.0.0)
+        console.log(`[SETUP] Criando organização master: ${orgName}`);
+        const organization = await prisma.organization.create({
+            data: {
+                name: orgName || "NextWave Master",
+                slug: orgSlug || "master",
+                siteUrl: siteUrl || "",
+            }
+        });
+
+        // 4. Criar o usuário administrador vinculado à organização
         const hashedPassword = await bcrypt.hash(password, 12);
-        const user = await prisma.user.create({
+        const userAdmin = await prisma.user.create({
             data: {
                 name,
                 email,
@@ -173,19 +171,20 @@ export async function POST(req: Request) {
                 allowedIps: allowedIps || "*",
                 workDayStart: workDayStart || null,
                 workDayEnd: workDayEnd || null,
+                organizationId: organization.id,
             },
         });
 
-        // 3. Salvar URL do sistema no banco
+        // 5. Salvar Branding vinculado à Organização (ou Geral)
         if (siteUrl) {
             await (prisma as any).systemBranding.upsert({
                 where: { id: "default" },
-                update: { siteUrl },
-                create: { id: "default", siteUrl },
+                update: { siteUrl, name: orgName },
+                create: { id: "default", siteUrl, name: orgName },
             });
         }
 
-        // 4. Configurar Módulos no banco
+        // 6. Configurar Módulos
         if (modules && Array.isArray(modules)) {
             const allPossibleModules = [
                 { key: "clientes", label: "Clientes" },
@@ -204,6 +203,7 @@ export async function POST(req: Request) {
                     create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
                 });
             }
+        }
 
             // 5. Configuração Inicial do WhatsApp no banco
             if (modules.includes("whatsapp")) {
@@ -283,7 +283,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             success: true,
             message: "Administrador criado com sucesso!",
-            user: { id: user.id, name: user.name, email: user.email },
+            user: { id: userAdmin.id, name: userAdmin.name, email: userAdmin.email },
         });
     } catch (error) {
         console.error("[SETUP_API_ERROR]", error);
