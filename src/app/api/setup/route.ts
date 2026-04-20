@@ -182,20 +182,32 @@ export async function POST(req: Request) {
         });
 
         try {
-            // 3. Criar Organização primeiro (Essencial para SASS v3.0.0)
-            console.log(`[SETUP] Criando organização master: ${orgName}`);
-            const organization = await tempPrisma.organization.create({
-                data: {
+            // 3. Criar Organização primeiro (Essencial para SASS v3.0.0) - Com Idempotência (v3.0.6)
+            console.log(`[SETUP] Sincronizando organização master: ${orgName}`);
+            const organization = await tempPrisma.organization.upsert({
+                where: { slug: orgSlug || "master" },
+                update: {
+                    name: orgName || "NextWave Master",
+                    siteUrl: siteUrl || "",
+                },
+                create: {
                     name: orgName || "NextWave Master",
                     slug: orgSlug || "master",
                     siteUrl: siteUrl || "",
                 }
             });
 
-            // 4. Criar o usuário administrador vinculado à organização
+            // 4. Criar o usuário administrador vinculado à organização - Com Idempotência (v3.0.6)
             const hashedPassword = await bcrypt.hash(password, 12);
-            await tempPrisma.user.create({
-                data: {
+            await tempPrisma.user.upsert({
+                where: { email: email },
+                update: {
+                    name,
+                    password: hashedPassword,
+                    role: "master",
+                    organizationId: organization.id,
+                },
+                create: {
                     name,
                     email,
                     password: hashedPassword,
@@ -293,9 +305,16 @@ export async function POST(req: Request) {
             console.error("[SETUP_ENV_PERSISTENCE_ERROR]", envError);
         }
 
+        // 8. Hot-Reload Soberano: Reiniciar processo para carregar novo .env (v3.0.6)
+        console.log(`[SETUP] Setup concluído. Reiniciando container para aplicar soberania...`);
+        setTimeout(() => {
+            console.log(`[SETUP] SINAL DE REINÍCIO ENVIADO.`);
+            process.exit(0); 
+        }, 2000);
+
         return NextResponse.json({
             success: true,
-            message: "Sistema configurado com sucesso!",
+            message: "Sistema configurado com sucesso! Redirecionando...",
         });
     } catch (error) {
         console.error("[SETUP_API_ERROR]", error);

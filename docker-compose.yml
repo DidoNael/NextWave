@@ -23,7 +23,7 @@ services:
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://root:${POSTGRES_PASSWORD:-nextwave_setup_2026}@nextwave-db:5432/nextwave_crm?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://root:${POSTGRES_PASSWORD}@nextwave-db:5432/nextwave_crm?schema=public
       - CACHE_REDIS_ENABLED=false
       - CACHE_LOCAL_ENABLED=true
       - WA_VERSION=2.3000.1035214861
@@ -54,7 +54,7 @@ services:
     ports:
       - "3010:3010"
     environment:
-      - DATABASE_URL=postgresql://root:${POSTGRES_PASSWORD:-nextwave_setup_2026}@nextwave-db:5432/nextwave_crm?schema=public
+      - DATABASE_URL=postgresql://root:${POSTGRES_PASSWORD}@nextwave-db:5432/nextwave_crm?schema=public
       - NEXTAUTH_URL=${NEXTAUTH_URL:-}
       - AUTH_TRUST_HOST=true
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-nextwave_setup_secret_2026}
