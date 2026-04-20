@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PrismaClient } from "@prisma/client";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
@@ -11,40 +10,38 @@ import { DATABASE_DEFAULTS } from "@/lib/constants";
 
 export async function GET() {
     try {
-        const userCount = await prisma.user.count();
-        return NextResponse.json({
-            isConfigured: userCount > 0
-        });
-    } catch (error: any) {
-        // Se falhar a autenticação (P1000), assumimos que precisa de setup/reparo
-        if (error?.code === "P1000") {
-            return NextResponse.json({ isConfigured: false, needsRepair: true });
+        // Modo Setup: Se o singleton falhar ou der erro de autenticação, assumimos que precisa de setup
+        // Não deixamos o erro travar a experiência do usuário
+        let userCount = 0;
+        try {
+            userCount = await prisma.user.count();
+        } catch (e) {
+            console.warn("[SETUP_GET] Falha de conexão (esperado em setup soberano)");
+            return NextResponse.json({ isConfigured: false, needsSetup: true });
         }
-        return NextResponse.json({ isConfigured: false, error: "Erro ao verificar status do sistema" });
+        return NextResponse.json({ isConfigured: userCount > 0 });
+    } catch (error: any) {
+        return NextResponse.json({ isConfigured: false });
     }
 }
 
 export async function POST(req: Request) {
     try {
-        // 1. Verificar se já existe algum usuário (com resiliência a erro de senha)
-        let userCount = 0;
-        try {
-            userCount = await prisma.user.count();
-        } catch (dbErr: any) {
-            // Se falhar por senha, assumimos que userCount é 0 para permitir o setup soberano
-            if (dbErr?.code === "P1000") userCount = 0;
-            else throw dbErr;
-        }
-
-        if (userCount > 0) {
-            return NextResponse.json(
-                { error: "O sistema já está configurado." },
-                { status: 400 }
-            );
-        }
-
         const body = await req.json();
         const { siteUrl, orgName, orgSlug, name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules, dbConfig } = body;
+
+        // Se estivermos configurando o banco, ignoramos o check de usuários existentes (pois o banco pode estar offline ou com senha errada)
+        if (!dbConfig) {
+            let userCount = 0;
+            try {
+                userCount = await prisma.user.count();
+                if (userCount > 0) {
+                    return NextResponse.json({ error: "O sistema já está configurado." }, { status: 400 });
+                }
+            } catch (pErr) {
+                console.warn("[SETUP_POST] Ignorando falha de check para setup soberano.");
+            }
+        }
 
         // Se houver backup, restaurar e retornar imediatamente
         if (backupData) {
@@ -173,7 +170,6 @@ export async function POST(req: Request) {
                 process.env.DATABASE_URL = dbUrl;
                 execSync("npx prisma db push --accept-data-loss", { env: process.env });
             } catch (pErr) { console.error("Prisma push failed", pErr); }
-        }
 
         // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
         console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
@@ -266,6 +262,7 @@ export async function POST(req: Request) {
         } finally {
             await tempPrisma.$disconnect();
         }
+    }
 
         // 7. Persistência Consolidada no .env
         try {
@@ -298,8 +295,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: "Administrador criado com sucesso!",
-            user: { id: userAdmin.id, name: userAdmin.name, email: userAdmin.email },
+            message: "Sistema configurado com sucesso!",
         });
     } catch (error) {
         console.error("[SETUP_API_ERROR]", error);
