@@ -18,14 +18,14 @@ export async function GET() {
 
     // Receita total paga do mês atual
     const receitaMesAtual = await prisma.transaction.aggregate({
-      where: { userId, type: "receita", status: "pago", paidAt: { gte: inicioMes } },
+      where: { organizationId: orgId, type: "receita", status: "pago", paidAt: { gte: inicioMes } },
       _sum: { amount: true },
     });
 
     // Receita do mês anterior
     const receitaMesAnterior = await prisma.transaction.aggregate({
       where: {
-        userId, type: "receita", status: "pago",
+        organizationId: orgId, type: "receita", status: "pago",
         paidAt: { gte: inicioMesAnterior, lte: fimMesAnterior },
       },
       _sum: { amount: true },
@@ -33,25 +33,25 @@ export async function GET() {
 
     // Pendentes
     const pendente = await prisma.transaction.aggregate({
-      where: { userId, type: "receita", status: "pendente" },
+      where: { organizationId: orgId, type: "receita", status: "pendente" },
       _sum: { amount: true },
     });
 
     // Cancelados do mês
     const cancelado = await prisma.transaction.aggregate({
-      where: { userId, status: "cancelado", createdAt: { gte: inicioMes } },
+      where: { organizationId: orgId, status: "cancelado", createdAt: { gte: inicioMes } },
       _sum: { amount: true },
     });
 
     // Totais de clientes
-    const totalClientes = await prisma.client.count({ where: { userId } });
+    const totalClientes = await prisma.client.count({ where: { organizationId: orgId } });
     const clientesMesAnterior = await prisma.client.count({
-      where: { userId, createdAt: { lte: fimMesAnterior } },
+      where: { organizationId: orgId, createdAt: { lte: fimMesAnterior } },
     });
 
     // Total de serviços ativos
     const totalServicos = await prisma.service.count({
-      where: { userId, status: { in: ["em_andamento", "aprovado"] } },
+      where: { organizationId: orgId, status: { in: ["em_andamento", "aprovado"] } },
     });
 
     // Gráfico de crescimento (últimos 12 meses)
@@ -62,11 +62,11 @@ export async function GET() {
 
       const [receitaMes, despesaMes] = await Promise.all([
         prisma.transaction.aggregate({
-          where: { userId, type: "receita", paidAt: { gte: dataInicio, lte: dataFim } },
+          where: { organizationId: orgId, type: "receita", paidAt: { gte: dataInicio, lte: dataFim } },
           _sum: { amount: true },
         }),
         prisma.transaction.aggregate({
-          where: { userId, type: "despesa", paidAt: { gte: dataInicio, lte: dataFim } },
+          where: { organizationId: orgId, type: "despesa", paidAt: { gte: dataInicio, lte: dataFim } },
           _sum: { amount: true },
         }),
       ]);
@@ -80,7 +80,7 @@ export async function GET() {
 
     // Top clientes
     const topClientes = await prisma.client.findMany({
-      where: { userId },
+      where: { organizationId: orgId },
       include: {
         transactions: { where: { type: "receita", status: "pago" } },
         services: true,
@@ -100,7 +100,7 @@ export async function GET() {
 
     // Últimas transações
     const ultimasTransacoes = await prisma.transaction.findMany({
-      where: { userId },
+      where: { organizationId: orgId },
       include: { client: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
       take: 8,
