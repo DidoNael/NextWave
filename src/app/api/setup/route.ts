@@ -95,23 +95,47 @@ export async function POST(req: Request) {
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
 
-            // Sincronizar senha via ponte de fábrica
+            // Sincronizar senha via ponte de fábrica (Multi-Fallback Resiliente)
             try {
                 const { Client } = await import("pg");
-                const factoryClient = new Client({
-                    connectionString: `postgresql://${user}:${DATABASE_DEFAULTS.factoryPassword}@${host}:${port}/${database}`,
+                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, "nextwave_setup_2026", "root", "password"];
+                let connected = false;
+
+                // Tentar conexão direta primeiro
+                const directClient = new Client({
+                    connectionString: `postgresql://${user}:${dbPassword}@${host}:${port}/${database}`,
                     connectionTimeoutMillis: 5000,
                 });
-
-                await factoryClient.connect();
-                await factoryClient.query(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
-                await factoryClient.end();
-            } catch (dbErr) {
                 try {
-                    await prisma.$executeRawUnsafe(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
+                    await directClient.connect();
+                    await directClient.end();
+                    connected = true;
                 } catch (e) {
-                   console.error("[SETUP_PWD_SYNC_FAILED] Falha total na sincronização de senha.");
+                    console.warn("[SETUP] Senha direta falhou, tentando fallbacks...");
                 }
+
+                if (!connected) {
+                    for (const fallbackPwd of fallbacks) {
+                        if (dbPassword === fallbackPwd) continue;
+                        const factoryClient = new Client({
+                            connectionString: `postgresql://${user}:${fallbackPwd}@${host}:${port}/${database}`,
+                            connectionTimeoutMillis: 5000,
+                        });
+
+                        try {
+                            await factoryClient.connect();
+                            await factoryClient.query(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
+                            await factoryClient.end();
+                            connected = true;
+                            console.log(`[SETUP] Senha sincronizada com sucesso usando fallback: ${fallbackPwd}`);
+                            break;
+                        } catch (fErr) {
+                            console.warn(`[SETUP] Fallback ${fallbackPwd} falhou.`);
+                        }
+                    }
+                }
+            } catch (dbErr) {
+                console.error("[SETUP_DB_SYNC_ERROR]", dbErr);
             }
             
             // Salvar no .env

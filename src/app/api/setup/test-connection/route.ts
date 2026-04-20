@@ -73,42 +73,30 @@ export async function POST(req: Request) {
                 }
             }
 
-            // 2. Se falhar por erro de autenticação (invalid password), tentamos a senha de "fábrica"
-            if (connErr.code === '28P01' && dbPassword !== DEFAULT_BOOT_PWD) {
-                const factoryConnectionString = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/${dbName}`;
-                const factoryClient = new Client({
-                    connectionString: factoryConnectionString,
-                    connectionTimeoutMillis: 5000,
-                });
-
-                try {
-                    await factoryClient.connect();
-                    // Sincronizar Senha SOBERANA: Forçamos o banco a aceitar a senha do usuário AGORA.
-                    await factoryClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
-                    await factoryClient.end();
-
-                    return NextResponse.json({ 
-                        success: true, 
-                        message: "Sua senha foi sincronizada com sucesso no banco de dados!"
+            // 2. Se falhar por erro de autenticação (invalid password), tentamos os fallbacks de fábrica
+            if (connErr.code === '28P01') {
+                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, "nextwave_setup_2026", "root", "password"];
+                
+                for (const fallbackPwd of fallbacks) {
+                    if (dbPassword === fallbackPwd) continue; // Pula se já testamos
+                    
+                    console.log(`[CHECK] Tentando fallback de fábrica: ${fallbackPwd}`);
+                    const factoryClient = new Client({
+                        connectionString: `postgresql://${dbUser}:${fallbackPwd}@${dbHost}:${dbPort}/${dbName}`,
+                        connectionTimeoutMillis: 5000,
                     });
-                } catch (factoryErr: any) {
-                    console.error("[CHECK_FACTORY_FAILED]", factoryErr);
-                    // Se o banco não existir nem com a senha de fábrica, tentamos criar via 'postgres' com senha de fábrica
-                    if (factoryErr.code === '3D000') {
-                         const factoryAdminStr = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/postgres`;
-                         const factoryAdminClient = new Client({ connectionString: factoryAdminStr, connectionTimeoutMillis: 5000 });
-                         try {
-                             await factoryAdminClient.connect();
-                             await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
-                             // Após criar, já mudamos a senha também no banco postgres para garantir sincronia plena
-                             await factoryAdminClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
-                             await factoryAdminClient.end();
-                             
-                             return NextResponse.json({ 
-                                 success: true, 
-                                 message: `Banco '${dbName}' criado e sua senha sincronizada via ponte de fábrica!`
-                             });
-                         } catch (e) { console.error("[CHECK_FACTORY_ADMIN_CREATE_FAILED]", e); }
+
+                    try {
+                        await factoryClient.connect();
+                        await factoryClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
+                        await factoryClient.end();
+                        
+                        return NextResponse.json({ 
+                            success: true, 
+                            message: "Conexão estabelecida e senha sincronizada via ponte de fábrica!"
+                        });
+                    } catch (fErr) {
+                        console.warn(`[CHECK] Fallback ${fallbackPwd} falhou.`);
                     }
                 }
             }
