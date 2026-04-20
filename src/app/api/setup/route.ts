@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { DATABASE_DEFAULTS } from "@/lib/constants";
+
 
 export async function GET() {
     try {
@@ -97,7 +99,7 @@ export async function POST(req: Request) {
             try {
                 const { Client } = await import("pg");
                 const factoryClient = new Client({
-                    connectionString: `postgresql://${user}:nextwave_setup_2026@${host}:${port}/${database}`,
+                    connectionString: `postgresql://${user}:${DATABASE_DEFAULTS.factoryPassword}@${host}:${port}/${database}`,
                     connectionTimeoutMillis: 5000,
                 });
 

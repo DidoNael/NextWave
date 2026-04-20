@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { Client } from "pg";
+import { DATABASE_DEFAULTS } from "@/lib/constants";
+
 
 export async function POST(req: Request) {
     try {
@@ -19,7 +21,8 @@ export async function POST(req: Request) {
             connectionTimeoutMillis: 5000,
         });
 
-        const DEFAULT_BOOT_PWD = "nextwave_setup_2026";
+        const DEFAULT_BOOT_PWD = DATABASE_DEFAULTS.factoryPassword;
+
 
         try {
             await client.connect();

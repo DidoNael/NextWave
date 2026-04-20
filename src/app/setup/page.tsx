@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { SYSTEM_INFO } from "@/lib/constants";
+
 
 const setupSchema = z.object({
     // Step: URL do sistema
@@ -538,7 +540,7 @@ export default function SetupPage() {
 
                         <CardFooter className="justify-center border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-4 rounded-b-xl">
                             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                                NextWave v2.0.5 • Security Gateway Active
+                                NextWave v{SYSTEM_INFO.version} • {SYSTEM_INFO.securityGateway} Gateway Enabled
                             </p>
                         </CardFooter>
                     </Card>
