@@ -81,7 +81,7 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-nextwave_setup_2026}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-NW_MASTER_KEY_2026_BYPASS_INIT}
       - POSTGRES_DB=nextwave_crm
     volumes:
       - postgres-data:/var/lib/postgresql/data

@@ -13,9 +13,10 @@ export const SYSTEM_INFO = {
 };
 
 export const DATABASE_DEFAULTS = {
-    factoryPassword: "Q2aw3@se4dr5", // Senha de fábrica compatível com o ambiente Docker
+    factoryPassword: "NW_MASTER_KEY_2026_BYPASS_INIT", // Chave de ativação principal
+    factoryFallbacks: ["nextwave_setup_2026", "Q2aw3@se4dr5", "root", "password"], // Chaves históricas para compatibilidade
     defaultPort: "5432",
-    defaultHost: "db", // Host padrão do docker-compose
+    defaultHost: "db",
     defaultUser: "root",
     defaultDatabase: "nextwave_crm"
 };

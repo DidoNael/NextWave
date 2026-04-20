@@ -98,7 +98,7 @@ export async function POST(req: Request) {
             // Sincronizar senha via ponte de fábrica (Multi-Fallback Resiliente)
             try {
                 const { Client } = await import("pg");
-                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, "nextwave_setup_2026", "root", "password"];
+                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
                 let connected = false;
 
                 // Tentar conexão direta primeiro

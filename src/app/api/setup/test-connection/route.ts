@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 
             // 2. Se falhar por erro de autenticação (invalid password), tentamos os fallbacks de fábrica
             if (connErr.code === '28P01') {
-                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, "nextwave_setup_2026", "root", "password"];
+                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
                 
                 for (const fallbackPwd of fallbacks) {
                     if (dbPassword === fallbackPwd) continue; // Pula se já testamos
