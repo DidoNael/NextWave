@@ -79,8 +79,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
+  const reservedPath = ["dashboard", "login", "setup", "api", "_next"];
   const orgSlug = pathname.split("/")[1] || "";
-  const base = orgSlug ? `/${orgSlug}` : "";
+  const base = (orgSlug && !reservedPath.includes(orgSlug)) ? `/${orgSlug}` : "";
   const relativePath = base ? pathname.replace(base, "") || "/" : pathname;
 
   const bottomItems = bottomItemsBase.filter(item => !item.masterOnly || isMaster);
