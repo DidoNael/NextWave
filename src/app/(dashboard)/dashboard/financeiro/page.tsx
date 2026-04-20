@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -41,7 +41,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn, formatCurrency, formatDate, getStatusLabel } from "@/lib/utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type TxType = "receita" | "despesa";
 type TxStatus = "pago" | "pendente" | "cancelado";
@@ -73,18 +73,18 @@ interface Resumo {
   saldo: number;
 }
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const txSchema = z.object({
-  description: z.string().min(2, "Descrição obrigatória"),
+  description: z.string().min(2, "DescriÃ§Ã£o obrigatÃ³ria"),
   amount: z
     .string()
-    .min(1, "Valor obrigatório")
+    .min(1, "Valor obrigatÃ³rio")
     .refine((v) => !isNaN(parseFloat(v.replace(",", "."))) && parseFloat(v.replace(",", ".")) > 0, {
       message: "Valor deve ser positivo",
     }),
   type: z.enum(["receita", "despesa"]),
-  category: z.string().min(1, "Categoria obrigatória"),
+  category: z.string().min(1, "Categoria obrigatÃ³ria"),
   status: z.enum(["pago", "pendente", "cancelado"]),
   dueDate: z.string().optional(),
   paidAt: z.string().optional(),
@@ -94,10 +94,10 @@ const txSchema = z.object({
 
 type TxFormValues = z.infer<typeof txSchema>;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
@@ -112,7 +112,7 @@ function statusBadgeClass(status: TxStatus) {
   }
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ KPI Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface KpiCardProps {
   label: string;
@@ -136,7 +136,7 @@ function KpiCard({ label, value, icon: Icon, iconClass, bgClass }: KpiCardProps)
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function FinanceiroPage() {
   const today = new Date();
@@ -185,7 +185,7 @@ export default function FinanceiroPage() {
 
   const watchStatus = form.watch("status");
 
-  // ─── Fetch ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -212,7 +212,7 @@ export default function FinanceiroPage() {
         });
       }
     } catch {
-      toast.error("Não foi possível carregar as transações");
+      toast.error("NÃ£o foi possÃ­vel carregar as transaÃ§Ãµes");
     } finally {
       setLoading(false);
     }
@@ -232,7 +232,7 @@ export default function FinanceiroPage() {
       .catch(() => {});
   }, []);
 
-  // ─── Month navigation ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Month navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function prevMonth() {
     setShowAll(false);
@@ -254,7 +254,7 @@ export default function FinanceiroPage() {
     }
   }
 
-  // ─── Dialog helpers ───────────────────────────────────────────────────────
+  // â”€â”€â”€ Dialog helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function toInputDate(iso: string | null | undefined) {
     if (!iso) return "";
@@ -313,7 +313,7 @@ export default function FinanceiroPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
-        toast.success("Transação atualizada");
+        toast.success("TransaÃ§Ã£o atualizada");
       } else {
         const res = await fetch("/api/financeiro", {
           method: "POST",
@@ -321,12 +321,12 @@ export default function FinanceiroPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
-        toast.success("Transação criada");
+        toast.success("TransaÃ§Ã£o criada");
       }
       setDialogOpen(false);
       void fetchTransactions();
     } catch {
-      toast.error("Erro ao salvar transação");
+      toast.error("Erro ao salvar transaÃ§Ã£o");
     }
   }
 
@@ -335,17 +335,17 @@ export default function FinanceiroPage() {
     try {
       const res = await fetch(`/api/financeiro/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("Transação excluída");
+      toast.success("TransaÃ§Ã£o excluÃ­da");
       setDeleteId(null);
       void fetchTransactions();
     } catch {
-      toast.error("Erro ao excluir transação");
+      toast.error("Erro ao excluir transaÃ§Ã£o");
     } finally {
       setDeleting(false);
     }
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="flex flex-col gap-6">
@@ -359,7 +359,7 @@ export default function FinanceiroPage() {
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" />
-          Nova Transação
+          Nova TransaÃ§Ã£o
         </Button>
       </div>
 
@@ -406,7 +406,7 @@ export default function FinanceiroPage() {
           </button>
           <span className="px-3 text-sm font-medium text-foreground min-w-[140px] text-center">
             {showAll
-              ? "Todos os períodos"
+              ? "Todos os perÃ­odos"
               : `${MONTH_NAMES[filterMonth ?? today.getMonth()]} ${filterYear}`}
           </span>
           <button
@@ -431,7 +431,7 @@ export default function FinanceiroPage() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Buscar transação..."
+            placeholder="Buscar transaÃ§Ã£o..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -480,7 +480,7 @@ export default function FinanceiroPage() {
           <div className="py-16 text-center">
             <Wallet className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma transação encontrada
+              Nenhuma transaÃ§Ã£o encontrada
             </p>
           </div>
         ) : (
@@ -488,7 +488,7 @@ export default function FinanceiroPage() {
             {/* Table header */}
             <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 items-center px-4 py-2 bg-muted/40">
               <span className="w-6" />
-              <span className="text-xs font-medium text-muted-foreground">Descrição</span>
+              <span className="text-xs font-medium text-muted-foreground">DescriÃ§Ã£o</span>
               <span className="text-xs font-medium text-muted-foreground hidden md:block">Categoria</span>
               <span className="text-xs font-medium text-muted-foreground hidden md:block">Vencimento</span>
               <span className="text-xs font-medium text-muted-foreground text-right">Valor</span>
@@ -537,7 +537,7 @@ export default function FinanceiroPage() {
                         {formatDate(tx.dueDate)}
                       </>
                     ) : (
-                      "—"
+                      "â€”"
                     )}
                   </span>
 
@@ -612,12 +612,12 @@ export default function FinanceiroPage() {
         )}
       </div>
 
-      {/* ── Create / Edit Dialog ── */}
+      {/* â”€â”€ Create / Edit Dialog â”€â”€ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingTx ? "Editar Transação" : "Nova Transação"}
+              {editingTx ? "Editar TransaÃ§Ã£o" : "Nova TransaÃ§Ã£o"}
             </DialogTitle>
           </DialogHeader>
 
@@ -625,11 +625,11 @@ export default function FinanceiroPage() {
             {/* Description */}
             <div className="space-y-1.5">
               <Label htmlFor="description">
-                Descrição <span className="text-destructive">*</span>
+                DescriÃ§Ã£o <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="description"
-                placeholder="Ex: Sessão fotográfica"
+                placeholder="Ex: SessÃ£o fotogrÃ¡fica"
                 {...form.register("description")}
               />
               {form.formState.errors.description && (
@@ -723,7 +723,7 @@ export default function FinanceiroPage() {
                 />
               </div>
 
-              {/* Paid at — only when status=pago */}
+              {/* Paid at â€” only when status=pago */}
               {watchStatus === "pago" && (
                 <div className="space-y-1.5">
                   <Label htmlFor="paidAt">Data do Pagamento</Label>
@@ -761,7 +761,7 @@ export default function FinanceiroPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label htmlFor="notes">Observações</Label>
+              <Label htmlFor="notes">ObservaÃ§Ãµes</Label>
               <Textarea
                 id="notes"
                 placeholder="Notas adicionais..."
@@ -781,7 +781,7 @@ export default function FinanceiroPage() {
                 Cancelar
               </Button>
               <Button type="submit" loading={form.formState.isSubmitting}>
-                {editingTx ? "Salvar alterações" : "Criar transação"}
+                {editingTx ? "Salvar alteraÃ§Ãµes" : "Criar transaÃ§Ã£o"}
               </Button>
             </DialogFooter>
           </form>
@@ -790,3 +790,4 @@ export default function FinanceiroPage() {
     </div>
   );
 }
+

@@ -28,9 +28,10 @@ import { useColorTheme } from "@/components/providers/ColorProvider";
 import packageInfo from "../../../package.json";
 
 const dashboardSubItems = [
-  { href: "/financeiro", label: "Financeiro", module: "financeiro" },
+  { href: "/dashboard/financeiro", label: "Financeiro", module: "financeiro" },
   { href: "/dashboard/clientes", label: "Clientes", module: "clientes" },
-  { href: "/dashboard/whatsapp", label: "WhatsApp", module: "whatsapp" },
+  { href: "/dashboard/whatsapp/chat", label: "Chat WhatsApp", module: "whatsapp" },
+  { href: "/dashboard/whatsapp/fluxo", label: "Fluxo Automático", module: "whatsapp" },
 ];
 
 type SubItem = { href: string; label: string; module?: string };
@@ -44,24 +45,24 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, subItems: dashboardSubItems },
-  { href: "/clientes", label: "Clientes", icon: Users, module: "clientes" },
-  { href: "/usuarios", label: "Usuários", icon: Users },
-  { href: "/projetos/kanban", label: "Projetos", icon: Briefcase, module: "projetos" },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { href: "/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageSquare, module: "whatsapp" },
-  { href: "/configuracoes/pbx", label: "Telefonia", icon: Phone, module: "pbx" },
+  { href: "/dashboard/clientes", label: "Clientes", icon: Users, module: "clientes" },
+  { href: "/dashboard/usuarios", label: "Usuários", icon: Users },
+  { href: "/dashboard/projetos/kanban", label: "Projetos", icon: Briefcase, module: "projetos" },
+  { href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/dashboard/agenda", label: "Agenda", icon: Calendar, module: "agenda" },
+  { href: "/dashboard/whatsapp/chat", label: "WhatsApp", icon: MessageSquare, module: "whatsapp" },
+  { href: "/dashboard/configuracoes/pbx", label: "Telefonia", icon: Phone, module: "pbx" },
 ];
 
 const bottomItemsBase = [
-  { href: "/configuracoes/aparencia", label: "Aparência", icon: Paintbrush, masterOnly: false },
-  { href: "/configuracoes/agendador", label: "Agendador", icon: Clock, masterOnly: false },
-  { href: "/configuracoes/mcp", label: "MCP Server", icon: Server, masterOnly: false },
-  { href: "/configuracoes/grupos", label: "Grupos", icon: Shield, masterOnly: false },
-  { href: "/configuracoes/nfe", label: "NFS-e", icon: Receipt, masterOnly: false },
-  { href: "/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key, masterOnly: true },
-  { href: "/configuracoes", label: "Sistema", icon: Settings, masterOnly: false },
-  { href: "/configuracoes/manutencao", label: "Manutenção", icon: Database, masterOnly: false },
+  { href: "/dashboard/configuracoes/aparencia", label: "Aparência", icon: Paintbrush, masterOnly: false },
+  { href: "/dashboard/configuracoes/agendador", label: "Agendador", icon: Clock, masterOnly: false },
+  { href: "/dashboard/configuracoes/mcp", label: "MCP Server", icon: Server, masterOnly: false },
+  { href: "/dashboard/configuracoes/grupos", label: "Grupos", icon: Shield, masterOnly: false },
+  { href: "/dashboard/configuracoes/nfe", label: "NFS-e", icon: Receipt, masterOnly: false },
+  { href: "/dashboard/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key, masterOnly: true },
+  { href: "/dashboard/configuracoes", label: "Sistema", icon: Settings, masterOnly: false },
+  { href: "/dashboard/configuracoes/manutencao", label: "Manutenção", icon: Database, masterOnly: false },
 ];
 
 interface SidebarProps {

@@ -41,7 +41,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn, getInitials, getStatusLabel } from "@/lib/utils";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Cliente {
   id: string;
@@ -57,11 +57,11 @@ interface Cliente {
   createdAt: string;
 }
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const clienteSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  name: z.string().min(1, "Nome Ã© obrigatÃ³rio"),
+  email: z.string().email("E-mail invÃ¡lido").optional().or(z.literal("")),
   phone: z.string().optional(),
   document: z.string().optional(),
   company: z.string().optional(),
@@ -73,7 +73,7 @@ const clienteSchema = z.object({
 
 type ClienteForm = z.infer<typeof clienteSchema>;
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatusBadge({ status }: { status: string }) {
   const isAtivo = status === "ativo";
@@ -91,7 +91,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Skeleton Row ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Skeleton Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SkeletonRow() {
   return (
@@ -109,7 +109,7 @@ function SkeletonRow() {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -142,7 +142,7 @@ export default function ClientesPage() {
     },
   });
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const fetchClientes = useCallback(async () => {
     setLoading(true);
@@ -155,7 +155,7 @@ export default function ClientesPage() {
       const data = await res.json();
       setClientes(Array.isArray(data) ? data : (data.clientes ?? []));
     } catch {
-      toast.error("Não foi possível carregar os clientes.");
+      toast.error("NÃ£o foi possÃ­vel carregar os clientes.");
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ export default function ClientesPage() {
     return () => clearTimeout(timer);
   }, [fetchClientes]);
 
-  // ── Dialog helpers ─────────────────────────────────────────────────────────
+  // â”€â”€ Dialog helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function openCreate() {
     setEditingCliente(null);
@@ -205,7 +205,7 @@ export default function ClientesPage() {
     setDeleteDialogOpen(true);
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function onSubmit(values: ClienteForm) {
     setSubmitting(true);
@@ -250,7 +250,7 @@ export default function ClientesPage() {
     }
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function confirmDelete() {
     if (!deletingCliente) return;
@@ -260,17 +260,17 @@ export default function ClientesPage() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Erro ao excluir cliente");
-      toast.success("Cliente excluído.");
+      toast.success("Cliente excluÃ­do.");
       setDeleteDialogOpen(false);
       fetchClientes();
     } catch {
-      toast.error("Não foi possível excluir o cliente.");
+      toast.error("NÃ£o foi possÃ­vel excluir o cliente.");
     } finally {
       setDeleting(false);
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="space-y-6 animate-in">
@@ -319,7 +319,7 @@ export default function ClientesPage() {
           <span className="text-xs font-medium text-muted-foreground">Contato</span>
           <span className="text-xs font-medium text-muted-foreground">Empresa</span>
           <span className="text-xs font-medium text-muted-foreground">Status</span>
-          <span className="text-xs font-medium text-muted-foreground">Ações</span>
+          <span className="text-xs font-medium text-muted-foreground">AÃ§Ãµes</span>
         </div>
 
         {loading ? (
@@ -331,7 +331,7 @@ export default function ClientesPage() {
             <p className="text-xs text-muted-foreground">
               {search || statusFilter !== "todos"
                 ? "Tente ajustar os filtros de busca."
-                : "Clique em \"Novo Cliente\" para começar."}
+                : "Clique em \"Novo Cliente\" para comeÃ§ar."}
             </p>
           </div>
         ) : (
@@ -375,7 +375,7 @@ export default function ClientesPage() {
                   </p>
                 )}
                 {!cliente.email && !cliente.phone && (
-                  <p className="text-xs text-muted-foreground">—</p>
+                  <p className="text-xs text-muted-foreground">â€”</p>
                 )}
               </div>
 
@@ -387,7 +387,7 @@ export default function ClientesPage() {
                     {cliente.company}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">—</p>
+                  <p className="text-xs text-muted-foreground">â€”</p>
                 )}
               </div>
 
@@ -537,10 +537,10 @@ export default function ClientesPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label htmlFor="notes">Observações</Label>
+              <Label htmlFor="notes">ObservaÃ§Ãµes</Label>
               <Textarea
                 id="notes"
-                placeholder="Informações adicionais..."
+                placeholder="InformaÃ§Ãµes adicionais..."
                 rows={3}
                 {...form.register("notes")}
               />
@@ -561,7 +561,7 @@ export default function ClientesPage() {
                 {submitting
                   ? "Salvando..."
                   : editingCliente
-                  ? "Salvar Alterações"
+                  ? "Salvar AlteraÃ§Ãµes"
                   : "Criar Cliente"}
               </Button>
             </DialogFooter>
@@ -580,7 +580,7 @@ export default function ClientesPage() {
             <span className="font-semibold text-foreground">
               {deletingCliente?.name}
             </span>
-            ? Esta ação não pode ser desfeita.
+            ? Esta aÃ§Ã£o nÃ£o pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">
             <Button
@@ -603,3 +603,4 @@ export default function ClientesPage() {
     </div>
   );
 }
+

@@ -76,6 +76,8 @@ model Client {
   registrationId Int?               @unique
   branchId       String?
   branch         Branch?            @relation(fields: [branchId], references: [id])
+  organizationId String?
+  organization   Organization?      @relation(fields: [organizationId], references: [id])
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   userId         String
@@ -132,9 +134,11 @@ model Transaction {
   userId          String
   clientId        String?
   serviceId       String?
-  service         Service?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  client          Client?   @relation(fields: [clientId], references: [id])
-  user            User      @relation(fields: [userId], references: [id])
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  service         Service?      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  client          Client?       @relation(fields: [clientId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
 }
 
 model Service {
@@ -191,13 +195,15 @@ model Project {
   name        String
   description String?
   color       String?      @default("#3b82f6")
-  dueDate     DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  columns     TaskColumn[]
-  events      Event[]
+  dueDate        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+  columns        TaskColumn[]
+  events         Event[]
 }
 
 model TaskColumn {
@@ -239,11 +245,13 @@ model WhatsAppFlow {
   id          String         @id @default(cuid())
   name        String
   description String?
-  isActive    Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  edges       WhatsAppEdge[]
-  nodes       WhatsAppNode[]
+  isActive       Boolean        @default(false)
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  edges          WhatsAppEdge[]
+  nodes          WhatsAppNode[]
 }
 
 model WhatsAppNode {
@@ -517,6 +525,10 @@ model Organization {
   updatedAt      DateTime        @updatedAt
   users          User[]
   services       Service[]
+  clients        Client[]
+  projects       Project[]
+  transactions   Transaction[]
+  whatsAppFlows WhatsAppFlow[]
   pluginLicenses PluginLicense[]
 }
 

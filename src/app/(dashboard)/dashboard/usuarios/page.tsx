@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn, getInitials } from "@/lib/utils";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type UserRole = "master" | "admin" | "user";
 
@@ -64,11 +64,11 @@ interface Usuario {
   createdAt: string;
 }
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const baseSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("E-mail inválido"),
+  name: z.string().min(1, "Nome Ã© obrigatÃ³rio"),
+  email: z.string().email("E-mail invÃ¡lido"),
   role: z.enum(["master", "admin", "user"] as const).default("user"),
   allowedIps: z.string().optional(),
   workDayStart: z.string().optional(),
@@ -76,7 +76,7 @@ const baseSchema = z.object({
 });
 
 const createSchema = baseSchema.extend({
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  password: z.string().min(6, "Senha deve ter no mÃ­nimo 6 caracteres"),
 });
 
 const editSchema = baseSchema.extend({
@@ -84,7 +84,7 @@ const editSchema = baseSchema.extend({
     .string()
     .optional()
     .refine((v) => !v || v.length >= 6, {
-      message: "Senha deve ter no mínimo 6 caracteres",
+      message: "Senha deve ter no mÃ­nimo 6 caracteres",
     }),
 });
 
@@ -92,7 +92,7 @@ type CreateForm = z.infer<typeof createSchema>;
 type EditForm = z.infer<typeof editSchema>;
 type UsuarioForm = CreateForm | EditForm;
 
-// ─── Role Badge ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Role Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RoleBadge({ role }: { role: UserRole }) {
   const styles: Record<UserRole, string> = {
@@ -103,7 +103,7 @@ function RoleBadge({ role }: { role: UserRole }) {
   const labels: Record<UserRole, string> = {
     master: "Master",
     admin: "Admin",
-    user: "Usuário",
+    user: "UsuÃ¡rio",
   };
   return (
     <span
@@ -118,7 +118,7 @@ function RoleBadge({ role }: { role: UserRole }) {
   );
 }
 
-// ─── Skeleton Row ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Skeleton Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SkeletonRow() {
   return (
@@ -135,7 +135,7 @@ function SkeletonRow() {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function UsuariosPage() {
   const { data: session } = useSession();
@@ -173,17 +173,17 @@ export default function UsuariosPage() {
     form.clearErrors();
   }, [editingUsuario, form]);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/usuarios");
-      if (!res.ok) throw new Error("Erro ao buscar usuários");
+      if (!res.ok) throw new Error("Erro ao buscar usuÃ¡rios");
       const data = await res.json();
       setUsuarios(Array.isArray(data) ? data : (data.usuarios ?? []));
     } catch {
-      toast.error("Não foi possível carregar os usuários.");
+      toast.error("NÃ£o foi possÃ­vel carregar os usuÃ¡rios.");
     } finally {
       setLoading(false);
     }
@@ -193,7 +193,7 @@ export default function UsuariosPage() {
     fetchUsuarios();
   }, [fetchUsuarios]);
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
+  // â”€â”€ Filtered list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const filtered = search
     ? usuarios.filter(
@@ -203,7 +203,7 @@ export default function UsuariosPage() {
       )
     : usuarios;
 
-  // ── Dialog helpers ─────────────────────────────────────────────────────────
+  // â”€â”€ Dialog helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function openCreate() {
     setEditingUsuario(null);
@@ -238,7 +238,7 @@ export default function UsuariosPage() {
     setDeleteDialogOpen(true);
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function onSubmit(values: UsuarioForm) {
     setSubmitting(true);
@@ -272,13 +272,13 @@ export default function UsuariosPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message ?? "Erro ao salvar usuário");
+        throw new Error(err?.message ?? "Erro ao salvar usuÃ¡rio");
       }
 
       toast.success(
         editingUsuario
-          ? "Usuário atualizado com sucesso."
-          : "Usuário criado com sucesso."
+          ? "UsuÃ¡rio atualizado com sucesso."
+          : "UsuÃ¡rio criado com sucesso."
       );
       setDialogOpen(false);
       fetchUsuarios();
@@ -289,7 +289,7 @@ export default function UsuariosPage() {
     }
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function confirmDelete() {
     if (!deletingUsuario) return;
@@ -298,34 +298,34 @@ export default function UsuariosPage() {
       const res = await fetch(`/api/usuarios/${deletingUsuario.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Erro ao excluir usuário");
-      toast.success("Usuário excluído.");
+      if (!res.ok) throw new Error("Erro ao excluir usuÃ¡rio");
+      toast.success("UsuÃ¡rio excluÃ­do.");
       setDeleteDialogOpen(false);
       fetchUsuarios();
     } catch {
-      toast.error("Não foi possível excluir o usuário.");
+      toast.error("NÃ£o foi possÃ­vel excluir o usuÃ¡rio.");
     } finally {
       setDeleting(false);
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="space-y-6 animate-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
+          <h1 className="text-2xl font-bold text-foreground">UsuÃ¡rios</h1>
           <p className="text-sm text-muted-foreground">
             {loading
               ? "Carregando..."
-              : `${filtered.length} usuário${filtered.length !== 1 ? "s" : ""} no sistema`}
+              : `${filtered.length} usuÃ¡rio${filtered.length !== 1 ? "s" : ""} no sistema`}
           </p>
         </div>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4 mr-2" />
-          Novo Usuário
+          Novo UsuÃ¡rio
         </Button>
       </div>
 
@@ -344,11 +344,11 @@ export default function UsuariosPage() {
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* List header */}
         <div className="hidden md:grid grid-cols-[2fr_1fr_1.5fr_1fr_auto] gap-4 px-4 py-2.5 border-b border-border bg-muted/40">
-          <span className="text-xs font-medium text-muted-foreground">Usuário</span>
+          <span className="text-xs font-medium text-muted-foreground">UsuÃ¡rio</span>
           <span className="text-xs font-medium text-muted-foreground">Perfil</span>
-          <span className="text-xs font-medium text-muted-foreground">Horário</span>
+          <span className="text-xs font-medium text-muted-foreground">HorÃ¡rio</span>
           <span className="text-xs font-medium text-muted-foreground">IPs</span>
-          <span className="text-xs font-medium text-muted-foreground">Ações</span>
+          <span className="text-xs font-medium text-muted-foreground">AÃ§Ãµes</span>
         </div>
 
         {loading ? (
@@ -357,12 +357,12 @@ export default function UsuariosPage() {
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Users className="h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm font-medium text-foreground">
-              {search ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
+              {search ? "Nenhum usuÃ¡rio encontrado" : "Nenhum usuÃ¡rio cadastrado"}
             </p>
             <p className="text-xs text-muted-foreground">
               {search
                 ? "Tente ajustar o termo de busca."
-                : "Clique em \"Novo Usuário\" para começar."}
+                : "Clique em \"Novo UsuÃ¡rio\" para comeÃ§ar."}
             </p>
           </div>
         ) : (
@@ -387,7 +387,7 @@ export default function UsuariosPage() {
                       </p>
                       {isCurrentUser && (
                         <span className="text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-medium shrink-0">
-                          Você
+                          VocÃª
                         </span>
                       )}
                     </div>
@@ -407,10 +407,10 @@ export default function UsuariosPage() {
                   {usuario.workDayStart && usuario.workDayEnd ? (
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Clock className="h-3 w-3 shrink-0" />
-                      {usuario.workDayStart} – {usuario.workDayEnd}
+                      {usuario.workDayStart} â€“ {usuario.workDayEnd}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">—</p>
+                    <p className="text-xs text-muted-foreground">â€”</p>
                   )}
                 </div>
 
@@ -437,7 +437,7 @@ export default function UsuariosPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        aria-label="Ações"
+                        aria-label="AÃ§Ãµes"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
@@ -473,7 +473,7 @@ export default function UsuariosPage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingUsuario ? "Editar Usuário" : "Novo Usuário"}
+              {editingUsuario ? "Editar UsuÃ¡rio" : "Novo UsuÃ¡rio"}
             </DialogTitle>
           </DialogHeader>
 
@@ -527,7 +527,7 @@ export default function UsuariosPage() {
               <Input
                 id="u-password"
                 type="password"
-                placeholder={editingUsuario ? "Nova senha (opcional)" : "Mínimo 6 caracteres"}
+                placeholder={editingUsuario ? "Nova senha (opcional)" : "MÃ­nimo 6 caracteres"}
                 {...form.register("password")}
               />
               {form.formState.errors.password && (
@@ -552,7 +552,7 @@ export default function UsuariosPage() {
                 <SelectContent>
                   <SelectItem value="master">Master</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="user">UsuÃ¡rio</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -560,7 +560,7 @@ export default function UsuariosPage() {
             {/* Work hours */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="u-workStart">Início do expediente</Label>
+                <Label htmlFor="u-workStart">InÃ­cio do expediente</Label>
                 <Input
                   id="u-workStart"
                   type="time"
@@ -587,7 +587,7 @@ export default function UsuariosPage() {
                 {...form.register("allowedIps")}
               />
               <p className="text-xs text-muted-foreground">
-                Um endereço IP por linha. Deixe vazio para permitir acesso de qualquer IP.
+                Um endereÃ§o IP por linha. Deixe vazio para permitir acesso de qualquer IP.
               </p>
             </div>
 
@@ -606,8 +606,8 @@ export default function UsuariosPage() {
                 {submitting
                   ? "Salvando..."
                   : editingUsuario
-                  ? "Salvar Alterações"
-                  : "Criar Usuário"}
+                  ? "Salvar AlteraÃ§Ãµes"
+                  : "Criar UsuÃ¡rio"}
               </Button>
             </DialogFooter>
           </form>
@@ -618,14 +618,14 @@ export default function UsuariosPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir Usuário</DialogTitle>
+            <DialogTitle>Excluir UsuÃ¡rio</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir{" "}
             <span className="font-semibold text-foreground">
               {deletingUsuario?.name}
             </span>
-            ? Esta ação não pode ser desfeita.
+            ? Esta aÃ§Ã£o nÃ£o pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">
             <Button
@@ -648,3 +648,4 @@ export default function UsuariosPage() {
     </div>
   );
 }
+

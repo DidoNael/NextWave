@@ -18,7 +18,8 @@ const transactionSchema = z.object({
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    const orgId = (session?.user as any)?.organizationId;
+    if (!session?.user?.id || !orgId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") ?? "";
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
       }),
       ...(type && { type }),
       ...(status && { status }),
+      organizationId: orgId,
     };
 
     const [transactions, total, resumo] = await Promise.all([
@@ -49,6 +51,7 @@ export async function GET(request: Request) {
       }),
       prisma.transaction.count({ where }),
       prisma.transaction.groupBy({
+        where: { organizationId: orgId },
         by: ["type", "status"],
         _sum: { amount: true },
       }),
@@ -82,7 +85,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    const orgId = (session?.user as any)?.organizationId;
+    if (!session?.user?.id || !orgId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await request.json();
     const data = transactionSchema.parse(body);
@@ -91,6 +95,7 @@ export async function POST(request: Request) {
       data: {
         ...data,
         userId: session.user.id,
+        organizationId: orgId,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
         paidAt: data.paidAt ? new Date(data.paidAt) : undefined,
         clientId: data.clientId || undefined,

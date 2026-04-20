@@ -5,10 +5,14 @@ import { syncToAgenda } from "@/lib/agenda-sync";
 
 export async function GET() {
     const session = await auth();
-    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const organizationId = (session.user as any).organizationId;
+    if (!organizationId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
 
     try {
         const projects = await prisma.project.findMany({
+            where: { organizationId },
             include: {
                 _count: {
                     select: { columns: true }
@@ -24,7 +28,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
     const session = await auth();
-    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const organizationId = (session.user as any).organizationId;
+    if (!organizationId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
 
     try {
         const { name, description, color, dueDate } = await req.json();
@@ -35,7 +42,8 @@ export async function POST(req: Request) {
                 description,
                 color: color || "#3b82f6",
                 dueDate: dueDate ? new Date(dueDate) : null,
-                userId: session.user?.id!,
+                userId: session.user.id,
+                organizationId: organizationId,
                 columns: {
                     create: [
                         { title: "A Fazer", order: 0 },

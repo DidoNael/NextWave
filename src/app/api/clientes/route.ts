@@ -25,6 +25,9 @@ export async function GET(request: Request) {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+    const organizationId = (session.user as any).organizationId;
+    if (!organizationId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
@@ -35,6 +38,7 @@ export async function GET(request: Request) {
     const take = isExport ? undefined : limit;
 
     const where: any = {
+      organizationId, // Filtro crítico SASS
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -75,6 +79,9 @@ export async function POST(request: Request) {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+    const organizationId = (session.user as any).organizationId;
+    if (!organizationId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
+
     const body = await request.json();
     const data = clienteSchema.parse(body);
 
@@ -87,7 +94,8 @@ export async function POST(request: Request) {
     const cliente = await prisma.client.create({
       data: { 
         ...data, 
-        userId: session.user.id, // Mantemos quem criou, mas não filtramos por ele
+        userId: session.user.id,
+        organizationId: organizationId,
         registrationId: nextId 
       },
     });

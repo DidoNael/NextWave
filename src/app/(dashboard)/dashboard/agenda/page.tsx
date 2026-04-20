@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -37,7 +37,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn, formatDateTime, getStatusLabel } from "@/lib/utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type EventType =
   | "reuniao"
@@ -59,11 +59,11 @@ interface AgendaEvent {
   description?: string | null;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  reuniao: "Reunião",
-  sessao: "Sessão",
+  reuniao: "ReuniÃ£o",
+  sessao: "SessÃ£o",
   evento: "Evento",
   casamento: "Casamento",
   entrega: "Entrega",
@@ -88,20 +88,20 @@ const EVENT_TYPE_PILL: Record<EventType, string> = {
   newborn: "bg-teal-500/10 text-teal-600",
 };
 
-const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b"];
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const eventSchema = z.object({
-  title: z.string().min(1, "Título obrigatório"),
+  title: z.string().min(1, "TÃ­tulo obrigatÃ³rio"),
   type: z.enum(["reuniao", "sessao", "evento", "casamento", "entrega", "newborn"]),
   status: z.enum(["agendado", "realizado", "cancelado"]),
-  startDate: z.string().min(1, "Data de início obrigatória"),
+  startDate: z.string().min(1, "Data de inÃ­cio obrigatÃ³ria"),
   endDate: z.string().optional(),
   location: z.string().optional(),
   description: z.string().optional(),
@@ -109,7 +109,7 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -127,7 +127,7 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AgendaPage() {
   const today = new Date();
@@ -154,7 +154,7 @@ export default function AgendaPage() {
     },
   });
 
-  // ─── Data fetching ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Data fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -166,7 +166,7 @@ export default function AgendaPage() {
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);
     } catch {
-      toast.error("Não foi possível carregar os eventos");
+      toast.error("NÃ£o foi possÃ­vel carregar os eventos");
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ export default function AgendaPage() {
     void fetchEvents();
   }, [fetchEvents]);
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function prevMonth() {
     if (viewMonth === 0) {
@@ -201,7 +201,7 @@ export default function AgendaPage() {
     setViewMonth(today.getMonth());
   }
 
-  // ─── Dialog ─────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function openCreate(day?: number) {
     setEditingEvent(null);
@@ -279,7 +279,7 @@ export default function AgendaPage() {
     try {
       const res = await fetch(`/api/agenda/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("Evento excluído");
+      toast.success("Evento excluÃ­do");
       setDeleteId(null);
       void fetchEvents();
     } catch {
@@ -289,7 +289,7 @@ export default function AgendaPage() {
     }
   }
 
-  // ─── Calendar grid ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Calendar grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
@@ -306,14 +306,14 @@ export default function AgendaPage() {
     });
   }
 
-  // ─── Upcoming events ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Upcoming events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const upcomingEvents = events
     .filter((ev) => new Date(ev.startDate) >= today)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     .slice(0, 5);
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -332,7 +332,7 @@ export default function AgendaPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
-        {/* ── Left: Calendar ── */}
+        {/* â”€â”€ Left: Calendar â”€â”€ */}
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           {/* Month navigation */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -436,12 +436,12 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        {/* ── Right: Upcoming Events ── */}
+        {/* â”€â”€ Right: Upcoming Events â”€â”€ */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center gap-2 px-4 py-4 border-b border-border">
             <CalendarDays className="h-4 w-4 text-primary" />
             <h3 className="font-semibold text-sm text-foreground">
-              Próximos Eventos
+              PrÃ³ximos Eventos
             </h3>
           </div>
 
@@ -453,7 +453,7 @@ export default function AgendaPage() {
             </div>
           ) : upcomingEvents.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum evento próximo
+              Nenhum evento prÃ³ximo
             </div>
           ) : (
             <div className="divide-y divide-border/50">
@@ -552,7 +552,7 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* ── Create / Edit Dialog ── */}
+      {/* â”€â”€ Create / Edit Dialog â”€â”€ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -565,7 +565,7 @@ export default function AgendaPage() {
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="title">
-                Título <span className="text-destructive">*</span>
+                TÃ­tulo <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
@@ -637,7 +637,7 @@ export default function AgendaPage() {
               {/* Start date */}
               <div className="space-y-1.5">
                 <Label htmlFor="startDate">
-                  Início <span className="text-destructive">*</span>
+                  InÃ­cio <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="startDate"
@@ -653,7 +653,7 @@ export default function AgendaPage() {
 
               {/* End date */}
               <div className="space-y-1.5">
-                <Label htmlFor="endDate">Término</Label>
+                <Label htmlFor="endDate">TÃ©rmino</Label>
                 <Input
                   id="endDate"
                   type="datetime-local"
@@ -667,14 +667,14 @@ export default function AgendaPage() {
               <Label htmlFor="location">Local</Label>
               <Input
                 id="location"
-                placeholder="Endereço ou link"
+                placeholder="EndereÃ§o ou link"
                 {...form.register("location")}
               />
             </div>
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="description">DescriÃ§Ã£o</Label>
               <Textarea
                 id="description"
                 placeholder="Detalhes do evento..."
@@ -694,7 +694,7 @@ export default function AgendaPage() {
                 Cancelar
               </Button>
               <Button type="submit" loading={form.formState.isSubmitting}>
-                {editingEvent ? "Salvar alterações" : "Criar evento"}
+                {editingEvent ? "Salvar alteraÃ§Ãµes" : "Criar evento"}
               </Button>
             </DialogFooter>
           </form>
@@ -703,3 +703,4 @@ export default function AgendaPage() {
     </div>
   );
 }
+

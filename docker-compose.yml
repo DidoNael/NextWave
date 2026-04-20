@@ -81,7 +81,7 @@ services:
     image: postgres:15-alpine
     container_name: nextwave-db
     restart: unless-stopped
-    entrypoint: ["/bin/bash", "/var/shared/db-sovereign-init.sh"]
+    entrypoint: [ "/bin/bash", "/var/shared/db-sovereign-init.sh" ]
     environment:
       - POSTGRES_USER=root
       - POSTGRES_DB=nextwave_crm
@@ -147,7 +147,8 @@ volumes:
     driver: local
   postgres-data:
     driver: local
-  nextwave-setup: # Volume compartilhado para despertar o Banco via Web
+  nextwave-setup:
+    # Volume compartilhado para despertar o Banco via Web
     driver: local
 
 networks:

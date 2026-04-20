@@ -8,7 +8,8 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
-    const userId = session.user.id;
+    const orgId = (session.user as any).organizationId;
+    if (!orgId) return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
 
     const agora = new Date();
     const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);

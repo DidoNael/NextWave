@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ import {
   Legend,
 } from "recharts";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Resumo {
   receita: number;
@@ -51,7 +51,7 @@ interface RelatoriosData {
   porCategoria: CategoriaItem[];
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PIE_COLORS = [
   "#3b82f6",
@@ -70,7 +70,7 @@ const PERIOD_OPTIONS: { label: string; value: number }[] = [
   { label: "12 meses", value: 12 },
 ];
 
-// ── Skeleton ───────────────────────────────────────────────────────────────
+// â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ReportSkeleton() {
   return (
@@ -104,7 +104,7 @@ function ReportSkeleton() {
   );
 }
 
-// ── KPI Card ───────────────────────────────────────────────────────────────
+// â”€â”€ KPI Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface KpiCardProps {
   title: string;
@@ -141,7 +141,7 @@ function KpiCard({ title, value, icon, trend, className }: KpiCardProps) {
   );
 }
 
-// ── Custom Tooltip ─────────────────────────────────────────────────────────
+// â”€â”€ Custom Tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ChartTooltip({
   active,
@@ -193,7 +193,7 @@ function PieTooltip({
   );
 }
 
-// ── Pie Legend ─────────────────────────────────────────────────────────────
+// â”€â”€ Pie Legend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function PieLegend({
   data,
@@ -225,7 +225,7 @@ function PieLegend({
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function RelatoriosPage() {
   const [months, setMonths] = useState(12);
@@ -240,11 +240,11 @@ export default function RelatoriosPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/relatorios?months=${m}`);
-      if (!res.ok) throw new Error("Erro ao carregar relatórios");
+      if (!res.ok) throw new Error("Erro ao carregar relatÃ³rios");
       const json: RelatoriosData = await res.json();
       setData(json);
     } catch {
-      toast.error("Não foi possível carregar os relatórios.");
+      toast.error("NÃ£o foi possÃ­vel carregar os relatÃ³rios.");
     } finally {
       setLoading(false);
     }
@@ -270,7 +270,7 @@ export default function RelatoriosPage() {
             <TrendingUp className="h-5 w-5 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Relatórios
+            RelatÃ³rios
           </h1>
         </div>
 
@@ -331,7 +331,7 @@ export default function RelatoriosPage() {
           <TabsTrigger value="fluxo">Fluxo</TabsTrigger>
         </TabsList>
 
-        {/* Tab: Receita Mensal — LineChart */}
+        {/* Tab: Receita Mensal â€” LineChart */}
         <TabsContent value="mensal">
           <Card>
             <CardHeader>
@@ -389,7 +389,7 @@ export default function RelatoriosPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab: Por Categoria — PieChart */}
+        {/* Tab: Por Categoria â€” PieChart */}
         <TabsContent value="categoria">
           <Card>
             <CardHeader>
@@ -436,7 +436,7 @@ export default function RelatoriosPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab: Fluxo — BarChart */}
+        {/* Tab: Fluxo â€” BarChart */}
         <TabsContent value="fluxo">
           <Card>
             <CardHeader>
@@ -510,12 +510,13 @@ export default function RelatoriosPage() {
   );
 }
 
-// ── Empty state for charts ─────────────────────────────────────────────────
+// â”€â”€ Empty state for charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function EmptyChart() {
   return (
     <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-      Sem dados para o período selecionado.
+      Sem dados para o perÃ­odo selecionado.
     </div>
   );
 }
+
