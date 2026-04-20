@@ -282,7 +282,7 @@ export default function PluginLicensesPage() {
                             <code className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded select-all font-mono opacity-80">
                               SK: {license.secretKey.slice(0, 8)}...
                             </code>
-                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100" onClick={() => copyToClipboard(license.secretKey)}>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100" onClick={() => copyToClipboard(license.secretKey ?? "")}>
                               <Copy className="h-3 w-3" />
                             </Button>
                           </div>
