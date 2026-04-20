@@ -29,7 +29,8 @@ export async function POST(req: Request) {
         }
 
         // Construir string de conexão para teste
-        const connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
+        const safeDbPasswordTest = encodeURIComponent(dbPassword);
+        const connectionString = `postgresql://${dbUser}:${safeDbPasswordTest}@${dbHost}:${dbPort}/${dbName}`;
         
         // 1. Tentar conectar com a senha que o usuário digitou
         let client = new Client({
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
             // Vamos tentar criar o banco dinamicamente!
             if (connErr.code === '3D000') {
                 console.log(`[CHECK] Banco ${dbName} não existe. Tentando criar via banco 'postgres'...`);
-                const adminConnStr = `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/postgres`;
+                const adminConnStr = `postgresql://${dbUser}:${safeDbPasswordTest}@${dbHost}:${dbPort}/postgres`;
                 const adminClient = new Client({ connectionString: adminConnStr, connectionTimeoutMillis: 5000 });
                 
                 try {

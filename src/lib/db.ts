@@ -15,8 +15,9 @@ function getSovereignPrisma() {
     try {
       const password = fs.readFileSync(sharedPath, "utf-8").trim();
       if (password) {
+        const safePassword = encodeURIComponent(password);
         // Reconstrói a URL mantendo os outros parâmetros (Assumimos root por padrão no Docker)
-        dbUrl = `postgresql://root:${password}@nextwave-db:5432/nextwave_crm?schema=public`;
+        dbUrl = `postgresql://root:${safePassword}@nextwave-db:5432/nextwave_crm?schema=public`;
         console.log("[PRISMA] Soberania Ativada: Usando senha do gatilho dinâmico.");
       }
     } catch (e) {

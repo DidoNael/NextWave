@@ -90,7 +90,8 @@ export async function POST(req: Request) {
         // 2. Configurar Banco de Dados se fornecido
         if (dbConfig) {
             const { host, port, user, password: dbPassword, database } = dbConfig;
-            const dbUrl = `postgresql://${user}:${dbPassword}@${host}:${port}/${database}?schema=public`;
+            const safeDbPassword = encodeURIComponent(dbPassword);
+            const dbUrl = `postgresql://${user}:${safeDbPassword}@${host}:${port}/${database}?schema=public`;
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
             
@@ -305,8 +306,12 @@ export async function POST(req: Request) {
             console.error("[SETUP_ENV_PERSISTENCE_ERROR]", envError);
         }
 
-        // 8. Finalização Soberana (v3.0.6-GOLD)
-        console.log(`[SETUP] Setup concluído. Singleton dinâmico assumirá a conexão.`);
+        // 8. Finalização Soberana (v3.0.6-GOLD) + Hot Reload
+        console.log(`[SETUP] Setup concluído. Reiniciando processo para aplicar soberania do Prisma.`);
+        setTimeout(() => {
+            console.log(`[SETUP] SINAL DE REINÍCIO ENVIADO.`);
+            process.exit(0); 
+        }, 1500);
 
         return NextResponse.json({
             success: true,
