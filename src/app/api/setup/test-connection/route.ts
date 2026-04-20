@@ -55,20 +55,31 @@ export async function POST(req: Request) {
                     });
                 } catch (createErr: any) {
                     console.error("[CHECK_CREATE_DB_FAILED]", createErr);
-                    // Se falhar por autenticação no banco 'postgres', tentamos com a senha de fábrica
+                    // Se falhar por autenticação no banco 'postgres', tentamos a MARATONA DE FALLBACKS
                     if (createErr.code === '28P01') {
-                         const factoryAdminStr = `postgresql://${dbUser}:${DEFAULT_BOOT_PWD}@${dbHost}:${dbPort}/postgres`;
-                         const factoryAdminClient = new Client({ connectionString: factoryAdminStr, connectionTimeoutMillis: 5000 });
-                         try {
-                             await factoryAdminClient.connect();
-                             await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
-                             await factoryAdminClient.end();
-                             return NextResponse.json({ 
-                                 success: true, 
-                                 needsSync: true,
-                                 message: `Banco '${dbName}' criado via ponte de fábrica! Sincronização pendente.`
-                             });
-                         } catch (e) { console.error("[CHECK_FACTORY_CREATE_FAILED]", e); }
+                        const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
+                        for (const fbPwd of fallbacks) {
+                            if (dbPassword === fbPwd) continue;
+                            console.log(`[CHECK] Tentando criar banco via fallback: ${fbPwd}`);
+                            const factoryAdminClient = new Client({ 
+                                connectionString: `postgresql://${dbUser}:${fbPwd}@${dbHost}:${dbPort}/postgres`, 
+                                connectionTimeoutMillis: 5000 
+                            });
+                            try {
+                                await factoryAdminClient.connect();
+                                await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
+                                // Aproveitamos e já mudamos a senha do usuário
+                                await factoryAdminClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
+                                await factoryAdminClient.end();
+                                
+                                return NextResponse.json({ 
+                                    success: true, 
+                                    message: `Banco '${dbName}' criado e senha sincronizada via fallback: ${fbPwd}`
+                                });
+                            } catch (e) {
+                                console.warn(`[CHECK] Fallback de criação ${fbPwd} falhou.`);
+                            }
+                        }
                     }
                 }
             }
