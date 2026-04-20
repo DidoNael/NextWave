@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Client } from "pg";
 import { DATABASE_DEFAULTS } from "@/lib/constants";
+import fs from "fs";
+import path from "path";
 
 
 export async function POST(req: Request) {
@@ -10,6 +12,20 @@ export async function POST(req: Request) {
 
         if (!dbHost || !dbPort || !dbUser || !dbPassword || !dbName) {
             return NextResponse.json({ error: "Todos os campos do banco são obrigatórios." }, { status: 400 });
+        }
+
+        // 0. Gatilho Web Soberano: Se estivermos em Docker, tentamos acordar o banco
+        const sharedPath = "/var/shared/db_init_password.txt";
+        try {
+            // Se o diretório existir (estamos no Docker com volume), gravamos a senha
+            if (fs.existsSync("/var/shared")) {
+                console.log("[SETUP] Enviando gatilho de senha para o Banco de Dados...");
+                fs.writeFileSync(sharedPath, dbPassword);
+                // Aguardar um pouco para o banco ler e inicializar
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        } catch (e) {
+            console.warn("[SETUP] Falha ao gravar gatilho (pode não estar em ambiente Docker de produção):", e);
         }
 
         // Construir string de conexão para teste

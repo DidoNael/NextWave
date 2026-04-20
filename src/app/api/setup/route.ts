@@ -94,6 +94,14 @@ export async function POST(req: Request) {
             const dbUrl = `postgresql://${user}:${dbPassword}@${host}:${port}/${database}?schema=public`;
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
+            
+            // Gatilho Web Soberano (Caso não tenha sido disparado no teste)
+            try {
+                if (fs.existsSync("/var/shared")) {
+                    fs.writeFileSync("/var/shared/db_init_password.txt", dbPassword);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            } catch (e) {}
 
             // Sincronizar senha via ponte de fábrica (Multi-Fallback Resiliente)
             try {
