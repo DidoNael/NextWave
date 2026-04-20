@@ -98,6 +98,12 @@ export default function SetupPage() {
 
     const testDbConnection = async () => {
         const values = watch();
+        // Validação básica antes de tentar
+        if (!values.dbHost || !values.dbPassword || !values.dbName) {
+            toast.error("Preencha todos os campos do banco de dados.");
+            return false;
+        }
+
         setDbTestStatus("testing");
         try {
             const response = await fetch("/api/setup/test-connection", {
@@ -115,14 +121,17 @@ export default function SetupPage() {
             const result = await response.json();
             if (response.ok) {
                 setDbTestStatus("success");
-                toast.success("Conexão estabelecida com sucesso!");
+                toast.success("Banco de Dados inicializado com sucesso!");
+                return true;
             } else {
                 setDbTestStatus("error");
                 toast.error(result.error || "Falha ao conectar no banco.");
+                return false;
             }
         } catch (error) {
             setDbTestStatus("error");
             toast.error("Erro ao testar conexão.");
+            return false;
         }
     };
 
@@ -415,29 +424,22 @@ export default function SetupPage() {
                                             </div>
                                         </div>
 
-                                        <Button 
-                                            type="button" 
-                                            variant="secondary" 
-                                            className={cn(
-                                                "w-full h-10 text-sm font-semibold",
-                                                dbTestStatus === "success" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
-                                                dbTestStatus === "error" && "bg-red-100 text-red-700 hover:bg-red-100"
-                                            )}
-                                            onClick={testDbConnection}
-                                            disabled={dbTestStatus === "testing"}
-                                        >
-                                            {dbTestStatus === "testing" ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Testando...</> : 
-                                             dbTestStatus === "success" ? <><CheckCircle2 className="h-4 w-4 mr-2" /> Conexão OK!</> :
-                                             dbTestStatus === "error" ? "Falha na Conexão. Tentar Novamente?" :
-                                             "Testar Conexão com o Banco"}
-                                        </Button>
                                     </div>
                                     <div className="flex gap-3">
                                         <Button variant="outline" onClick={() => setStep(2)} className="h-12 w-14">
                                             <ChevronLeft className="h-5 w-5" />
                                         </Button>
-                                        <Button onClick={() => setStep(4)} className="flex-1 h-12 text-md" size="lg" disabled={dbTestStatus !== "success"}>
-                                            Próximo: Segurança <ArrowRight className="h-5 w-5 ml-2" />
+                                        <Button 
+                                            onClick={async () => {
+                                                const success = await testDbConnection();
+                                                if (success) setStep(4);
+                                            }} 
+                                            className="flex-1 h-12 text-md" 
+                                            size="lg" 
+                                            disabled={dbTestStatus === "testing"}
+                                        >
+                                            {dbTestStatus === "testing" ? <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Configurando Banco...</> : 
+                                             <><Database className="h-5 w-5 mr-2" /> Configurar e Continuar <ArrowRight className="h-5 w-5 ml-2" /></>}
                                         </Button>
                                     </div>
                                 </div>
