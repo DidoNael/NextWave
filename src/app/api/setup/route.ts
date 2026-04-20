@@ -305,16 +305,13 @@ export async function POST(req: Request) {
             console.error("[SETUP_ENV_PERSISTENCE_ERROR]", envError);
         }
 
-        // 8. Hot-Reload Soberano: Reiniciar processo para carregar novo .env (v3.0.6)
-        console.log(`[SETUP] Setup concluído. Reiniciando container para aplicar soberania...`);
-        setTimeout(() => {
-            console.log(`[SETUP] SINAL DE REINÍCIO ENVIADO.`);
-            process.exit(0); 
-        }, 2000);
+        // 8. Finalização Soberana (v3.0.6-GOLD)
+        console.log(`[SETUP] Setup concluído. Singleton dinâmico assumirá a conexão.`);
 
         return NextResponse.json({
             success: true,
-            message: "Sistema configurado com sucesso! Redirecionando...",
+            status: "ready",
+            message: "Configuração concluída com SUCESSO! O dashboard está pronto.",
         });
     } catch (error) {
         console.error("[SETUP_API_ERROR]", error);

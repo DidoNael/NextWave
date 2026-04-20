@@ -21,8 +21,8 @@ export async function POST(req: Request) {
             if (fs.existsSync("/var/shared")) {
                 console.log("[SETUP] Enviando gatilho de senha para o Banco de Dados...");
                 fs.writeFileSync(sharedPath, dbPassword);
-                // Aguardar um pouco para o banco ler e inicializar
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Aguardar o banco ler e inicializar (10s para segurança v3.0.6-GOLD)
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
         } catch (e) {
             console.warn("[SETUP] Falha ao gravar gatilho (pode não estar em ambiente Docker de produção):", e);

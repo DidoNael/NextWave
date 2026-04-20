@@ -20,17 +20,11 @@ export default async function LoginPage() {
     if (userCount === 0) {
       redirect("/setup");
     }
-  } catch (error: any) {
-    // Se o erro for de AUTENTICAÇÃO (P1000), significa que o banco resetou ou a senha mudou.
-    // Redirecionamos para o setup para que a Ponte de Resiliência possa corrigir.
-    if (error?.code === "P1000") {
-      console.log("[AUTH] Falha de autenticação DB no boot. Redirecionando para Setup.");
-      redirect("/setup");
-    }
-    
-    // Outros erros de banco (ex: conexão inicial), ainda tentamos mandar pro setup 
-    // para que o Wizard tente corrigir a conexão do DB
-    redirect("/setup");
+    } catch (error: any) {
+    // Se falhar a autenticação ou conexão, NÃO redirecionamos para o setup
+    // para evitar loops infinitos durante o tempo de reinício do container.
+    // O formulário de login será renderizado e falhará suavemente se o DB ainda estiver fora.
+    console.error("[AUTH] Erro ao verificar userCount:", error?.message);
   }
 
   // Se tudo ok, renderiza o formulário de login (Client Component)
