@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { siteUrl, name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules, dbConfig } = body;
+        const { siteUrl, orgName, orgSlug, name, email, password, allowedIps, workDayStart, workDayEnd, backupData, backupName, modules, dbConfig } = body;
 
         // Se houver backup, restaurar e retornar imediatamente
         if (backupData) {
@@ -49,7 +49,6 @@ export async function POST(req: Request) {
             const migrator = new DBMigrator(prisma);
             
             const dbUrl = process.env.DATABASE_URL;
-            const isSQLite = dbUrl?.startsWith('file:') || false;
             const isSQLFile = backupName.toLowerCase().endsWith('.sql');
 
             // 1. Salvar o conteúdo do backup em um arquivo temporário
@@ -62,7 +61,6 @@ export async function POST(req: Request) {
             fs.writeFileSync(tempPath, buffer);
 
             try {
-                // cenário: Script SQL (.sql) -> PostgreSQL
                 if (isSQLFile) {
                     console.log(`[SETUP] Executando dump SQL no banco PostgreSQL atual`);
                     const sqlContent = buffer.toString('utf-8');
@@ -95,7 +93,7 @@ export async function POST(req: Request) {
             
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
 
-            // NOVA LÓGICA: Sincronizar senha com o banco PostgreSQL de forma resiliente
+            // Sincronizar senha via ponte de fábrica
             try {
                 const { Client } = await import("pg");
                 const factoryClient = new Client({
@@ -106,11 +104,7 @@ export async function POST(req: Request) {
                 await factoryClient.connect();
                 await factoryClient.query(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
                 await factoryClient.end();
-                
-                console.log(`[SETUP] Senha do banco sincronizada com sucesso para a ESCOLHA DO USUÁRIO.`);
             } catch (dbErr) {
-                console.warn(`[SETUP] Aviso: Não foi possível sincronizar senha via ponte de fábrica. Tentando conexão direta...`);
-                // Se falhar a ponte, pode ser que a senha já seja a do usuário
                 try {
                     await prisma.$executeRawUnsafe(`ALTER USER ${user} WITH PASSWORD '${dbPassword}'`);
                 } catch (e) {
@@ -120,17 +114,12 @@ export async function POST(req: Request) {
             
             // Salvar no .env
             const envPath = path.join(process.cwd(), ".env");
-            let envContent = "";
+            let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
             
-            if (fs.existsSync(envPath)) {
-                envContent = fs.readFileSync(envPath, "utf-8");
-                if (envContent.includes("DATABASE_URL=")) {
-                    envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${dbUrl}"`);
-                } else {
-                    envContent += `\nDATABASE_URL="${dbUrl}"\n`;
-                }
+            if (envContent.includes("DATABASE_URL=")) {
+                envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${dbUrl}"`);
             } else {
-                envContent = `DATABASE_URL="${dbUrl}"\n`;
+                envContent += `\nDATABASE_URL="${dbUrl}"\n`;
             }
 
             if (envContent.includes("POSTGRES_PASSWORD=")) {
@@ -141,7 +130,7 @@ export async function POST(req: Request) {
             
             fs.writeFileSync(envPath, envContent);
 
-            // NOVO: Sincronizar Schema
+            // Sincronizar Schema
             console.log(`[SETUP] Sincronizando schema...`);
             try {
                 const { execSync } = await import("child_process");
@@ -175,7 +164,7 @@ export async function POST(req: Request) {
             },
         });
 
-        // 5. Salvar Branding vinculado à Organização (ou Geral)
+        // 5. Salvar Branding
         if (siteUrl) {
             await (prisma as any).systemBranding.upsert({
                 where: { id: "default" },
@@ -203,7 +192,6 @@ export async function POST(req: Request) {
                     create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
                 });
             }
-        }
 
             // 5. Configuração Inicial do WhatsApp no banco
             if (modules.includes("whatsapp")) {
@@ -229,30 +217,11 @@ export async function POST(req: Request) {
             }
         }
 
-        // 6. Persistência Consolidada no .env (Zero Config Holístico)
+        // 7. Persistência Consolidada no .env
         try {
             const envPath = path.join(process.cwd(), ".env");
             let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
 
-            // Atualizar DATABASE_URL
-            if (dbConfig) {
-                const { host, port, user, password: dbPassword, database } = dbConfig;
-                const dbUrl = `postgresql://${user}:${dbPassword}@${host}:${port}/${database}?schema=public`;
-                
-                if (envContent.includes("DATABASE_URL=")) {
-                    envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${dbUrl}"`);
-                } else {
-                    envContent += `\nDATABASE_URL="${dbUrl}"\n`;
-                }
-
-                if (envContent.includes("POSTGRES_PASSWORD=")) {
-                    envContent = envContent.replace(/POSTGRES_PASSWORD=.*/, `POSTGRES_PASSWORD="${dbPassword}"`);
-                } else {
-                    envContent += `POSTGRES_PASSWORD="${dbPassword}"\n`;
-                }
-            }
-
-            // Atualizar NEXTAUTH_URL (Resolve acesso via IP)
             if (siteUrl) {
                 if (envContent.includes("NEXTAUTH_URL=")) {
                     envContent = envContent.replace(/NEXTAUTH_URL=.*/, `NEXTAUTH_URL="${siteUrl}"`);
@@ -261,7 +230,6 @@ export async function POST(req: Request) {
                 }
             }
 
-            // Atualizar EVOLUTION_API_KEY
             if (modules && modules.includes("whatsapp")) {
                 const config = await (prisma as any).whatsAppConfig.findUnique({ where: { id: "default" } });
                 if (config?.globalApiKey) {
@@ -274,10 +242,8 @@ export async function POST(req: Request) {
             }
 
             fs.writeFileSync(envPath, envContent);
-            console.log(`[SETUP] Arquivo .env consolidado e atualizado com sucesso.`);
         } catch (envError) {
             console.error("[SETUP_ENV_PERSISTENCE_ERROR]", envError);
-            // Não travamos o setup se falhar apenas a escrita no arquivo, mas logamos o erro
         }
 
         return NextResponse.json({
