@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, Search, LogOut, User, Menu, Check, Trash2 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "./ThemeToggle";
@@ -42,12 +42,14 @@ function formatNotifTime(iso: string) {
 
 export function Header({ title, onMenuClick }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const reservedPath = ["dashboard", "login", "setup", "api", "_next"];
   const orgSlug = pathname.split("/")[1] || "";
   const base = (orgSlug && !reservedPath.includes(orgSlug)) ? `/${orgSlug}` : "";
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchValue, setSearchValue] = useState('');
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -139,8 +141,16 @@ export function Header({ title, onMenuClick }: HeaderProps) {
           <div className="relative group">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Buscar clientes, projetos..."
+              placeholder="Buscar clientes... (Enter)"
               className="pl-10 h-9 rounded-full bg-muted/50 border-border/60 focus-visible:ring-primary/20 transition-all placeholder:text-xs"
+              value={searchValue}
+              onChange={e => setSearchValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && searchValue.trim()) {
+                  router.push(`/dashboard/clientes?search=${encodeURIComponent(searchValue.trim())}`);
+                  setSearchValue('');
+                }
+              }}
             />
           </div>
         </div>

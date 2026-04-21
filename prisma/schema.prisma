@@ -88,6 +88,9 @@ model Client {
   transactions   Transaction[]
   attachments    ClientAttachment[]
   pluginLicenses PluginLicense[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
 }
 
 model ClientAttachment {
@@ -140,6 +143,11 @@ model Transaction {
   service         Service?      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   client          Client?       @relation(fields: [clientId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([serviceId])
+  @@index([status, dueDate])
 }
 
 model Service {
@@ -559,4 +567,8 @@ model PluginLicense {
   service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   client         Client?       @relation(fields: [clientId], references: [id])
   organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([status])
+  @@index([clientId])
+  @@index([organizationId])
 }
