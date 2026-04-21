@@ -85,19 +85,21 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = clienteSchema.parse(body);
 
-    // Gerar próximo registrationId global
-    const lastClient = await prisma.client.findFirst({
-      orderBy: { registrationId: "desc" },
-    });
-    const nextId = (lastClient?.registrationId ?? 0) + 1;
-
-    const cliente = await prisma.client.create({
-      data: { 
-        ...data, 
-        userId: session.user.id,
-        organizationId: organizationId,
-        registrationId: nextId 
-      },
+    // Gerar próximo registrationId dentro de uma transação para evitar race condition
+    const cliente = await prisma.$transaction(async (tx) => {
+      const lastClient = await tx.client.findFirst({
+        orderBy: { registrationId: "desc" },
+        select: { registrationId: true },
+      });
+      const nextId = (lastClient?.registrationId ?? 0) + 1;
+      return tx.client.create({
+        data: {
+          ...data,
+          userId: session.user.id,
+          organizationId,
+          registrationId: nextId,
+        },
+      });
     });
 
     return NextResponse.json(cliente, { status: 201 });

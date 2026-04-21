@@ -73,24 +73,35 @@ export async function POST(req: Request) {
       return respond({ valid: false, blocked: false, message: "Licença não encontrada" });
     }
 
-    // Validação HMAC-SHA256 opcional
+    // Validação HMAC-SHA256 — obrigatória quando a licença tem secretKey
     const signature = req.headers.get("x-nws-signature");
     const timestamp = req.headers.get("x-nws-timestamp");
 
-    if (signature && timestamp && license.secretKey) {
-      // Garantimos a ordem das chaves para bater com o plugin
+    if (license.secretKey) {
+      if (!signature || !timestamp) {
+        return respond({ valid: false, message: "Autenticação necessária — configure o segredo da licença no plugin." }, 401);
+      }
+
       const message = `${timestamp}.${JSON.stringify({ key, domain: host })}`;
       const expected = crypto
         .createHmac("sha256", license.secretKey)
         .update(message)
         .digest("hex");
 
-      // timingSafeEqual exige que os buffers tenham o mesmo tamanho
       const sigBuf = Buffer.from(signature);
       const expBuf = Buffer.from(expected);
-      
+
       if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
         return respond({ valid: false, message: "Assinatura digital inválida." }, 401);
+      }
+    }
+
+    // Validação de domínio — se configurado, o host deve corresponder exatamente
+    if (license.domain && host) {
+      const normalizedDomain = license.domain.toLowerCase().trim();
+      const normalizedHost = (host as string).toLowerCase().trim();
+      if (normalizedDomain !== normalizedHost) {
+        return respond({ valid: false, message: "Domínio não autorizado para esta licença." }, 403);
       }
     }
 
@@ -109,7 +120,7 @@ export async function POST(req: Request) {
     // Ignora check financeiro se for Trial
     if (!license.isTrial && (license.clientId || license.serviceId)) {
       const tenDaysAgo = new Date();
-      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+      tenDaysAgo.setDate(tenDaysAgo.getDate() - (license.graceDays ?? 10));
 
       // Busca transações pendentes vencidas há mais de 10 dias
       const overdueTransaction = await prisma.transaction.findFirst({
