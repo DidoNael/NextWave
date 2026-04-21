@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { verifyTwoFactorToken } from "@/lib/auth/2fa";
 import { prisma } from "@/lib/db";
+import { consumePending2FA } from "@/lib/server-cache";
 
 export async function POST(req: Request) {
     const session = await auth();
@@ -9,7 +10,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { token, secret } = await req.json();
+    const { token } = await req.json();
+
+    // Usa o secret armazenado server-side — ignora qualquer secret enviado no body
+    const secret = consumePending2FA(session.user.id);
+    if (!secret) {
+        return NextResponse.json({ error: "Sessão de configuração expirada. Reinicie o processo de ativação do 2FA." }, { status: 400 });
+    }
 
     const isValid = verifyTwoFactorToken(secret, token);
 
@@ -18,8 +25,8 @@ export async function POST(req: Request) {
             where: { id: session.user.id },
             data: {
                 twoFactorSecret: secret,
-                twoFactorEnabled: true
-            }
+                twoFactorEnabled: true,
+            },
         });
         return NextResponse.json({ success: true });
     }

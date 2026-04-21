@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/server-cache";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +56,15 @@ async function respond(payload: object, status = 200) {
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting: 30 requisições por IP por minuto
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      || req.headers.get("x-real-ip")
+      || "unknown";
+
+    if (!checkRateLimit(ip, 30, 60_000)) {
+      return respond({ valid: false, blocked: false, message: "Muitas requisições. Tente novamente em 1 minuto." }, 429);
+    }
+
     const body = await req.json();
     const { key, host, nonce } = body;
 
@@ -105,11 +115,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Atualiza lastValidAt e lastIp
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null;
+    // Atualiza lastValidAt e lastIp (reutiliza ip já extraído para rate limit)
     await prisma.pluginLicense.update({
       where: { key },
-      data: { lastValidAt: new Date(), lastIp: ip },
+      data: { lastValidAt: new Date(), lastIp: ip !== "unknown" ? ip : null },
     });
 
     if (license.status === "blocked" || license.status === "suspended") {
