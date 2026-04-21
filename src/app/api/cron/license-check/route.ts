@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { logLicenseEvent } from "@/lib/license-log";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,13 @@ export async function POST(req: Request) {
             where: { id: license.id },
             data: { overdueDetectedAt: null, lastWarningAt: null, status: "active" },
           });
+          await logLicenseEvent({
+            licenseId: license.id,
+            event: "reactivated",
+            fromStatus: license.status,
+            toStatus: "active",
+            description: "Pagamento regularizado — licença reativada automaticamente.",
+          });
           results.reactivated++;
         }
         continue;
@@ -88,6 +96,13 @@ export async function POST(req: Request) {
             where: { id: license.id },
             data: { status: "blocked" },
           });
+          await logLicenseEvent({
+            licenseId: license.id,
+            event: "status_changed",
+            fromStatus: license.status,
+            toStatus: "blocked",
+            description: `Bloqueio definitivo após ${dias} dia(s) de inadimplência (carência: ${grace} dias).`,
+          });
           results.blocked++;
         }
       } else if (dias >= grace) {
@@ -96,6 +111,13 @@ export async function POST(req: Request) {
           await prisma.pluginLicense.update({
             where: { id: license.id },
             data: { status: "suspended" },
+          });
+          await logLicenseEvent({
+            licenseId: license.id,
+            event: "status_changed",
+            fromStatus: license.status,
+            toStatus: "suspended",
+            description: `Suspensão automática após ${dias} dia(s) de inadimplência (carência: ${grace} dias).`,
           });
           results.suspended++;
         }
@@ -115,6 +137,11 @@ export async function POST(req: Request) {
             await prisma.pluginLicense.update({
               where: { id: license.id },
               data: { lastWarningAt: new Date() },
+            });
+            await logLicenseEvent({
+              licenseId: license.id,
+              event: "warning_sent",
+              description: `Aviso de inadimplência enviado via WhatsApp. Suspensão em ${diasRestantes} dia(s).`,
             });
             results.warned++;
           }

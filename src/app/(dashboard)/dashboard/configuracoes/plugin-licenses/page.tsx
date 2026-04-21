@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Key, Plus, Loader2, Copy, Trash2, CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Clock
+  Key, Plus, Loader2, Copy, Trash2, CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Clock, History
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,10 @@ export default function PluginLicensesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLicense, setHistoryLicense] = useState<License | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   // Form states
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -172,6 +176,21 @@ export default function PluginLicensesPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Chave copiada!");
+  };
+
+  const openHistory = async (license: License) => {
+    setHistoryLicense(license);
+    setHistoryOpen(true);
+    setLogsLoading(true);
+    try {
+      const res = await fetch(`/api/plugin-licenses/${license.id}/logs`);
+      const data = await res.json();
+      setLogs(Array.isArray(data) ? data : []);
+    } catch {
+      setLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
   };
 
   const getStatusBadge = (status: License["status"], isTrial?: boolean) => {
@@ -440,9 +459,19 @@ export default function PluginLicensesPage() {
                           </Button>
                         )}
 
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                          title="Histórico"
+                          onClick={() => openHistory(license)}
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => {
                             setLicenseToDelete(license);
@@ -481,6 +510,48 @@ export default function PluginLicensesPage() {
               Remover
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Histórico — {historyLicense?.client?.name || historyLicense?.customerName}
+            </DialogTitle>
+            <DialogDescription>Últimos 50 eventos registrados para esta licença.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-1 pr-1">
+            {logsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : logs.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">Nenhum evento registrado ainda.</p>
+            ) : (
+              logs.map((log) => (
+                <div key={log.id} className="flex gap-3 py-2.5 border-b border-border/40 last:border-0">
+                  <div className={cn(
+                    "mt-0.5 h-2 w-2 rounded-full shrink-0",
+                    log.event === "status_changed" && log.toStatus === "blocked" ? "bg-destructive" :
+                    log.event === "status_changed" && log.toStatus === "suspended" ? "bg-amber-500" :
+                    log.event === "reactivated" || log.toStatus === "active" ? "bg-green-500" :
+                    log.event === "warning_sent" ? "bg-amber-400" :
+                    "bg-muted-foreground"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground leading-snug">{log.description}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(log.createdAt).toLocaleString("pt-BR")}
+                      {log.actor !== "system" && ` · por usuário`}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

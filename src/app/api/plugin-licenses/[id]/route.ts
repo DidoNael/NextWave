@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { logLicenseEvent } from "@/lib/license-log";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -9,6 +10,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
   const body = await req.json();
   const isReactivating = body.status === "active";
+
+  const current = await prisma.pluginLicense.findUnique({
+    where: { id: params.id },
+    select: { status: true },
+  });
 
   const license = await prisma.pluginLicense.update({
     where: { id: params.id },
@@ -22,6 +28,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       ...(isReactivating && { overdueDetectedAt: null, lastWarningAt: null }),
     },
   });
+
+  if (body.status && body.status !== current?.status) {
+    await logLicenseEvent({
+      licenseId: params.id,
+      event: "status_changed",
+      fromStatus: current?.status,
+      toStatus: body.status,
+      description: `Status alterado manualmente para "${body.status}".`,
+      actor: session.user.id ?? "admin",
+    });
+  }
+
   return NextResponse.json(license);
 }
 
