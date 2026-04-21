@@ -11,7 +11,10 @@ export async function GET() {
   }
   const licenses = await prisma.pluginLicense.findMany({ 
     where: { organizationId: orgId },
-    include: { service: { select: { title: true } } },
+    include: { 
+      service: { select: { title: true } },
+      client: { select: { name: true, id: true } }
+    },
     orderBy: { createdAt: "desc" } 
   });
   return NextResponse.json(licenses);
@@ -30,8 +33,9 @@ export async function POST(req: Request) {
       customerName: body.customerName,
       customerEmail: body.customerEmail,
       organizationId: orgId,
+      clientId: body.clientId,
       isTrial: !!body.isTrial,
-      trialDays: Number(body.trialDays) || 3,
+      trialDays: Number(body.expiresInDays) || 30, // Corrigido p/ bater com o form
     });
 
     return NextResponse.json(license, { status: 201 });

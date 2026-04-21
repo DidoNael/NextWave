@@ -8,6 +8,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const body = await req.json();
+  const isReactivating = body.status === "active";
+
   const license = await prisma.pluginLicense.update({
     where: { id: params.id },
     data: {
@@ -16,6 +18,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       customerEmail: body.customerEmail,
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
       notes: body.notes,
+      ...(body.graceDays !== undefined && { graceDays: Number(body.graceDays) }),
+      ...(isReactivating && { overdueDetectedAt: null, lastWarningAt: null }),
     },
   });
   return NextResponse.json(license);

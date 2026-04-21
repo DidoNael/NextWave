@@ -5,9 +5,9 @@ import { z } from "zod";
 
 const clienteSchema = z.object({
   name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
-  email: z.string().min(1, "Email obrigatório"),
-  phone: z.string().min(1, "Telefone obrigatório"),
-  document: z.string().min(1, "CPF/CNPJ obrigatório"),
+  email: z.string().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  document: z.string().optional().or(z.literal("")),
   company: z.string().optional(),
   address: z.string().optional(),
   number: z.string().optional(),

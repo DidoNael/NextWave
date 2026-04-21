@@ -25,4 +25,11 @@ if [ -f /app/data/runtime.env ]; then
   unset NEXT_PUBLIC_APP_URL
 fi
 
+# Cron diário de verificação de licenças (08:00)
+if command -v crond > /dev/null 2>&1; then
+  echo "0 8 * * * wget -qO- --header='x-cron-secret: ${CRON_SECRET}' --post-data='{}' --header='Content-Type: application/json' http://localhost:3000/api/cron/license-check > /proc/1/fd/1 2>&1" | crontab -
+  crond
+  echo "[*] Cron de licenças agendado para 08:00 diariamente"
+fi
+
 exec npm run start

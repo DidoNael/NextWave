@@ -10,8 +10,7 @@ export default async function LoginPage() {
 
   // 1. Se já estiver logado, manda direto pro dashboard (quebra o loop)
   if (session?.user) {
-    const orgSlug = (session.user as any).orgSlug || "default";
-    redirect(`/${orgSlug}`);
+    redirect("/dashboard");
   }
 
   // 2. Verificar setup no SERVIDOR (evita flash de tela e é mais rápido)

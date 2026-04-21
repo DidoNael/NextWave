@@ -49,7 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "warni
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
-const CATEGORIAS = ["Desenvolvimento", "Consultoria", "Design", "Manutenção", "Marketing", "Suporte", "Infraestrutura", "Outros"];
+const CATEGORIAS = ["Desenvolvimento", "Consultoria", "Design", "Manutenção", "Marketing", "Suporte", "Infraestrutura", "Outros", "plugin-grafana"];
 
 export default function ServicosPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -304,7 +304,11 @@ export default function ServicosPage() {
                         <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Nenhuma</SelectItem>
-                          {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          {CATEGORIAS.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c === "plugin-grafana" ? "🔌 Plugin Grafana" : c}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     )}

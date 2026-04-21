@@ -87,6 +87,7 @@ model Client {
   subscriptions  Subscription[]
   transactions   Transaction[]
   attachments    ClientAttachment[]
+  pluginLicenses PluginLicense[]
 }
 
 model ClientAttachment {
@@ -547,11 +548,15 @@ model PluginLicense {
   lastIp         String?
   domain         String?
   notes          String?
+  graceDays         Int       @default(10)
+  overdueDetectedAt DateTime?
+  lastWarningAt     DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   serviceId      String?       @unique
   clientId       String?
   organizationId String?
   service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  client         Client?       @relation(fields: [clientId], references: [id])
   organization   Organization? @relation(fields: [organizationId], references: [id])
 }

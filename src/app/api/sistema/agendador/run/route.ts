@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getLatestWhatsAppVersion } from "@/lib/tasks/whatsapp-version";
+import { headers } from "next/headers";
 
 export async function POST(req: Request) {
     try {
@@ -61,6 +62,25 @@ export async function POST(req: Request) {
                     count++;
                 }
                 result = `Processamento em lote concluído: ${count} notas geradas.`;
+                break;
+
+            default:
+                // Verificação de licenças de plugin
+            case "license_check":
+                const cronSecret = process.env.CRON_SECRET;
+                const licenseRes = await fetch(
+                    `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/cron/license-check`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-cron-secret": cronSecret ?? "",
+                        },
+                    }
+                );
+                const licenseData = await licenseRes.json();
+                result = `Licenças verificadas — suspensas: ${licenseData.suspended}, bloqueadas: ${licenseData.blocked}, avisadas: ${licenseData.warned}, reativadas: ${licenseData.reactivated}, erros: ${licenseData.errors}`;
+                success = licenseRes.ok;
                 break;
 
             default:

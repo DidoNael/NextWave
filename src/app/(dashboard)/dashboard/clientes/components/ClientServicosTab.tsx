@@ -1,4 +1,4 @@
-import { Plus, Briefcase, ExternalLink, Edit, Trash2, Clock } from "lucide-react";
+import { Plus, Briefcase, ExternalLink, Edit, Trash2, Clock, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -30,14 +30,26 @@ export function ClientServicosTab({
           services.map((svc: any) => (
             <div key={svc.id} className="group flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-border/50 hover:border-blue-500/30 transition-all">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-                  <Briefcase className="h-6 w-6" />
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${svc.category === "plugin-grafana" ? "bg-violet-500/10 text-violet-600" : "bg-blue-500/10 text-blue-600"}`}>
+                  {svc.category === "plugin-grafana" ? <Plug className="h-6 w-6" /> : <Briefcase className="h-6 w-6" />}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{svc.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{svc.title}</p>
+                    {svc.category === "plugin-grafana" && (
+                      <Badge className="text-[9px] bg-violet-500/10 text-violet-600 border-violet-500/20 font-bold px-1.5">🔌 Plugin Grafana</Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-[9px] uppercase font-bold">{svc.status}</Badge>
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase">{svc.category || "Sem categoria"}</span>
+                    {svc.category !== "plugin-grafana" && (
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase">{svc.category || "Sem categoria"}</span>
+                    )}
+                    {svc.pluginLicense && (
+                      <Badge variant="outline" className={`text-[9px] font-bold ${svc.pluginLicense.status === "active" ? "text-green-600 border-green-500/30" : svc.pluginLicense.status === "suspended" ? "text-amber-500 border-amber-500/30" : "text-destructive border-destructive/30"}`}>
+                        Licença {svc.pluginLicense.status === "active" ? "ativa" : svc.pluginLicense.status === "suspended" ? "suspensa" : "bloqueada"}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

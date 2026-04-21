@@ -78,13 +78,18 @@ export async function POST(req: Request) {
     const timestamp = req.headers.get("x-nws-timestamp");
 
     if (signature && timestamp && license.secretKey) {
+      // Garantimos a ordem das chaves para bater com o plugin
       const message = `${timestamp}.${JSON.stringify({ key, domain: host })}`;
       const expected = crypto
         .createHmac("sha256", license.secretKey)
         .update(message)
         .digest("hex");
 
-      if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      // timingSafeEqual exige que os buffers tenham o mesmo tamanho
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expected);
+      
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
         return respond({ valid: false, message: "Assinatura digital inválida." }, 401);
       }
     }
@@ -96,13 +101,43 @@ export async function POST(req: Request) {
       data: { lastValidAt: new Date(), lastIp: ip },
     });
 
-    if (license.status === "blocked") {
-      return respond({ valid: false, blocked: true, message: "Licença bloqueada permanentemente" });
+    if (license.status === "blocked" || license.status === "suspended") {
+      return respond({ valid: false, blocked: license.status === "blocked", message: "Licença Inválida" });
     }
 
-    if (license.status === "suspended") {
-      return respond({ valid: false, blocked: false, suspended: true, message: "Licença suspensa. Entre em contato com o suporte." });
+    // --- CHECK FINANCEIRO (Carência de 10 dias) ---
+    // Ignora check financeiro se for Trial
+    if (!license.isTrial && (license.clientId || license.serviceId)) {
+      const tenDaysAgo = new Date();
+      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+      // Busca transações pendentes vencidas há mais de 10 dias
+      const overdueTransaction = await prisma.transaction.findFirst({
+        where: {
+          OR: [
+            { clientId: license.clientId },
+            { serviceId: license.serviceId }
+          ],
+          type: "receita",
+          status: "pendente",
+          dueDate: {
+            lt: tenDaysAgo
+          }
+        },
+        orderBy: { dueDate: 'asc' }
+      });
+
+      if (overdueTransaction) {
+        console.log(`[License] Suspensão automática (Financeiro): Cliente ${license.customerName} - Fatura vencida em ${overdueTransaction.dueDate?.toLocaleDateString()}`);
+        return respond({ 
+          valid: false, 
+          blocked: false, 
+          suspended: true, 
+          message: "Licença Inválida" 
+        });
+      }
     }
+    // ----------------------------------------------
 
     // Verifica trial
     if (license.isTrial && license.trialEndsAt) {

@@ -1,18 +1,21 @@
 ﻿import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { Users, Receipt, Calendar, Briefcase, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Users, Receipt, Calendar, Briefcase, TrendingUp, TrendingDown, Clock, Plug, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   // Buscar dados reais do banco
-  const [totalClientes, totalTransacoes, totalEventos, totalProjetos] = await Promise.all([
+  const [totalClientes, totalTransacoes, totalEventos, totalProjetos, licencasSuspensas, licencasBloqueadas] = await Promise.all([
     prisma.client.count().catch(() => 0),
     prisma.transaction.findMany({ take: 5, orderBy: { createdAt: "desc" } }).catch(() => []),
     prisma.event.findMany({ take: 4, where: { status: "agendado" }, orderBy: { startDate: "asc" } }).catch(() => []),
     prisma.project.count().catch(() => 0),
+    prisma.pluginLicense.count({ where: { status: "suspended" } }).catch(() => 0),
+    prisma.pluginLicense.count({ where: { status: "blocked" } }).catch(() => 0),
   ]);
 
   const receitas = await prisma.transaction.aggregate({
@@ -63,6 +66,40 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Alertas de Licenças Plugin */}
+      {(licencasSuspensas > 0 || licencasBloqueadas > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {licencasSuspensas > 0 && (
+            <Link href="/dashboard/configuracoes/plugin-licenses?status=suspended">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex items-center gap-4 hover:bg-amber-500/10 transition-colors cursor-pointer">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-amber-600">{licencasSuspensas} licença{licencasSuspensas > 1 ? "s" : ""} suspensa{licencasSuspensas > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Plugin Grafana — inadimplência detectada</p>
+                </div>
+                <Plug className="h-4 w-4 text-amber-400 ml-auto shrink-0" />
+              </div>
+            </Link>
+          )}
+          {licencasBloqueadas > 0 && (
+            <Link href="/dashboard/configuracoes/plugin-licenses?status=blocked">
+              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-center gap-4 hover:bg-red-500/10 transition-colors cursor-pointer">
+                <div className="h-10 w-10 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+                  <Plug className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-600">{licencasBloqueadas} licença{licencasBloqueadas > 1 ? "s" : ""} bloqueada{licencasBloqueadas > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">Plugin Grafana — acesso cortado</p>
+                </div>
+                <AlertTriangle className="h-4 w-4 text-red-400 ml-auto shrink-0" />
+              </div>
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Ãšltimas transaÃ§Ãµes */}

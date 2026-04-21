@@ -42,8 +42,9 @@ function formatNotifTime(iso: string) {
 
 export function Header({ title, onMenuClick }: HeaderProps) {
   const pathname = usePathname();
+  const reservedPath = ["dashboard", "login", "setup", "api", "_next"];
   const orgSlug = pathname.split("/")[1] || "";
-  const base = orgSlug ? `/${orgSlug}` : "";
+  const base = (orgSlug && !reservedPath.includes(orgSlug)) ? `/${orgSlug}` : "";
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

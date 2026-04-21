@@ -13,8 +13,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Key, Plus, Loader2, Copy, Trash2, CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw
+import {
+  Key, Plus, Loader2, Copy, Trash2, CheckCircle2, XCircle, AlertCircle, Calendar, RefreshCw, Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -30,18 +30,32 @@ interface License {
   isTrial: boolean;
   trialEndsAt: string | null;
   createdAt: string;
+  clientId: string | null;
+  graceDays: number;
+  overdueDetectedAt: string | null;
+  lastWarningAt: string | null;
   service?: { title: string } | null;
+  client?: { name: string; id: string } | null;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
 }
 
 export default function PluginLicensesPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
 
   // Form states
+  const [selectedClientId, setSelectedClientId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [domain, setDomain] = useState("");
   const [isTrial, setIsTrial] = useState(false);
@@ -59,8 +73,19 @@ export default function PluginLicensesPage() {
     }
   };
 
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/clientes?all=true");
+      const data = await res.json();
+      if (data.clientes) setClients(data.clientes);
+    } catch (error) {
+      console.error("Erro ao buscar clientes");
+    }
+  };
+
   useEffect(() => {
     fetchLicenses();
+    fetchClients();
   }, []);
 
   const handleCreate = async () => {
@@ -75,7 +100,8 @@ export default function PluginLicensesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          customerName, 
+          customerName: selectedClientId ? clients.find(c => c.id === selectedClientId)?.name : customerName, 
+          clientId: selectedClientId || null,
           domain, 
           isTrial,
           expiresInDays: parseInt(expiresInDays)
@@ -118,6 +144,28 @@ export default function PluginLicensesPage() {
       toast.error("Erro ao remover");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: License["status"]) => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/plugin-licenses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+
+      if (res.ok) {
+        toast.success(`Status atualizado para ${status}`);
+        fetchLicenses();
+      } else {
+        toast.error("Falha ao atualizar status");
+      }
+    } catch (error) {
+      toast.error("Erro na requisição");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -170,9 +218,24 @@ export default function PluginLicensesPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Nome do Cliente</label>
-                <Input placeholder="Ex: Netstream Telecom" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                <label className="text-sm font-medium">Vincular Cliente</label>
+                <select 
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:ring-1 focus:ring-primary"
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                >
+                  <option value="">-- Personalizado (Sem Vínculo) --</option>
+                  {clients.map(client => (
+                    <option key={client.id} value={client.id}>{client.name}</option>
+                  ))}
+                </select>
               </div>
+              {!selectedClientId && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nome Customizado</label>
+                  <Input placeholder="Ex: Netstream Telecom" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Domínio (Opcional)</label>
                 <Input placeholder="Ex: crm.netstream.net.br" value={domain} onChange={(e) => setDomain(e.target.value)} />
@@ -215,7 +278,19 @@ export default function PluginLicensesPage() {
       <Card className="kpi-card overflow-hidden">
         <CardHeader className="bg-muted/30 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Licenças Ativas</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">Licenças de Plugin</CardTitle>
+              <select
+                className="h-8 px-2 rounded-md border border-input bg-background text-xs focus:ring-1 focus:ring-primary"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="todos">Todos os status</option>
+                <option value="active">Ativa</option>
+                <option value="suspended">Suspensa</option>
+                <option value="blocked">Bloqueada</option>
+              </select>
+            </div>
             <Button variant="ghost" size="icon" onClick={() => fetchLicenses()} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
@@ -228,6 +303,7 @@ export default function PluginLicensesPage() {
                 <TableHead className="w-[180px]">Cliente</TableHead>
                 <TableHead>Serviço Vinculado</TableHead>
                 <TableHead>Chave Pública / Secreta</TableHead>
+                <TableHead>Inadimplente há</TableHead>
                 <TableHead>Expira em</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -236,12 +312,12 @@ export default function PluginLicensesPage() {
               {loading ? (
                 Array(3).fill(0).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5} className="h-12 animate-pulse bg-muted/10" />
+                    <TableCell colSpan={6} className="h-12 animate-pulse bg-muted/10" />
                   </TableRow>
                 ))
-              ) : licenses.length === 0 ? (
+              ) : licenses.filter(l => statusFilter === "todos" || l.status === statusFilter).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                         <Key className="h-8 w-8 opacity-20" />
                         <p>Nenhuma licença encontrada</p>
@@ -249,11 +325,17 @@ export default function PluginLicensesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                licenses.map((license) => (
+                licenses
+                  .filter(l => statusFilter === "todos" || l.status === statusFilter)
+                  .map((license) => {
+                  const overdueDays = license.overdueDetectedAt
+                    ? Math.floor((Date.now() - new Date(license.overdueDetectedAt).getTime()) / 86400000)
+                    : null;
+                  return (
                   <TableRow key={license.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-semibold">
                       <div className="flex flex-col">
-                        <span>{license.customerName}</span>
+                        <span>{license.client?.name || license.customerName}</span>
                         {getStatusBadge(license.status, license.isTrial)}
                       </div>
                     </TableCell>
@@ -289,30 +371,91 @@ export default function PluginLicensesPage() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-xs">
+                      {overdueDays !== null ? (
+                        <span className={cn("flex items-center gap-1 font-medium", overdueDays >= 5 ? "text-destructive" : "text-amber-500")}>
+                          <Clock className="h-3 w-3" />
+                          {overdueDays} dia{overdueDays !== 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {license.isTrial 
+                        {license.isTrial
                           ? (license.trialEndsAt ? new Date(license.trialEndsAt).toLocaleDateString() : "Sem fim")
                           : (license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : "Vitalícia")
                         }
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          setLicenseToDelete(license);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {license.status === "active" ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-amber-500 hover:bg-amber-500/10"
+                            title="Suspender"
+                            onClick={() => handleUpdateStatus(license.id, "suspended")}
+                            disabled={isUpdating}
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                          </Button>
+                        ) : license.status === "suspended" ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-green-500 hover:bg-green-500/10"
+                            title="Reativar"
+                            onClick={() => handleUpdateStatus(license.id, "active")}
+                            disabled={isUpdating}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+
+                        {license.status !== "blocked" ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            title="Bloquear"
+                            onClick={() => handleUpdateStatus(license.id, "blocked")}
+                            disabled={isUpdating}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-green-500 hover:bg-green-500/10"
+                            title="Desbloquear"
+                            onClick={() => handleUpdateStatus(license.id, "active")}
+                            disabled={isUpdating}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => {
+                            setLicenseToDelete(license);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
