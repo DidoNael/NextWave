@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Instalar dependências de sistema necessárias para build e runtime
-RUN apk add --no-cache libc6-compat openssl git openssh python3 make g++
+RUN apk update && apk add --no-cache libc6-compat openssl git openssh python3 make g++
 
 WORKDIR /app
 
