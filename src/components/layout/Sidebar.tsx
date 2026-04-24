@@ -25,7 +25,7 @@ import {
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useColorTheme } from "@/components/providers/ColorProvider";
-import packageInfo from "../../../package.json";
+import { SYSTEM_INFO } from "@/lib/constants";
 
 const dashboardSubItems = [
   { href: "/dashboard/financeiro", label: "Financeiro", module: "financeiro" },
@@ -374,7 +374,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
           {!collapsed && (
             <p className="text-[10px] text-muted-foreground text-center opacity-40 mt-2">
-              v{packageInfo.version}
+              v{SYSTEM_INFO.version}
             </p>
           )}
         </div>
