@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
 import { NfseEmitirOptions } from '@/lib/financeiro/nfse/provider';
+import { nextRpsNumero } from '@/lib/financeiro/nfse/rps-counter';
 
 /**
  * POST /api/nfse/rotina
@@ -81,12 +82,9 @@ export async function POST(req: Request) {
     const failed: { serviceId: string; title: string; error: string }[] = [];
     const skipped: string[] = [];
 
-    // Obter o último número RPS uma única vez e incrementar localmente
-    const lastRecord = await prisma.nfseRecord.findFirst({
-        orderBy: { createdAt: 'desc' },
-        select: { rpsNumero: true },
-    });
-    let nextRps = lastRecord ? parseInt(lastRecord.rpsNumero) + 1 : 1;
+    // Reservar bloco de números RPS de forma atômica para toda a rotina
+    const firstRps = parseInt(await nextRpsNumero());
+    let nextRps = firstRps;
 
     for (const svc of eligible) {
         if (!svc.amount || svc.amount <= 0) {

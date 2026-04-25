@@ -11,12 +11,22 @@ import { GinfesAdapter } from './adapters/ginfes';
 import { EnotasAdapter, EnotasConfig } from './adapters/enotas';
 import { NfseProvider } from './provider';
 
+// Campos adicionados via migração SQL direta — tipagem explícita para evitar cast `any`
+interface NfeConfigExtended {
+    provider: string;
+    providerCredentials: string | null;
+}
+
+async function loadConfig(): Promise<(Awaited<ReturnType<typeof prisma.nfeConfig.findUnique>> & NfeConfigExtended) | null> {
+    return prisma.nfeConfig.findUnique({ where: { id: 'default' } }) as Promise<any>;
+}
+
 export async function getActiveNfseProvider(): Promise<NfseProvider | null> {
-    const config = await prisma.nfeConfig.findUnique({ where: { id: 'default' } });
+    const config = await loadConfig();
 
     if (!config || !config.cnpj) return null;
 
-    const provider = (config as any).provider ?? 'ginfes';
+    const provider = config.provider ?? 'ginfes';
 
     switch (provider) {
         case 'ginfes': {
@@ -24,7 +34,6 @@ export async function getActiveNfseProvider(): Promise<NfseProvider | null> {
             return new GinfesAdapter({
                 cnpj:               config.cnpj.replace(/\D/g, ''),
                 inscricaoMunicipal: config.inscricaoMunicipal,
-                // decryptCert aqui corrige bug latente: DELETE handler passava cert criptografado
                 certificadoBase64:  decryptCert(config.certificadoBase64),
                 senhaCertificado:   config.senhaCertificado
                     ? decryptCert(config.senhaCertificado)
@@ -34,18 +43,16 @@ export async function getActiveNfseProvider(): Promise<NfseProvider | null> {
         }
 
         case 'enotas': {
-            const raw = (config as any).providerCredentials as string | null;
-            if (!raw) return null;
+            if (!config.providerCredentials) return null;
 
             let creds: EnotasConfig;
             try {
-                creds = JSON.parse(raw) as EnotasConfig;
+                creds = JSON.parse(config.providerCredentials) as EnotasConfig;
             } catch {
                 console.error('[NFSE_FACTORY] providerCredentials JSON inválido para enotas');
                 return null;
             }
 
-            // ambiente vem do campo principal — única fonte da verdade
             creds.ambiente = (config.ambiente as 'homologacao' | 'producao') ?? 'homologacao';
             return new EnotasAdapter(creds);
         }

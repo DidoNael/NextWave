@@ -3,8 +3,9 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
 import { NfseEmitirOptions } from '@/lib/financeiro/nfse/provider';
+import { nextRpsNumero } from '@/lib/financeiro/nfse/rps-counter';
 
-// GET /api/nfse — listar notas emitidas
+// GET /api/nfse — listar notas emitidas (com paginação)
 export async function GET(req: Request) {
     const session = await auth();
     if (!session || !['admin', 'master'].includes(session.user?.role as string)) {
@@ -12,22 +13,37 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const clientId = searchParams.get('clientId');
+    const clientId  = searchParams.get('clientId');
     const serviceId = searchParams.get('serviceId');
-    const status = searchParams.get('status');
+    const status    = searchParams.get('status');
+    const page      = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit     = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const skip      = (page - 1) * limit;
 
     const where: any = {};
-    if (clientId) where.clientId = clientId;
+    if (clientId)  where.clientId  = clientId;
     if (serviceId) where.serviceId = serviceId;
-    if (status) where.status = status;
+    if (status)    where.status    = status;
 
-    const records = await prisma.nfseRecord.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: 100,
+    const [records, total] = await Promise.all([
+        prisma.nfseRecord.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+        }),
+        prisma.nfseRecord.count({ where }),
+    ]);
+
+    return NextResponse.json({
+        records,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
     });
-
-    return NextResponse.json(records);
 }
 
 // POST /api/nfse — emitir NFS-e
@@ -62,18 +78,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Configuração NFS-e não encontrada.' }, { status: 400 });
         }
 
-        // Gerar número RPS sequencial
-        const lastRecord = await prisma.nfseRecord.findFirst({
-            orderBy: { createdAt: 'desc' },
-            select: { rpsNumero: true },
-        });
-        const nextRpsNumero = lastRecord ? String(parseInt(lastRecord.rpsNumero) + 1) : '1';
+        // Gerar número RPS sequencial (atômico — sem race condition)
+        const rpsNumero = await nextRpsNumero();
         const loteId = `${Date.now()}`;
 
         // Criar registro com status pendente
         const record = await prisma.nfseRecord.create({
             data: {
-                rpsNumero: nextRpsNumero,
+                rpsNumero,
                 rpsSerie: config.serieRps || '1',
                 status: 'pendente',
                 valorServicos,
@@ -87,7 +99,7 @@ export async function POST(req: Request) {
 
         // Montar opções provider-agnostic
         const emitirOptions: NfseEmitirOptions = {
-            rpsNumero:        nextRpsNumero,
+            rpsNumero,
             rpsSerie:         config.serieRps || '1',
             rpsType:          config.tipoRps || '1',
             dataEmissao:      new Date().toISOString().split('T')[0],

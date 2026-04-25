@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
 import { NfseEmitirOptions } from '@/lib/financeiro/nfse/provider';
+import { nextRpsNumero } from '@/lib/financeiro/nfse/rps-counter';
 
 // POST /api/nfse/[id]/retry — reenvia uma nota com erro (aceita dados corrigidos no body)
 export async function POST(
@@ -53,19 +54,15 @@ export async function POST(
     const tomadorCep = (overrides.tomadorCep || '').replace(/\D/g, '') || '07000000';
     const tomadorEmail = overrides.tomadorEmail || undefined;
 
-    // Gerar novo número RPS para evitar duplicata no provedor
-    const lastRecord = await prisma.nfseRecord.findFirst({
-        orderBy: { createdAt: 'desc' },
-        select: { rpsNumero: true },
-    });
-    const nextRpsNumero = lastRecord ? String(parseInt(lastRecord.rpsNumero) + 1) : '1';
+    // Gerar novo número RPS para evitar duplicata no provedor (atômico)
+    const rpsNumero = await nextRpsNumero();
     const loteId = `${Date.now()}`;
 
     // Atualizar registro com dados corrigidos + limpar erro anterior
     await prisma.nfseRecord.update({
         where: { id: params.id },
         data: {
-            rpsNumero: nextRpsNumero,
+            rpsNumero,
             status: 'pendente',
             errorMessage: null,
             protocolo: null,
@@ -78,7 +75,7 @@ export async function POST(
     });
 
     const emitirOptions: NfseEmitirOptions = {
-        rpsNumero:        nextRpsNumero,
+        rpsNumero,
         rpsSerie:         record.rpsSerie || config.serieRps || '1',
         rpsType:          config.tipoRps || '1',
         dataEmissao:      new Date().toISOString().split('T')[0],
