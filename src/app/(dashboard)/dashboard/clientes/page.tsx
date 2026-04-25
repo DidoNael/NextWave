@@ -7,8 +7,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   Plus, Search, Pencil, Trash2, UserRound, Building2,
-  MapPin, Phone, Mail, CheckCircle2, AlertCircle,
+  MapPin, Phone, Mail, CheckCircle2, AlertCircle, Eye,
 } from "lucide-react";
+import { ClientProfile } from "@/app/[orgSlug]/(dashboard)/clientes/components/ClientProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -157,6 +158,9 @@ export default function ClientesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCliente, setDeletingCliente] = useState<Cliente | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // CEP state
   const [cepLoading, setCepLoading] = useState(false);
@@ -396,6 +400,7 @@ export default function ClientesPage() {
               </div>
               <div className="flex items-center"><StatusBadge status={cliente.status} /></div>
               <div className="flex items-center gap-1.5">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary" onClick={() => { setSelectedClientId(cliente.id); setProfileOpen(true); }} title="Ver perfil"><Eye className="h-3.5 w-3.5" /></Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cliente)}><Pencil className="h-3.5 w-3.5" /></Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(cliente)}><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
@@ -596,6 +601,19 @@ export default function ClientesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Client Profile (Serviços, Financeiro, NFS-e, Anexos) */}
+      {selectedClientId && (
+        <ClientProfile
+          clientId={selectedClientId}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          onEdit={(c) => {
+            setProfileOpen(false);
+            openEdit(c);
+          }}
+        />
+      )}
     </div>
   );
 }
