@@ -70,6 +70,16 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/", nextUrl));
   }
 
+  // 5. Redireciona /dashboard/* → /{orgSlug}/* quando o usuário tem orgSlug
+  if (isLoggedIn && nextUrl.pathname.startsWith("/dashboard")) {
+    const orgSlug = (req.auth?.user as any)?.orgSlug as string | null;
+    if (orgSlug) {
+      const subPath = nextUrl.pathname.replace(/^\/dashboard/, "") || "";
+      const target = `/${orgSlug}${subPath}${nextUrl.search}`;
+      return NextResponse.redirect(new URL(target, nextUrl));
+    }
+  }
+
   return NextResponse.next();
 });
 

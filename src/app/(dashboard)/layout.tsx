@@ -11,7 +11,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      {/* Backdrop mobile — fecha sidebar ao clicar fora */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 sm:hidden"
