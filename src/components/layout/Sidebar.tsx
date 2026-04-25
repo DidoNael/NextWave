@@ -153,12 +153,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     );
   }
 
+  // Quando em contexto orgSlug remove o prefixo /dashboard das rotas
+  const toOrgHref = (href: string) => base ? href.replace(/^\/dashboard/, "") || "/" : href;
+
   function renderNavItem(item: NavItem) {
-    const fullHref = `${base}${item.href === "/" ? "" : item.href}` || "/";
-    const isActive = relativePath === item.href || (item.href !== "/" && relativePath.startsWith(item.href));
+    const itemHref = toOrgHref(item.href);
+    const fullHref = `${base}${itemHref === "/" ? "" : itemHref}` || "/";
+    const isActive = relativePath === itemHref || (itemHref !== "/" && relativePath.startsWith(itemHref));
     const Icon = item.icon;
     const hasSubItems = !!item.subItems?.length;
-    const subActive = hasSubItems && item.subItems!.some(s => relativePath.startsWith(s.href));
+    const subActive = hasSubItems && item.subItems!.some(s => relativePath.startsWith(toOrgHref(s.href)));
 
     if (collapsed) {
       return (
@@ -199,8 +203,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {openMenus[item.href] && subs.length > 0 && (
             <div className="ml-3 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-border/60 pl-3">
               {subs.map(sub => {
-                const subFullHref = `${base}${sub.href}`;
-                const isSubActive = relativePath.startsWith(sub.href);
+                const subHref = toOrgHref(sub.href);
+                const subFullHref = `${base}${subHref}`;
+                const isSubActive = relativePath.startsWith(subHref);
                 return (
                   <Link
                     key={sub.href}
@@ -296,8 +301,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="border-t border-border py-3">
           <nav className="flex flex-col gap-1 px-2">
             {bottomItems.map(item => {
-              const fullHref = `${base}${item.href}`;
-              const isActive = relativePath === item.href;
+              const itemHref = toOrgHref(item.href);
+              const fullHref = `${base}${itemHref}`;
+              const isActive = relativePath === itemHref || relativePath.startsWith(itemHref + "/");
               const Icon = item.icon;
               if (collapsed) {
                 return (
