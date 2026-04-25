@@ -397,6 +397,10 @@ model NfeConfig {
   tipoRps                String   @default("1")
   naturezaOperacao       String   @default("1")
   optanteSimplesNacional String   @default("1")
+  /// Provedor ativo: "ginfes" (SOAP + certificado A1) ou "enotas" (REST SaaS)
+  provider               String   @default("ginfes")
+  /// Credenciais JSON para provedores SaaS. Ex: { "apiKey": "...", "empresaId": "..." }
+  providerCredentials    String?
   updatedAt              DateTime @updatedAt
 }
 

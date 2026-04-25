@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
-import { GinfesClient } from '@/lib/financeiro/ginfes/client';
-import { RpsData } from '@/lib/financeiro/ginfes/templates';
-import { decryptCert } from '@/lib/financeiro/ginfes/cert-crypto';
+import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
+import { NfseEmitirOptions } from '@/lib/financeiro/nfse/provider';
 
 // GET /api/nfse — listar notas emitidas
 export async function GET(req: Request) {
@@ -48,10 +47,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'discriminacao e valorServicos são obrigatórios' }, { status: 400 });
         }
 
-        // Carregar configuração
+        // Obter provedor ativo via factory
+        const nfseProvider = await getActiveNfseProvider();
+        if (!nfseProvider) {
+            return NextResponse.json(
+                { error: 'Provedor NFS-e não configurado. Acesse Configurações → NFS-e para configurar.' },
+                { status: 400 }
+            );
+        }
+
+        // Config fiscal ainda vem do banco (aliquota, itemListaServico, etc.)
         const config = await prisma.nfeConfig.findUnique({ where: { id: 'default' } });
-        if (!config || !config.certificadoBase64 || !config.cnpj) {
-            return NextResponse.json({ error: 'Configuração NFS-e incompleta. Configure certificado e dados fiscais.' }, { status: 400 });
+        if (!config) {
+            return NextResponse.json({ error: 'Configuração NFS-e não encontrada.' }, { status: 400 });
         }
 
         // Gerar número RPS sequencial
@@ -77,45 +85,36 @@ export async function POST(req: Request) {
             },
         });
 
-        // Montar dados RPS
-        const rpsData: RpsData = {
-            numero: nextRpsNumero,
-            serie: config.serieRps || '1',
-            tipo: config.tipoRps || '1',
-            dataEmissao: new Date().toISOString().split('T')[0],
+        // Montar opções provider-agnostic
+        const emitirOptions: NfseEmitirOptions = {
+            rpsNumero:        nextRpsNumero,
+            rpsSerie:         config.serieRps || '1',
+            rpsType:          config.tipoRps || '1',
+            dataEmissao:      new Date().toISOString().split('T')[0],
             valorServicos,
-            aliquota: config.aliquotaIss || 0.0215,
-            issRetido: '2', // 2 = Não retido
+            aliquota:         config.aliquotaIss || 0.0215,
+            issRetido:        '2', // 2 = Não retido
             itemListaServico: config.itemListaServico || '1.07',
-            codigoMunicipio: config.codigoMunicipio || '3514700',
+            codigoMunicipio:  config.codigoMunicipio || '3514700',
             discriminacao,
             prestador: {
-                cnpj: config.cnpj.replace(/\D/g, ''),
+                cnpj:               config.cnpj.replace(/\D/g, ''),
                 inscricaoMunicipal: config.inscricaoMunicipal,
             },
             tomador: {
-                cpfCnpj: (tomadorDoc || '').replace(/\D/g, '') || '00000000000',
-                razaoSocial: tomadorNome || 'Consumidor Final',
-                endereco: tomadorEndereco || 'Não informado',
-                numero: tomadorNumero || 'SN',
-                bairro: tomadorBairro || 'Não informado',
+                cpfCnpj:         (tomadorDoc || '').replace(/\D/g, '') || '00000000000',
+                razaoSocial:     tomadorNome || 'Consumidor Final',
+                endereco:        tomadorEndereco || 'Não informado',
+                numero:          tomadorNumero || 'SN',
+                bairro:          tomadorBairro || 'Não informado',
                 codigoMunicipio: tomadorCodigoMunicipio || config.codigoMunicipio || '3514700',
-                uf: tomadorUf || 'SP',
-                cep: (tomadorCep || '').replace(/\D/g, '') || '07000000',
-                email: tomadorEmail || undefined,
+                uf:              tomadorUf || 'SP',
+                cep:             (tomadorCep || '').replace(/\D/g, '') || '07000000',
+                email:           tomadorEmail || undefined,
             },
         };
 
-        // Chamar Ginfes
-        const client = new GinfesClient({
-            cnpj: config.cnpj.replace(/\D/g, ''),
-            inscricaoMunicipal: config.inscricaoMunicipal,
-            certificadoBase64: decryptCert(config.certificadoBase64),
-            senhaCertificado: config.senhaCertificado ? decryptCert(config.senhaCertificado) : '',
-            ambiente: (config.ambiente as 'homologacao' | 'producao') || 'homologacao',
-        });
-
-        const result = await client.emitirLote([rpsData], loteId);
+        const result = await nfseProvider.emitir(emitirOptions, loteId);
 
         if (result.erro) {
             await prisma.nfseRecord.update({
@@ -129,7 +128,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: result.erro, recordId: record.id }, { status: 422 });
         }
 
-        // Atualizar com protocolo
+        // Atualizar com protocolo/ID do provedor
         const updated = await prisma.nfseRecord.update({
             where: { id: record.id },
             data: {

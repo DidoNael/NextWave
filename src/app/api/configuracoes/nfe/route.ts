@@ -27,15 +27,20 @@ export async function GET() {
             tipoRps: '1',
             naturezaOperacao: '1',
             optanteSimplesNacional: '1',
+            provider: 'ginfes',
+            hasProviderCredentials: false,
         });
     }
 
-    // Não retornar o certificado base64 completo — apenas indicar se existe
-    const { certificadoBase64, ...rest } = config;
+    // Não retornar certificado ou credenciais em texto claro — apenas indicadores booleanos
+    const { certificadoBase64, ...rest } = config as any;
     return NextResponse.json({
         ...rest,
         hasCertificado: !!certificadoBase64,
-        senhaCertificado: '', // não expor senha
+        senhaCertificado: '',          // não expor senha
+        provider: (config as any).provider ?? 'ginfes',
+        hasProviderCredentials: !!(config as any).providerCredentials,
+        providerCredentials: undefined, // NUNCA expor credentials raw
     });
 }
 
@@ -53,11 +58,15 @@ export async function PUT(req: Request) {
             ambiente, aliquotaIss, itemListaServico,
             codigoMunicipio, serieRps, tipoRps,
             naturezaOperacao, optanteSimplesNacional,
+            provider,
+            providerCredentials,
         } = body;
 
         if (!cnpj || !inscricaoMunicipal || !razaoSocial) {
             return NextResponse.json({ error: 'CNPJ, inscrição municipal e razão social são obrigatórios' }, { status: 400 });
         }
+
+        const activeProvider = provider || 'ginfes';
 
         const data: any = {
             cnpj: cnpj.replace(/\D/g, ''),
@@ -71,15 +80,30 @@ export async function PUT(req: Request) {
             tipoRps: tipoRps || '1',
             naturezaOperacao: naturezaOperacao || '1',
             optanteSimplesNacional: optanteSimplesNacional || '1',
+            provider: activeProvider,
         };
 
-        // Só atualiza certificado se foi enviado — criptografa antes de salvar
-        if (certificadoBase64) {
-            data.certificadoBase64 = encryptCert(certificadoBase64);
+        // Certificado digital — apenas para GINFES e apenas se enviado
+        if (activeProvider === 'ginfes') {
+            if (certificadoBase64) {
+                data.certificadoBase64 = encryptCert(certificadoBase64);
+            }
+            if (senhaCertificado) {
+                data.senhaCertificado = encryptCert(senhaCertificado);
+            }
         }
-        // Senha criptografada com AES também
-        if (senhaCertificado) {
-            data.senhaCertificado = encryptCert(senhaCertificado);
+
+        // Credenciais SaaS — armazena JSON, não apaga se não enviado (preserva ao alternar)
+        if (providerCredentials !== undefined) {
+            if (providerCredentials) {
+                // Aceita tanto objeto quanto string JSON
+                const credsObj = typeof providerCredentials === 'string'
+                    ? JSON.parse(providerCredentials)
+                    : providerCredentials;
+                data.providerCredentials = JSON.stringify(credsObj);
+            } else {
+                data.providerCredentials = null;
+            }
         }
 
         const config = await prisma.nfeConfig.upsert({
@@ -88,8 +112,12 @@ export async function PUT(req: Request) {
             update: { ...data, updatedAt: new Date() },
         });
 
-        const { certificadoBase64: _cert, ...rest } = config;
-        return NextResponse.json({ ...rest, hasCertificado: !!_cert });
+        const { certificadoBase64: _cert, providerCredentials: _creds, ...rest } = config as any;
+        return NextResponse.json({
+            ...rest,
+            hasCertificado: !!_cert,
+            hasProviderCredentials: !!_creds,
+        });
     } catch (error: any) {
         console.error('[NFE_CONFIG_PUT_ERROR]', error);
         return NextResponse.json({ error: 'Erro ao salvar configuração' }, { status: 500 });
