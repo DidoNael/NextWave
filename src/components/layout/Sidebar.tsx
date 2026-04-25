@@ -29,9 +29,6 @@ import { SYSTEM_INFO } from "@/lib/constants";
 
 const dashboardSubItems = [
   { href: "/dashboard/financeiro", label: "Financeiro", module: "financeiro" },
-  { href: "/dashboard/clientes", label: "Clientes", module: "clientes" },
-  { href: "/dashboard/whatsapp/chat", label: "Chat WhatsApp", module: "whatsapp" },
-  { href: "/dashboard/whatsapp/fluxo", label: "Fluxo Automático", module: "whatsapp" },
 ];
 
 type SubItem = { href: string; label: string; module?: string };
