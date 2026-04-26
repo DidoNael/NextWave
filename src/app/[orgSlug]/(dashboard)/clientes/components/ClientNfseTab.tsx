@@ -318,7 +318,7 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
             {eligibleServices.length > 0 && (
               <div className="col-span-2 space-y-1.5">
                 <Label>Serviço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Select value={form.serviceId} onValueChange={v => {
+                <Select value={form.serviceId || "__none__"} onValueChange={v => {
                   const svc = services.find(s => s.id === v);
                   if (svc) {
                     f("serviceId", v);
@@ -330,7 +330,7 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
                 }}>
                   <SelectTrigger><SelectValue placeholder="Selecione um serviço (opcional)" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem vínculo de serviço</SelectItem>
+                    <SelectItem value="__none__">Sem vínculo de serviço</SelectItem>
                     {eligibleServices.map(s => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.title} — {formatCurrency(s.amount)}
