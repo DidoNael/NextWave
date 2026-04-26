@@ -17,7 +17,7 @@ export interface GinfesClientConfig {
 function buildSoapEnvelope(operation: string, xmlContent: string): string {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:ser="http://server.ws.nfe.isscuritiba.com.br">
+               xmlns:ser="http://www.ginfes.com.br/serve">
   <soap:Body>
     <ser:${operation}>
       <xml><![CDATA[${xmlContent}]]></xml>
@@ -34,7 +34,7 @@ async function soapCall(
     pfxPassword: string
 ): Promise<string> {
     const body = buildSoapEnvelope(operation, xmlContent);
-    const soapAction = `"${operation}"`;
+    const soapAction = `"http://www.ginfes.com.br/serve/${operation}"`;
 
     return new Promise((resolve, reject) => {
         const urlObj = new URL(url);
