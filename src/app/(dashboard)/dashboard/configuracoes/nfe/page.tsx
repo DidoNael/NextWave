@@ -29,6 +29,10 @@ interface NfeConfig {
     tipoRps: string;
     naturezaOperacao: string;
     optanteSimplesNacional: string;
+    regimeEspecialTributacao: string;
+    incentivadorCultural: string;
+    exigibilidadeIss: string;
+    codigoTributacaoMunicipio: string | null;
     provider?: string;
     hasProviderCredentials?: boolean;
 }
@@ -141,7 +145,11 @@ export default function NfeConfigPage() {
         serieRps: "1",
         tipoRps: "1",
         naturezaOperacao: "1",
-        optanteSimplesNacional: "1",
+        optanteSimplesNacional: "2",
+        regimeEspecialTributacao: "6",
+        incentivadorCultural: "2",
+        exigibilidadeIss: "1",
+        codigoTributacaoMunicipio: "",
         // upload certificado (GINFES)
         certificadoBase64: "",
         senhaCertificado: "",
@@ -172,7 +180,11 @@ export default function NfeConfigPage() {
                     serieRps: data.serieRps || "1",
                     tipoRps: data.tipoRps || "1",
                     naturezaOperacao: data.naturezaOperacao || "1",
-                    optanteSimplesNacional: data.optanteSimplesNacional || "1",
+                    optanteSimplesNacional: data.optanteSimplesNacional || "2",
+                    regimeEspecialTributacao: data.regimeEspecialTributacao || "6",
+                    incentivadorCultural: data.incentivadorCultural || "2",
+                    exigibilidadeIss: data.exigibilidadeIss || "1",
+                    codigoTributacaoMunicipio: data.codigoTributacaoMunicipio || "",
                     provider: (data.provider as "ginfes" | "enotas") || "ginfes",
                     hasProviderCredentials: !!data.hasProviderCredentials,
                 }));
@@ -276,6 +288,10 @@ export default function NfeConfigPage() {
                 tipoRps: form.tipoRps,
                 naturezaOperacao: form.naturezaOperacao,
                 optanteSimplesNacional: form.optanteSimplesNacional,
+                regimeEspecialTributacao: form.regimeEspecialTributacao,
+                incentivadorCultural: form.incentivadorCultural,
+                exigibilidadeIss: form.exigibilidadeIss,
+                codigoTributacaoMunicipio: form.codigoTributacaoMunicipio || null,
                 provider: form.provider,
                 ...(form.certificadoBase64 ? { certificadoBase64: form.certificadoBase64 } : {}),
                 ...(form.senhaCertificado ? { senhaCertificado: form.senhaCertificado } : {}),
@@ -714,6 +730,54 @@ export default function NfeConfigPage() {
                                     <SelectItem value="2">Não</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Regime Especial Tributação</Label>
+                            <Select value={form.regimeEspecialTributacao} onValueChange={v => setForm({ ...form, regimeEspecialTributacao: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1">1 — Estimativa</SelectItem>
+                                    <SelectItem value="2">2 — Soc. Profissionais</SelectItem>
+                                    <SelectItem value="3">3 — Cooperativa</SelectItem>
+                                    <SelectItem value="4">4 — MEI</SelectItem>
+                                    <SelectItem value="5">5 — ME / EPP</SelectItem>
+                                    <SelectItem value="6">6 — Nenhum</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Exigibilidade ISS</Label>
+                            <Select value={form.exigibilidadeIss} onValueChange={v => setForm({ ...form, exigibilidadeIss: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1">1 — Exigível</SelectItem>
+                                    <SelectItem value="2">2 — Não Incidência</SelectItem>
+                                    <SelectItem value="3">3 — Isenção</SelectItem>
+                                    <SelectItem value="4">4 — Exportação</SelectItem>
+                                    <SelectItem value="5">5 — Imunidade</SelectItem>
+                                    <SelectItem value="6">6 — Suspensa por Dec. Judicial</SelectItem>
+                                    <SelectItem value="7">7 — Suspensa por Proc. Adm.</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Incentivador Cultural</Label>
+                            <Select value={form.incentivadorCultural} onValueChange={v => setForm({ ...form, incentivadorCultural: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1">Sim</SelectItem>
+                                    <SelectItem value="2">Não</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Código Tributação Município</Label>
+                            <Input
+                                value={form.codigoTributacaoMunicipio}
+                                onChange={e => setForm({ ...form, codigoTributacaoMunicipio: e.target.value })}
+                                placeholder="ex: 620910003"
+                            />
+                            <p className="text-xs text-muted-foreground">Código municipal do serviço (parte após / no campo Serviço/Atividade do GINFES)</p>
                         </div>
                     </CardContent>
                 </Card>
