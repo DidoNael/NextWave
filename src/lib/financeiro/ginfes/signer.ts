@@ -21,10 +21,11 @@ export class GinfesSigner {
 
     /**
      * Assina o elemento `tagToSign` identificado por `Id="${elementId}"`.
-     * Implementação manual do XMLDSig Enveloped + Exc-C14N, sem depender de
-     * XPath interno do xml-crypto (que causa "XPath parse error" em v6).
+     * @param insertAfterClose Se true, a Signature é inserida APÓS </tagToSign>
+     *   (enveloped no pai) — padrão GINFES para InfRps e LoteRps.
+     *   Se false (padrão legado), a Signature vai dentro do elemento assinado.
      */
-    public signXml(xml: string, tagToSign: string, elementId: string): string {
+    public signXml(xml: string, tagToSign: string, elementId: string, insertAfterClose = true): string {
         const privateKeyPem = forge.pki.privateKeyToPem(this.key);
         const certPem = forge.pki.certificateToPem(this.cert);
         const certContent = this.cleanCert(certPem);
@@ -94,10 +95,20 @@ export class GinfesSigner {
             `</Signature>`,
         ].join('');
 
-        // 10. Inserir Signature imediatamente antes do fechamento do elemento-alvo
+        // 10. Inserir Signature
         const closingTag = `</${tagToSign}>`;
         const lastIdx = xmlToSign.lastIndexOf(closingTag);
         if (lastIdx === -1) throw new Error(`Tag </${tagToSign}> não encontrada`);
+
+        if (insertAfterClose) {
+            // Signature vai APÓS o fechamento do elemento (padrão GINFES)
+            const afterClose = lastIdx + closingTag.length;
+            return (
+                xmlToSign.substring(0, afterClose) +
+                signatureBlock +
+                xmlToSign.substring(afterClose)
+            );
+        }
 
         return (
             xmlToSign.substring(0, lastIdx) +
