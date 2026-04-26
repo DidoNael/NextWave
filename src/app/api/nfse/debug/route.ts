@@ -165,16 +165,26 @@ export async function POST(req: Request) {
                 req2.end();
             });
 
-            const hasProtocolo = resposta.includes('Protocolo') || resposta.includes('protocolo');
-            const hasFault = resposta.includes('faultstring') || resposta.includes('mensagem');
+            // GINFES retorna o XML interno dentro de <return> como HTML-encoded
+            const returnMatch = resposta.match(/<(?:[^:>]+:)?return[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?return>/);
+            const innerXml = returnMatch
+                ? returnMatch[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&')
+                : resposta;
+
+            const hasProtocolo = innerXml.includes('Protocolo') || innerXml.includes('protocolo');
+            const hasFault = innerXml.includes('faultstring') || innerXml.includes('Mensagem') || innerXml.includes('mensagem');
+            const protocolo = innerXml.match(/<(?:[^:>]+:)?Protocolo[^>]*>(.*?)<\/(?:[^:>]+:)?Protocolo>/)?.[1];
+            const mensagem = innerXml.match(/<(?:[^:>]+:)?Mensagem[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?Mensagem>/)?.[1]
+                || innerXml.match(/<faultstring>(.*?)<\/faultstring>/)?.[1];
+
             steps.push({
                 step: `Enviar ao Ginfes (${config.ambiente})`,
-                ok: hasProtocolo,
-                detail: hasFault
-                    ? (resposta.match(/<faultstring>(.*?)<\/faultstring>/)?.[1] || resposta.match(/<mensagem>(.*?)<\/mensagem>/)?.[1] || 'Fault sem mensagem')
+                ok: hasProtocolo && !hasFault,
+                detail: hasFault && !hasProtocolo
+                    ? `Erro GINFES: ${mensagem || 'sem detalhe'}`
                     : hasProtocolo
-                        ? `Protocolo recebido: ${resposta.match(/<Protocolo>(.*?)<\/Protocolo>/)?.[1] || '?'}`
-                        : `Resposta inesperada (${resposta.length} bytes): ${resposta.substring(0, 300)}`,
+                        ? `Protocolo recebido: ${protocolo || '?'}`
+                        : `Resposta inesperada (${resposta.length} bytes): ${innerXml.substring(0, 300)}`,
             });
         } catch (e: any) {
             steps.push({ step: `Enviar ao Ginfes (${config.ambiente})`, ok: false, detail: e.message });

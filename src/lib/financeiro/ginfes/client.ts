@@ -83,8 +83,20 @@ async function soapCall(
 }
 
 function extractTagContent(xml: string, tag: string): string | null {
-    const match = xml.match(new RegExp(`<${tag}[^>]*>(.*?)<\\/${tag}>`));
+    const match = xml.match(new RegExp(`<(?:[^:>]+:)?${tag}[^>]*>([\\s\\S]*?)</(?:[^:>]+:)?${tag}>`));
     return match ? match[1].trim() : null;
+}
+
+/** Extrai e decodifica HTML entities do conteúdo do <return> do GINFES */
+function decodeGinfesReturn(soapXml: string): string {
+    const returnMatch = soapXml.match(/<(?:[^:>]+:)?return[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?return>/);
+    if (!returnMatch) return soapXml;
+    return returnMatch[1]
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&apos;/g, "'");
 }
 
 /** Remove dados sensíveis de objetos de erro antes de logar */
@@ -157,11 +169,12 @@ export class GinfesClient {
                 this.ambiente
             );
 
-            const fault = parseSoapFault(xmlRetorno);
+            const innerXml = decodeGinfesReturn(xmlRetorno);
+            const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
             if (fault) return { erro: fault, xmlRetorno };
 
-            const protocolo = extractTagContent(xmlRetorno, 'Protocolo') ||
-                extractTagContent(xmlRetorno, 'protocolo');
+            const protocolo = extractTagContent(innerXml, 'Protocolo') ||
+                extractTagContent(innerXml, 'protocolo');
 
             return { protocolo: protocolo || undefined, xmlRetorno };
         } catch (err) {
@@ -190,16 +203,17 @@ export class GinfesClient {
             this.ambiente
         );
 
-        const fault = parseSoapFault(xmlRetorno);
+        const innerXml = decodeGinfesReturn(xmlRetorno);
+        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
         if (fault) return { erro: fault, xmlRetorno };
 
-        const situacao = extractTagContent(xmlRetorno, 'Situacao');
+        const situacao = extractTagContent(innerXml, 'Situacao');
 
         // Extrair lista de NFS-e se processado com sucesso
         const nfseList: Array<{ numero: string; codigoVerificacao: string }> = [];
-        const nfseRegex = /<Nfse>([\s\S]*?)<\/Nfse>/g;
+        const nfseRegex = /<(?:[^:>]+:)?Nfse[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?Nfse>/g;
         let nfseMatch: RegExpExecArray | null;
-        while ((nfseMatch = nfseRegex.exec(xmlRetorno)) !== null) {
+        while ((nfseMatch = nfseRegex.exec(innerXml)) !== null) {
             const inner = nfseMatch[1];
             const numero = extractTagContent(inner, 'Numero') || '';
             const codigo = extractTagContent(inner, 'CodigoVerificacao') || '';
@@ -233,12 +247,13 @@ export class GinfesClient {
             this.ambiente
         );
 
-        const fault = parseSoapFault(xmlRetorno);
+        const innerXml = decodeGinfesReturn(xmlRetorno);
+        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
         if (fault) return { erro: fault, xmlRetorno };
 
-        const numero = extractTagContent(xmlRetorno, 'Numero');
-        const codigoVerificacao = extractTagContent(xmlRetorno, 'CodigoVerificacao');
-        const linkDownload = extractTagContent(xmlRetorno, 'OutrasInformacoes') || undefined;
+        const numero = extractTagContent(innerXml, 'Numero');
+        const codigoVerificacao = extractTagContent(innerXml, 'CodigoVerificacao');
+        const linkDownload = extractTagContent(innerXml, 'OutrasInformacoes') || undefined;
 
         if (!numero) return { erro: 'NFS-e não encontrada', xmlRetorno };
 
@@ -271,10 +286,11 @@ export class GinfesClient {
             this.ambiente
         );
 
-        const fault = parseSoapFault(xmlRetorno);
+        const innerXml = decodeGinfesReturn(xmlRetorno);
+        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
         if (fault) return { sucesso: false, erro: fault, xmlRetorno };
 
-        const sucesso = xmlRetorno.includes('NfseCancelamento') || xmlRetorno.includes('Sucesso');
+        const sucesso = innerXml.includes('NfseCancelamento') || innerXml.includes('Sucesso');
         return { sucesso, xmlRetorno };
     }
 }
