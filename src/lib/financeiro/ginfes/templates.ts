@@ -48,8 +48,8 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
             <tipos:Aliquota>${rps.aliquota.toFixed(4)}</tipos:Aliquota>
           </tipos:Valores>
           <tipos:ItemListaServico>${rps.itemListaServico}</tipos:ItemListaServico>
-          <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
           <tipos:Discriminacao>${rps.discriminacao}</tipos:Discriminacao>
+          <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
         </tipos:Servico>
         <tipos:Prestador>
           <tipos:Cnpj>${rps.prestador.cnpj}</tipos:Cnpj>

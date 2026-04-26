@@ -31,8 +31,8 @@ const XML_TESTE = (cnpj: string, im: string) => `<?xml version="1.0" encoding="U
               <tipos:Aliquota>0.0215</tipos:Aliquota>
             </tipos:Valores>
             <tipos:ItemListaServico>1.07</tipos:ItemListaServico>
-            <tipos:CodigoMunicipio>3518800</tipos:CodigoMunicipio>
             <tipos:Discriminacao>TESTE DE DIAGNOSTICO - NAO PROCESSAR</tipos:Discriminacao>
+            <tipos:CodigoMunicipio>3518800</tipos:CodigoMunicipio>
           </tipos:Servico>
           <tipos:Prestador>
             <tipos:Cnpj>${cnpj}</tipos:Cnpj>
