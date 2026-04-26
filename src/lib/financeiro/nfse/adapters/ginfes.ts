@@ -13,6 +13,7 @@ import {
     NfseEmitirResult,
     NfseCancelarResult,
     NfseConsultarResult,
+    NfseSincronizarResult,
 } from '../provider';
 
 export class GinfesAdapter extends NfseProvider {
@@ -62,6 +63,20 @@ export class GinfesAdapter extends NfseProvider {
         }
 
         return { xmlRetorno: result.xmlRetorno };
+    }
+
+    async sincronizarPorRps(rpsNumero: string, rpsSerie: string, rpsTipo: string): Promise<NfseSincronizarResult> {
+        const result = await this.client.consultarNfsePorRps(rpsNumero, rpsSerie, rpsTipo);
+
+        if (result.erro) {
+            return { erro: result.erro, xmlRetorno: result.xmlRetorno };
+        }
+
+        return {
+            numeroNfse:         result.nfse?.numero,
+            codigoVerificacao:  result.nfse?.codigoVerificacao || undefined,
+            xmlRetorno:         result.xmlRetorno,
+        };
     }
 
     async consultarLote(protocolo: string): Promise<NfseConsultarResult> {

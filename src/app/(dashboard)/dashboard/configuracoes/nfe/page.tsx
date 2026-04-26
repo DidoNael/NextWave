@@ -72,6 +72,7 @@ export default function NfeConfigPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [limpando, setLimpando] = useState(false);
     const [rotina, setRotina] = useState<{ running: boolean; result: any | null }>({ running: false, result: null });
+    const [sync, setSync] = useState<{ running: boolean; forceAll: boolean; result: any | null }>({ running: false, forceAll: false, result: null });
     const [xmlModal, setXmlModal] = useState<{ open: boolean; enviado: string; retorno: string; erro: string } | null>(null);
     const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
@@ -763,6 +764,81 @@ export default function NfeConfigPage() {
                         {rotina.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                         {rotina.running ? 'Processando...' : 'Executar Rotina Agora'}
                     </Button>
+                </CardContent>
+            </Card>
+
+            {/* Sincronizar NFS-e */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-primary" /> Sincronizar Notas Emitidas
+                    </CardTitle>
+                    <CardDescription>
+                        Re-consulta o provedor GINFES por RPS e atualiza número da nota e código de verificação
+                        para registros que estejam divergentes ou sem código de verificação.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {sync.result && (
+                        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
+                            <p className="font-semibold">{sync.result.summary}</p>
+                            {sync.result.detalhes?.length > 0 && (
+                                <details className="mt-2">
+                                    <summary className="text-xs text-muted-foreground cursor-pointer">Ver detalhes ({sync.result.detalhes.length})</summary>
+                                    <div className="mt-2 space-y-0.5 max-h-40 overflow-y-auto">
+                                        {sync.result.detalhes.map((d: any) => (
+                                            <p key={d.id} className="text-xs font-mono">RPS {d.rps}: {d.resultado}</p>
+                                        ))}
+                                    </div>
+                                </details>
+                            )}
+                        </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={async () => {
+                                setSync(s => ({ ...s, running: true, forceAll: false, result: null }));
+                                try {
+                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ forceAll: false }) });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data?.error ?? 'Erro na sincronização');
+                                    setSync(s => ({ ...s, running: false, result: data }));
+                                    toast.success(data.summary);
+                                    fetchRecords();
+                                } catch (e: any) {
+                                    setSync(s => ({ ...s, running: false, result: null }));
+                                    toast.error(e.message);
+                                }
+                            }}
+                            disabled={sync.running}
+                            className="gap-2"
+                        >
+                            {sync.running && !sync.forceAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            Sincronizar sem código de verificação
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                setSync(s => ({ ...s, running: true, forceAll: true, result: null }));
+                                try {
+                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ forceAll: true }) });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data?.error ?? 'Erro na sincronização');
+                                    setSync(s => ({ ...s, running: false, result: data }));
+                                    toast.success(data.summary);
+                                    fetchRecords();
+                                } catch (e: any) {
+                                    setSync(s => ({ ...s, running: false, result: null }));
+                                    toast.error(e.message);
+                                }
+                            }}
+                            disabled={sync.running}
+                            className="gap-2"
+                        >
+                            {sync.running && sync.forceAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            Forçar sincronização completa (50 notas)
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

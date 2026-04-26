@@ -58,6 +58,13 @@ export interface NfseConsultarResult {
     xmlRetorno?: string;
 }
 
+export interface NfseSincronizarResult {
+    numeroNfse?: string;
+    codigoVerificacao?: string;
+    erro?: string;
+    xmlRetorno?: string;
+}
+
 export abstract class NfseProvider {
     abstract readonly name: string;
     abstract readonly provider: string;
@@ -89,4 +96,14 @@ export abstract class NfseProvider {
     abstract consultarLote(
         protocolo: string
     ): Promise<NfseConsultarResult>;
+
+    /**
+     * Consulta NFS-e por número de RPS — usado para sincronizar registros já emitidos.
+     * Retorna número da nota e código de verificação atualizados do provedor.
+     */
+    abstract sincronizarPorRps(
+        rpsNumero: string,
+        rpsSerie: string,
+        rpsTipo: string,
+    ): Promise<NfseSincronizarResult>;
 }

@@ -15,6 +15,7 @@ import {
     NfseEmitirResult,
     NfseCancelarResult,
     NfseConsultarResult,
+    NfseSincronizarResult,
 } from '../provider';
 
 export interface EnotasConfig {
@@ -128,6 +129,11 @@ export class EnotasAdapter extends NfseProvider {
         } catch (err: any) {
             throw new Error(`Erro ao cancelar no eNotas: ${err?.message ?? 'desconhecido'}`);
         }
+    }
+
+    async sincronizarPorRps(_rpsNumero: string, _rpsSerie: string, _rpsTipo: string): Promise<NfseSincronizarResult> {
+        // eNotas não expõe busca por RPS — retorna sem erro para não bloquear o lote
+        return { erro: 'Sincronização por RPS não suportada pelo eNotas' };
     }
 
     async consultarLote(protocolo: string): Promise<NfseConsultarResult> {
