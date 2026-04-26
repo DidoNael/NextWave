@@ -105,9 +105,9 @@ async function emitirNfseAutomatico(
   // Buscar dados do cliente para preencher o tomador
   const client = transaction.clientId
     ? await prisma.client.findUnique({
-        where: { id: transaction.clientId },
-        select: { name: true, document: true, email: true, address: true, number: true, neighborhood: true, city: true, state: true, zipCode: true },
-      })
+      where: { id: transaction.clientId },
+      select: { name: true, document: true, email: true, address: true, number: true, neighborhood: true, city: true, state: true, zipCode: true },
+    })
     : null;
 
   const rpsNum = await nextRpsNumero();
@@ -116,43 +116,54 @@ async function emitirNfseAutomatico(
 
   const record = await prisma.nfseRecord.create({
     data: {
-      rpsNumero:    rpsNum,
-      rpsSerie:     (config as any).serieRps || '1',
-      status:       'pendente',
+      rpsNumero: rpsNum,
+      rpsSerie: (config as any).serieRps || '1',
+      status: 'pendente',
       valorServicos: transaction.amount,
       discriminacao,
-      tomadorNome:  client?.name ?? null,
-      tomadorDoc:   client?.document ?? null,
-      serviceId:    transaction.serviceId,
-      clientId:     transaction.clientId ?? null,
+      tomadorNome: client?.name ?? null,
+      tomadorDoc: client?.document ?? null,
+      serviceId: transaction.serviceId,
+      clientId: transaction.clientId ?? null,
     },
   });
 
+  const now = new Date();
+  const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0];
+  const dataCompetenciaFmt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+
   const emitirOptions: NfseEmitirOptions = {
-    rpsNumero:        rpsNum,
-    rpsSerie:         (config as any).serieRps || '1',
-    rpsType:          (config as any).tipoRps || '1',
-    dataEmissao:      new Date().toISOString().split('T')[0],
-    valorServicos:    transaction.amount,
-    aliquota:         config.aliquotaIss || 0.0215,
-    issRetido:        '2',
+    rpsNumero: rpsNum,
+    rpsSerie: (config as any).serieRps || '1',
+    rpsType: (config as any).tipoRps || '1',
+    dataEmissao: dataEmissaoFmt,
+    dataCompetencia: dataCompetenciaFmt,
+    valorServicos: transaction.amount,
+    aliquota: config.aliquotaIss || 0.0215,
+    issRetido: '2',
     itemListaServico: config.itemListaServico || '1.07',
-    codigoMunicipio:  config.codigoMunicipio || '3514700',
+    codigoMunicipio: config.codigoMunicipio || '3514700',
     discriminacao,
+    naturezaOperacao:          (config as any).naturezaOperacao          || '1',
+    optanteSimplesNacional:    (config as any).optanteSimplesNacional    || '1',
+    regimeEspecialTributacao:  (config as any).regimeEspecialTributacao  || '6',
+    incentivadorCultural:      (config as any).incentivadorCultural      || '2',
+    exigibilidadeIss:          (config as any).exigibilidadeIss          || '1',
+    codigoTributacaoMunicipio: (config as any).codigoTributacaoMunicipio || undefined,
     prestador: {
-      cnpj:               config.cnpj.replace(/\D/g, ''),
+      cnpj: config.cnpj.replace(/\D/g, ''),
       inscricaoMunicipal: config.inscricaoMunicipal,
     },
     tomador: {
-      cpfCnpj:         (client?.document ?? '').replace(/\D/g, '') || '00000000000',
-      razaoSocial:     client?.name ?? 'Consumidor Final',
-      endereco:        client?.address ?? 'Não informado',
-      numero:          client?.number ?? 'SN',
-      bairro:          client?.neighborhood ?? 'Não informado',
+      cpfCnpj: (client?.document ?? '').replace(/\D/g, '') || '00000000000',
+      razaoSocial: client?.name ?? 'Consumidor Final',
+      endereco: client?.address ?? 'Não informado',
+      numero: client?.number ?? 'SN',
+      bairro: client?.neighborhood ?? 'Não informado',
       codigoMunicipio: config.codigoMunicipio || '3514700',
-      uf:              client?.state ?? 'SP',
-      cep:             (client?.zipCode ?? '').replace(/\D/g, '') || '07000000',
-      email:           client?.email ?? undefined,
+      uf: client?.state ?? 'SP',
+      cep: (client?.zipCode ?? '').replace(/\D/g, '') || '07000000',
+      email: client?.email ?? undefined,
     },
   };
 
