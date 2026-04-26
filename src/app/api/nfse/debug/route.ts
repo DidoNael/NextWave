@@ -130,7 +130,7 @@ export async function POST(req: Request) {
     if (sendToGinfes) {
         try {
             const baseUrl = config.ambiente === 'producao'
-                ? 'https://guarulhos.ginfes.com.br/ServiceGinfesImpl'
+                ? 'https://producao.ginfes.com.br/ServiceGinfesImpl'
                 : 'https://homologacao.ginfes.com.br/ServiceGinfesImpl';
             const pfxBuffer = Buffer.from(certBase64, 'base64');
             const senha = config.senhaCertificado ? decryptCert(config.senhaCertificado) : '';

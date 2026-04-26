@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { GinfesSigner } from './signer';
 import { generateLoteRpsXml, RpsData } from './templates';
 
-const URL_PROD = 'https://guarulhos.ginfes.com.br/ServiceGinfesImpl';
+const URL_PROD = 'https://producao.ginfes.com.br/ServiceGinfesImpl';
 const URL_HOMOLOG = 'https://homologacao.ginfes.com.br/ServiceGinfesImpl';
 
 const NS_HOMOLOG = 'http://homologacao.ginfes.com.br';
