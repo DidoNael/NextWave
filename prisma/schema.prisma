@@ -71,6 +71,7 @@ model Client {
   city           String?
   state          String?
   zipCode        String?
+  cityCode       String?
   notes          String?
   status         String             @default("ativo")
   registrationId Int?               @unique

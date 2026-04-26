@@ -16,6 +16,7 @@ const clienteSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
+  cityCode: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ativo", "inativo", "prospecto"]).default("ativo"),
 });

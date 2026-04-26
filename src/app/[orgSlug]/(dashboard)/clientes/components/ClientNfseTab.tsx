@@ -129,7 +129,7 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
       tomadorEndereco:        client?.address ?? "",
       tomadorNumero:          client?.number ?? "",
       tomadorBairro:          client?.neighborhood ?? "",
-      tomadorCodigoMunicipio: "",
+      tomadorCodigoMunicipio: (client as any)?.cityCode ?? "",
       tomadorUf:              client?.state ?? "",
       tomadorCep:             (client?.zipCode ?? "").replace(/\D/g, ""),
     });
