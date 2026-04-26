@@ -29,11 +29,11 @@ function formatCurrency(v: number) {
 
 function NfseBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-    pendente:                 { label: "Pendente",      cls: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",  icon: <Clock className="h-3 w-3" /> },
-    aguardando_processamento: { label: "Aguardando",    cls: "bg-blue-500/15 text-blue-600 border-blue-500/30",        icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-    emitida:                  { label: "Emitida",       cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
-    cancelada:                { label: "Cancelada",     cls: "bg-slate-500/15 text-slate-600 border-slate-500/30",     icon: <XCircle className="h-3 w-3" /> },
-    erro:                     { label: "Erro",          cls: "bg-red-500/15 text-red-600 border-red-500/30",           icon: <AlertTriangle className="h-3 w-3" /> },
+    pendente: { label: "Pendente", cls: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30", icon: <Clock className="h-3 w-3" /> },
+    aguardando_processamento: { label: "Aguardando", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    emitida: { label: "Emitida", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
+    cancelada: { label: "Cancelada", cls: "bg-slate-500/15 text-slate-600 border-slate-500/30", icon: <XCircle className="h-3 w-3" /> },
+    erro: { label: "Erro", cls: "bg-red-500/15 text-red-600 border-red-500/30", icon: <AlertTriangle className="h-3 w-3" /> },
   };
   const s = map[status] ?? map.pendente;
   return (
@@ -119,18 +119,19 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
 
   function openEmit(svc?: any) {
     setForm({
-      serviceId: svc?.id ?? "",
-      discriminacao: svc ? `${svc.title}${svc.description ? " — " + svc.description : ""}` : "",
-      valorServicos: svc ? String(svc.amount) : "",
-      tomadorNome: client?.name ?? "",
-      tomadorDoc: (client?.document ?? "").replace(/\D/g, ""),
-      tomadorEmail: client?.email ?? "",
-      tomadorEndereco: client?.address ?? "",
-      tomadorNumero: client?.number ?? "",
-      tomadorBairro: client?.neighborhood ?? "",
+      serviceId:              svc?.id ?? "",
+      discriminacao:          svc ? `${svc.title}${svc.description ? " — " + svc.description : ""}` : "",
+      valorServicos:          svc ? String(svc.amount) : "",
+      dataCompetencia:        currentMonth,
+      tomadorNome:            client?.name ?? "",
+      tomadorDoc:             (client?.document ?? "").replace(/\D/g, ""),
+      tomadorEmail:           client?.email ?? "",
+      tomadorEndereco:        client?.address ?? "",
+      tomadorNumero:          client?.number ?? "",
+      tomadorBairro:          client?.neighborhood ?? "",
       tomadorCodigoMunicipio: "",
-      tomadorUf: client?.state ?? "",
-      tomadorCep: (client?.zipCode ?? "").replace(/\D/g, ""),
+      tomadorUf:              client?.state ?? "",
+      tomadorCep:             (client?.zipCode ?? "").replace(/\D/g, ""),
     });
     setEmitOpen(true);
   }
@@ -175,13 +176,22 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
     }
   }
 
-  async function handleCancel(id: string) {
+  async function handleCancel(id: string, status: string) {
     setCancellingId(id);
     try {
-      const res = await fetch(`/api/nfse/${id}/excluir`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Erro ao cancelar");
-      toast.success("NFS-e cancelada.");
+      if (status === "emitida") {
+        // Cancela no GINFES e marca como cancelada no banco
+        const res = await fetch(`/api/nfse/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "Erro ao cancelar NFS-e no GINFES");
+        toast.success("NFS-e cancelada no GINFES.");
+      } else {
+        // Só remove o registro local (pendente / aguardando / erro)
+        const res = await fetch(`/api/nfse/${id}/excluir`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "Erro ao excluir registro");
+        toast.success("Registro excluído.");
+      }
       fetchRecords();
     } catch (e: any) {
       toast.error(e.message);
@@ -277,8 +287,8 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                     disabled={cancellingId === rec.id}
-                    onClick={() => handleCancel(rec.id)}
-                    title="Cancelar NFS-e"
+                    onClick={() => handleCancel(rec.id, rec.status)}
+                    title={rec.status === "emitida" ? "Cancelar NFS-e no GINFES" : "Excluir registro"}
                   >
                     {cancellingId === rec.id
                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
