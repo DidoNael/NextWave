@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     // Verifica quais já existem pelo numeroNfse
-    const numerosEncontrados = resultado.notas.map(n => n.numeroNfse);
+    const numerosEncontrados = resultado.notas.map((n: any) => n.numeroNfse);
     const existentes = await prisma.nfseRecord.findMany({
         where: { numeroNfse: { in: numerosEncontrados } },
         select: { id: true, numeroNfse: true },

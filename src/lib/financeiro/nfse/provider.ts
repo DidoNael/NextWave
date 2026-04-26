@@ -104,6 +104,14 @@ export abstract class NfseProvider {
     abstract sincronizarPorRps(
         rpsNumero: string,
         rpsSerie: string,
-        rpsTipo: string,
+        rpsTipo: string
     ): Promise<NfseSincronizarResult>;
+
+    /**
+     * Importa notas emitidas no período.
+     */
+    abstract importarPorPeriodo(
+        dataInicial: string,
+        dataFinal: string
+    ): Promise<any>;
 }

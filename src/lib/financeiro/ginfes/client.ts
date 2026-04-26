@@ -141,15 +141,17 @@ export class GinfesClient {
     private baseUrl: string;
     private signer: GinfesSigner;
     private pfxBuffer: Buffer;
+    private pfxPassword: string;
     private ambiente: 'homologacao' | 'producao';
 
     constructor(config: GinfesClientConfig) {
-        // Não armazenar o certificado em texto — apenas o buffer já convertido
+        this.ambiente    = config.ambiente;
+        this.baseUrl     = config.ambiente === 'producao' ? URL_PROD : URL_HOMOLOG;
+        this.pfxBuffer   = Buffer.from(config.certificadoBase64, 'base64');
+        this.pfxPassword = config.senhaCertificado || '';
+        this.signer      = new GinfesSigner(config.certificadoBase64, config.senhaCertificado);
+        // Redactar dados sensíveis APÓS uso
         this.config = { ...config, certificadoBase64: '[REDACTED]', senhaCertificado: '[REDACTED]' };
-        this.ambiente = config.ambiente;
-        this.baseUrl = config.ambiente === 'producao' ? URL_PROD : URL_HOMOLOG;
-        this.pfxBuffer = Buffer.from(config.certificadoBase64, 'base64');
-        this.signer = new GinfesSigner(config.certificadoBase64, config.senhaCertificado);
     }
 
     async emitirLote(rpsList: RpsData[], loteId: string): Promise<EmitirLoteResult> {
@@ -165,7 +167,7 @@ export class GinfesClient {
                 'RecepcionarLoteRpsV3',
                 xmlLoteAssinado,
                 this.pfxBuffer,
-                '',
+                this.pfxPassword,
                 this.ambiente
             );
 
@@ -199,7 +201,7 @@ export class GinfesClient {
             'ConsultarSituacaoLoteRpsV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || '',
+            this.pfxPassword,
             this.ambiente
         );
 
@@ -243,7 +245,7 @@ export class GinfesClient {
             'ConsultarNfsePorRpsV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || '',
+            this.pfxPassword,
             this.ambiente
         );
 
@@ -282,7 +284,7 @@ export class GinfesClient {
             'CancelarNfseV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || '',
+            this.pfxPassword,
             this.ambiente
         );
 

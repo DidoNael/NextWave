@@ -97,4 +97,11 @@ export class GinfesAdapter extends NfseProvider {
             xmlRetorno:  result.xmlRetorno,
         };
     }
+
+    async importarPorPeriodo(dataInicial: string, dataFinal: string): Promise<any> {
+        return {
+            situacao: 1,
+            erro: "O Ginfes não possui suporte nativo REST para importar NFS-e por período de forma consolidada no painel Ginfes. Utilize o portal do município.",
+        };
+    }
 }

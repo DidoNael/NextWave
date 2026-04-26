@@ -16,7 +16,6 @@ import {
     NfseCancelarResult,
     NfseConsultarResult,
     NfseSincronizarResult,
-    NfseImportarPeriodoResult,
 } from '../provider';
 
 export interface EnotasConfig {
@@ -136,7 +135,7 @@ export class EnotasAdapter extends NfseProvider {
         return { erro: 'Sincronização por RPS não suportada pelo eNotas' };
     }
 
-    async importarPorPeriodo(_dataInicial: string, _dataFinal: string): Promise<NfseImportarPeriodoResult> {
+    async importarPorPeriodo(_dataInicial: string, _dataFinal: string): Promise<any> {
         return { notas: [], erro: 'Importação por período não suportada pelo eNotas' };
     }
 
