@@ -6,6 +6,9 @@ import { generateLoteRpsXml, RpsData } from './templates';
 const URL_PROD = 'https://guarulhos.ginfes.com.br/ServiceGinfesImpl';
 const URL_HOMOLOG = 'https://homologacao.ginfes.com.br/ServiceGinfesImpl';
 
+const NS_HOMOLOG = 'http://homologacao.ginfes.com.br';
+const NS_PROD = 'http://producao.ginfes.com.br';
+
 export interface GinfesClientConfig {
     cnpj: string;
     inscricaoMunicipal: string;
@@ -14,16 +17,22 @@ export interface GinfesClientConfig {
     ambiente: 'homologacao' | 'producao';
 }
 
-function buildSoapEnvelope(operation: string, xmlContent: string): string {
+function buildSoapEnvelope(operation: string, xmlContent: string, ambiente: 'homologacao' | 'producao'): string {
+    const ns = ambiente === 'producao' ? NS_PROD : NS_HOMOLOG;
     return `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:ser="http://www.ginfes.com.br/serve">
-  <soap:Body>
-    <ser:${operation}>
-      <xml><![CDATA[${xmlContent}]]></xml>
-    </ser:${operation}>
-  </soap:Body>
-</soap:Envelope>`;
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <ns1:${operation} xmlns:ns1="${ns}">
+      <arg0>
+        <ns2:cabecalho versao="3" xmlns:ns2="http://www.ginfes.com.br/cabecalho_v03.xsd">
+          <versaoDados>3</versaoDados>
+        </ns2:cabecalho>
+      </arg0>
+      <arg1>${xmlContent}</arg1>
+    </ns1:${operation}>
+  </soapenv:Body>
+</soapenv:Envelope>`;
 }
 
 async function soapCall(
@@ -31,10 +40,12 @@ async function soapCall(
     operation: string,
     xmlContent: string,
     pfxBuffer: Buffer,
-    pfxPassword: string
+    pfxPassword: string,
+    ambiente: 'homologacao' | 'producao' = 'homologacao'
 ): Promise<string> {
-    const body = buildSoapEnvelope(operation, xmlContent);
-    const soapAction = `"http://www.ginfes.com.br/serve/${operation}"`;
+    const body = buildSoapEnvelope(operation, xmlContent, ambiente);
+    const ns = ambiente === 'producao' ? NS_PROD : NS_HOMOLOG;
+    const soapAction = `"${ns}/${operation}"`;
 
     return new Promise((resolve, reject) => {
         const urlObj = new URL(url);
@@ -113,10 +124,12 @@ export class GinfesClient {
     private baseUrl: string;
     private signer: GinfesSigner;
     private pfxBuffer: Buffer;
+    private ambiente: 'homologacao' | 'producao';
 
     constructor(config: GinfesClientConfig) {
         // Não armazenar o certificado em texto — apenas o buffer já convertido
         this.config = { ...config, certificadoBase64: '[REDACTED]', senhaCertificado: '[REDACTED]' };
+        this.ambiente = config.ambiente;
         this.baseUrl = config.ambiente === 'producao' ? URL_PROD : URL_HOMOLOG;
         this.pfxBuffer = Buffer.from(config.certificadoBase64, 'base64');
         this.signer = new GinfesSigner(config.certificadoBase64, config.senhaCertificado);
@@ -135,7 +148,8 @@ export class GinfesClient {
                 'RecepcionarLoteRpsV3',
                 xmlLoteAssinado,
                 this.pfxBuffer,
-                '' // senha já usada no signer; pfx não precisa da senha aqui
+                '',
+                this.ambiente
             );
 
             const fault = parseSoapFault(xmlRetorno);
@@ -167,7 +181,8 @@ export class GinfesClient {
             'ConsultarSituacaoLoteRpsV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || ''
+            this.config.senhaCertificado || '',
+            this.ambiente
         );
 
         const fault = parseSoapFault(xmlRetorno);
@@ -209,7 +224,8 @@ export class GinfesClient {
             'ConsultarNfsePorRpsV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || ''
+            this.config.senhaCertificado || '',
+            this.ambiente
         );
 
         const fault = parseSoapFault(xmlRetorno);
@@ -246,7 +262,8 @@ export class GinfesClient {
             'CancelarNfseV3',
             xmlAssinado,
             this.pfxBuffer,
-            this.config.senhaCertificado || ''
+            this.config.senhaCertificado || '',
+            this.ambiente
         );
 
         const fault = parseSoapFault(xmlRetorno);

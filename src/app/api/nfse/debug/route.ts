@@ -134,17 +134,28 @@ export async function POST(req: Request) {
             const pfxBuffer = Buffer.from(certBase64, 'base64');
             const senha = config.senhaCertificado ? decryptCert(config.senhaCertificado) : '';
 
+            const soapNs = config.ambiente === 'producao' ? 'http://producao.ginfes.com.br' : 'http://homologacao.ginfes.com.br';
             const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://www.ginfes.com.br/serve">
-  <soap:Body><ser:RecepcionarLoteRpsV3><xml><![CDATA[${xmlFinal}]]></xml></ser:RecepcionarLoteRpsV3></soap:Body>
-</soap:Envelope>`;
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <ns1:RecepcionarLoteRpsV3 xmlns:ns1="${soapNs}">
+      <arg0>
+        <ns2:cabecalho versao="3" xmlns:ns2="http://www.ginfes.com.br/cabecalho_v03.xsd">
+          <versaoDados>3</versaoDados>
+        </ns2:cabecalho>
+      </arg0>
+      <arg1>${xmlFinal}</arg1>
+    </ns1:RecepcionarLoteRpsV3>
+  </soapenv:Body>
+</soapenv:Envelope>`;
 
             const resposta = await new Promise<string>((resolve, reject) => {
                 const urlObj = new URL(baseUrl);
                 const req2 = https.request({
                     hostname: urlObj.hostname, path: urlObj.pathname,
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '"http://www.ginfes.com.br/serve/RecepcionarLoteRpsV3"', 'Content-Length': Buffer.byteLength(soapBody, 'utf8') },
+                    headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': `"${soapNs}/RecepcionarLoteRpsV3"`, 'Content-Length': Buffer.byteLength(soapBody, 'utf8') },
                     pfx: pfxBuffer, passphrase: senha, rejectUnauthorized: false,
                     secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
                 }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)); });
