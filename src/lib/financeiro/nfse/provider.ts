@@ -9,14 +9,20 @@ export interface NfseEmitirOptions {
     rpsNumero: string;
     rpsSerie: string;
     rpsType: string;
-    dataEmissao: string;         // "YYYY-MM-DDTHH:mm:ss"
-    dataCompetencia: string;     // "YYYY-MM-DDTHH:mm:ss" — primeiro dia do mês de competência
+    dataEmissao: string;              // "YYYY-MM-DDTHH:mm:ss"
+    dataCompetencia: string;          // "YYYY-MM-DDTHH:mm:ss" — 1º dia do mês de competência
     valorServicos: number;
     aliquota: number;
-    issRetido: string;           // "1"=retido, "2"=não retido
+    issRetido: string;                // "1"=retido, "2"=não retido
     itemListaServico: string;
     codigoMunicipio: string;
     discriminacao: string;
+    naturezaOperacao: string;         // "1" a "6"
+    optanteSimplesNacional: string;   // "1"=Sim "2"=Não
+    regimeEspecialTributacao: string; // "1" a "6"
+    incentivadorCultural: string;     // "1"=Sim "2"=Não
+    exigibilidadeIss: string;         // "1" a "7"
+    codigoTributacaoMunicipio?: string;
     prestador: {
         cnpj: string;
         inscricaoMunicipal?: string;

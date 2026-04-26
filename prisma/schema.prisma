@@ -399,8 +399,12 @@ model NfeConfig {
   codigoMunicipio        String   @default("3514700")
   serieRps               String   @default("1")
   tipoRps                String   @default("1")
-  naturezaOperacao       String   @default("1")
-  optanteSimplesNacional String   @default("1")
+  naturezaOperacao          String   @default("1")
+  optanteSimplesNacional    String   @default("1")
+  regimeEspecialTributacao  String   @default("6")  // 1=Estimativa 2=Sociedade Profissionais 3=Cooperativa 4=MEI 5=ME-EPP 6=Microempresário
+  incentivadorCultural      String   @default("2")  // 1=Sim 2=Não
+  exigibilidadeIss          String   @default("1")  // 1=Exigível 2=Não Incidência 3=Isenção 4=Exportação 5=Imunidade 6=Suspenso (Judicial) 7=Suspenso (Adm)
+  codigoTributacaoMunicipio String?                 // Código de tributação no município (opcional no XSD, exigido por alguns municípios)
   /// Provedor ativo: "ginfes" (SOAP + certificado A1) ou "enotas" (REST SaaS)
   provider               String   @default("ginfes")
   /// Credenciais JSON para provedores SaaS. Ex: { "apiKey": "...", "empresaId": "..." }

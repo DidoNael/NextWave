@@ -27,6 +27,10 @@ export async function GET() {
             tipoRps: '1',
             naturezaOperacao: '1',
             optanteSimplesNacional: '1',
+            regimeEspecialTributacao: '6',
+            incentivadorCultural: '2',
+            exigibilidadeIss: '1',
+            codigoTributacaoMunicipio: null,
             provider: 'ginfes',
             hasProviderCredentials: false,
         });
@@ -58,6 +62,8 @@ export async function PUT(req: Request) {
             ambiente, aliquotaIss, itemListaServico,
             codigoMunicipio, serieRps, tipoRps,
             naturezaOperacao, optanteSimplesNacional,
+            regimeEspecialTributacao, incentivadorCultural,
+            exigibilidadeIss, codigoTributacaoMunicipio,
             provider,
             providerCredentials,
         } = body;
@@ -78,8 +84,12 @@ export async function PUT(req: Request) {
             codigoMunicipio: codigoMunicipio || '3514700',
             serieRps: serieRps || '1',
             tipoRps: tipoRps || '1',
-            naturezaOperacao: naturezaOperacao || '1',
-            optanteSimplesNacional: optanteSimplesNacional || '1',
+            naturezaOperacao:          naturezaOperacao || '1',
+            optanteSimplesNacional:    optanteSimplesNacional || '1',
+            regimeEspecialTributacao:  regimeEspecialTributacao || '6',
+            incentivadorCultural:      incentivadorCultural || '2',
+            exigibilidadeIss:          exigibilidadeIss || '1',
+            codigoTributacaoMunicipio: codigoTributacaoMunicipio || null,
             provider: activeProvider,
         };
 

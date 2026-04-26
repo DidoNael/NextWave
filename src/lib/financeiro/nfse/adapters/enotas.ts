@@ -59,7 +59,7 @@ export class EnotasAdapter extends NfseProvider {
         const payload = {
             ambienteEmissao: this.ambiente === 'producao' ? 'Producao' : 'Homologacao',
             externalId:      options.rpsNumero,
-            dataCompetencia: options.dataEmissao,
+            dataCompetencia: options.dataCompetencia,
             servico: {
                 discriminacao:    options.discriminacao,
                 valorServicos:    options.valorServicos,

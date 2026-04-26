@@ -2,14 +2,20 @@ export interface RpsData {
     numero: string;
     serie: string;
     tipo: string;
-    dataEmissao: string;    // formato: YYYY-MM-DDTHH:mm:ss
-    dataCompetencia: string; // formato: YYYY-MM-DDTHH:mm:ss — primeiro dia do mês de competência
+    dataEmissao: string;              // YYYY-MM-DDTHH:mm:ss
+    dataCompetencia: string;          // YYYY-MM-DDTHH:mm:ss — 1º dia do mês de competência
     valorServicos: number;
     aliquota: number;
-    issRetido: string;
+    issRetido: string;                // 1=Retido 2=Não Retido
     itemListaServico: string;
     codigoMunicipio: string;
     discriminacao: string;
+    naturezaOperacao: string;         // 1=Tributação no Município ... 6=Importação de Serviço
+    optanteSimplesNacional: string;   // 1=Sim 2=Não
+    regimeEspecialTributacao: string; // 1=Estimativa 2=Soc.Profis. 3=Cooperativa 4=MEI 5=ME-EPP 6=Microempresário
+    incentivadorCultural: string;     // 1=Sim 2=Não
+    exigibilidadeIss: string;         // 1=Exigível 2=NãoIncid. 3=Isenção 4=Exportação 5=Imunidade 6=SuspJud 7=SuspAdm
+    codigoTributacaoMunicipio?: string; // opcional — exigido por alguns municípios
     prestador: {
         cnpj: string;
         inscricaoMunicipal: string;
@@ -37,10 +43,10 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
           <tipos:Tipo>${rps.tipo}</tipos:Tipo>
         </tipos:IdentificacaoRps>
         <tipos:DataEmissao>${rps.dataEmissao}</tipos:DataEmissao>
-        <tipos:NaturezaOperacao>1</tipos:NaturezaOperacao>
-        <tipos:RegimeEspecialTributacao>6</tipos:RegimeEspecialTributacao>
-        <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
-        <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
+        <tipos:NaturezaOperacao>${rps.naturezaOperacao}</tipos:NaturezaOperacao>
+        <tipos:RegimeEspecialTributacao>${rps.regimeEspecialTributacao}</tipos:RegimeEspecialTributacao>
+        <tipos:OptanteSimplesNacional>${rps.optanteSimplesNacional}</tipos:OptanteSimplesNacional>
+        <tipos:IncentivadorCultural>${rps.incentivadorCultural}</tipos:IncentivadorCultural>
         <tipos:Status>1</tipos:Status>
         <tipos:Competencia>${rps.dataCompetencia}</tipos:Competencia>
         <tipos:Servico>
@@ -51,8 +57,10 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
             <tipos:Aliquota>${rps.aliquota.toFixed(4)}</tipos:Aliquota>
           </tipos:Valores>
           <tipos:ItemListaServico>${rps.itemListaServico}</tipos:ItemListaServico>
+          ${rps.codigoTributacaoMunicipio ? `<tipos:CodigoTributacaoMunicipio>${rps.codigoTributacaoMunicipio}</tipos:CodigoTributacaoMunicipio>` : ''}
           <tipos:Discriminacao>${rps.discriminacao}</tipos:Discriminacao>
           <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
+          <tipos:ExigibilidadeISS>${rps.exigibilidadeIss}</tipos:ExigibilidadeISS>
         </tipos:Servico>
         <tipos:Prestador>
           <tipos:Cnpj>${rps.prestador.cnpj}</tipos:Cnpj>
