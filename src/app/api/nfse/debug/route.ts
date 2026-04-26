@@ -135,7 +135,7 @@ export async function POST(req: Request) {
             const senha = config.senhaCertificado ? decryptCert(config.senhaCertificado) : '';
 
             const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://server.ws.nfe.isscuritiba.com.br">
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://www.ginfes.com.br/serve">
   <soap:Body><ser:RecepcionarLoteRpsV3><xml><![CDATA[${xmlFinal}]]></xml></ser:RecepcionarLoteRpsV3></soap:Body>
 </soap:Envelope>`;
 
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
                 const req2 = https.request({
                     hostname: urlObj.hostname, path: urlObj.pathname,
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '"RecepcionarLoteRpsV3"', 'Content-Length': Buffer.byteLength(soapBody, 'utf8') },
+                    headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '"http://www.ginfes.com.br/serve/RecepcionarLoteRpsV3"', 'Content-Length': Buffer.byteLength(soapBody, 'utf8') },
                     pfx: pfxBuffer, passphrase: senha, rejectUnauthorized: false,
                     secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
                 }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)); });
