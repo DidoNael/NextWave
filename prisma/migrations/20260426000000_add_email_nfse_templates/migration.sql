@@ -1,24 +1,45 @@
 -- CreateTable: modelos de email para envio de NFS-e
 CREATE TABLE IF NOT EXISTS "EmailTemplate" (
-    "id"        TEXT NOT NULL PRIMARY KEY,
+    "id"        TEXT NOT NULL,
     "name"      TEXT NOT NULL,
     "subject"   TEXT NOT NULL,
     "body"      TEXT NOT NULL,
     "isDefault" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "EmailTemplate_pkey" PRIMARY KEY ("id")
 );
 
 -- AlterTable: adiciona referências de template ao cliente
-ALTER TABLE "Client" ADD COLUMN "nfseTemplateId"   TEXT REFERENCES "NfseTipoServico"("id") ON DELETE SET NULL;
-ALTER TABLE "Client" ADD COLUMN "emailTemplateId"  TEXT REFERENCES "EmailTemplate"("id") ON DELETE SET NULL;
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "nfseTemplateId"  TEXT;
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "emailTemplateId" TEXT;
+
+-- AddForeignKey
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'Client_nfseTemplateId_fkey'
+  ) THEN
+    ALTER TABLE "Client" ADD CONSTRAINT "Client_nfseTemplateId_fkey"
+      FOREIGN KEY ("nfseTemplateId") REFERENCES "NfseTipoServico"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'Client_emailTemplateId_fkey'
+  ) THEN
+    ALTER TABLE "Client" ADD CONSTRAINT "Client_emailTemplateId_fkey"
+      FOREIGN KEY ("emailTemplateId") REFERENCES "EmailTemplate"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Client_nfseTemplateId_idx"  ON "Client"("nfseTemplateId");
 CREATE INDEX IF NOT EXISTS "Client_emailTemplateId_idx" ON "Client"("emailTemplateId");
 
 -- Seed: template de email padrão
-INSERT OR IGNORE INTO "EmailTemplate" ("id", "name", "subject", "body", "isDefault", "createdAt", "updatedAt") VALUES (
+INSERT INTO "EmailTemplate" ("id", "name", "subject", "body", "isDefault", "createdAt", "updatedAt")
+VALUES (
   'default-nfse-email',
   'Padrão NFS-e',
   'NFS-e nº {{numero}} emitida — {{valor}}',
@@ -34,7 +55,8 @@ INSERT OR IGNORE INTO "EmailTemplate" ("id", "name", "subject", "body", "isDefau
   {{linkNfse}}
   <p style="color:#aaa;font-size:11px;margin-top:24px">Em caso de dúvidas, entre em contato conosco.</p>
 </div>',
-  1,
+  true,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT ("id") DO NOTHING;
