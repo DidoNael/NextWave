@@ -74,17 +74,30 @@ export async function POST(
         },
     });
 
+    const now = new Date();
+    const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0];
+    const dataCompetenciaFmt = overrides.dataCompetencia && /^\d{4}-\d{2}$/.test(overrides.dataCompetencia)
+        ? `${overrides.dataCompetencia}-01T00:00:00`
+        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+
     const emitirOptions: NfseEmitirOptions = {
         rpsNumero,
-        rpsSerie:         record.rpsSerie || config.serieRps || '1',
-        rpsType:          config.tipoRps || '1',
-        dataEmissao:      new Date().toISOString().split('T')[0],
+        rpsSerie:                  record.rpsSerie || config.serieRps || '1',
+        rpsType:                   config.tipoRps || '1',
+        dataEmissao:               dataEmissaoFmt,
+        dataCompetencia:           dataCompetenciaFmt,
         valorServicos,
-        aliquota:         config.aliquotaIss || 0.0215,
-        issRetido:        '2',
-        itemListaServico: config.itemListaServico || '1.07',
-        codigoMunicipio:  config.codigoMunicipio || '3514700',
+        aliquota:                  config.aliquotaIss || 0.0215,
+        issRetido:                 '2',
+        itemListaServico:          config.itemListaServico || '1.07',
+        codigoMunicipio:           config.codigoMunicipio || '3514700',
         discriminacao,
+        naturezaOperacao:          (config as any).naturezaOperacao || '1',
+        optanteSimplesNacional:    (config as any).optanteSimplesNacional || '1',
+        regimeEspecialTributacao:  (config as any).regimeEspecialTributacao || '6',
+        incentivadorCultural:      (config as any).incentivadorCultural || '2',
+        exigibilidadeIss:          (config as any).exigibilidadeIss || '1',
+        codigoTributacaoMunicipio: (config as any).codigoTributacaoMunicipio || undefined,
         prestador: {
             cnpj:               config.cnpj.replace(/\D/g, ''),
             inscricaoMunicipal: config.inscricaoMunicipal,
