@@ -81,13 +81,17 @@ model Client {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   userId         String
-  callLogs       CallLog[]
-  user           User               @relation(fields: [userId], references: [id])
-  services       Service[]
-  subscriptions  Subscription[]
-  transactions   Transaction[]
-  attachments    ClientAttachment[]
-  pluginLicenses PluginLicense[]
+  nfseTemplateId  String?
+  nfseTemplate    NfseTipoServico?   @relation(fields: [nfseTemplateId], references: [id])
+  emailTemplateId String?
+  emailTemplate   EmailTemplate?     @relation(fields: [emailTemplateId], references: [id])
+  callLogs        CallLog[]
+  user            User               @relation(fields: [userId], references: [id])
+  services        Service[]
+  subscriptions   Subscription[]
+  transactions    Transaction[]
+  attachments     ClientAttachment[]
+  pluginLicenses  PluginLicense[]
 
   @@index([organizationId])
   @@index([organizationId, status])
@@ -406,15 +410,27 @@ model NfeConfig {
 
 model NfseTipoServico {
   id                  String   @id @default(cuid())
-  nome                String // ex: "Manutenção em TI", "Consultoria"
-  itemListaServico    String // ex: "1.07", "17.01"
-  aliquotaIss         Float // ex: 0.0215
-  issRetido           String   @default("2") // 1=retido, 2=não retido
+  nome                String
+  itemListaServico    String
+  aliquotaIss         Float
+  issRetido           String   @default("2")
   naturezaOperacao    String   @default("1")
-  discriminacaoModelo String? // texto padrão de discriminação (opcional)
+  discriminacaoModelo String?
   isDefault           Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  clients             Client[]
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  body      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
 }
 
 model NfseRecord {

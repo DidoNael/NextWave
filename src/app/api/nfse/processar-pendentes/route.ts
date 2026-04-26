@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
-import nodemailer from 'nodemailer';
+import { sendNfseEmail } from '@/lib/financeiro/nfse/send-email';
 
 /**
  * POST /api/nfse/processar-pendentes
@@ -65,8 +65,7 @@ export async function POST(req: Request) {
                     },
                 });
 
-                // Enviar email de forma não-bloqueante
-                enviarEmailNfse(updated, { numero: numeroNfse, codigoVerificacao }, nfseProvider.provider);
+                sendNfseEmail({ clientId: updated.clientId, tomadorNome: updated.tomadorNome, valorServicos: updated.valorServicos, discriminacao: updated.discriminacao, numeroNfse, codigoVerificacao, provider: nfseProvider.provider });
                 emitidas++;
 
             } else if (resultado.situacao === 3) {
@@ -90,44 +89,3 @@ export async function POST(req: Request) {
     });
 }
 
-async function enviarEmailNfse(
-    record: any,
-    nfse: { numero: string; codigoVerificacao: string | null },
-    providerName: string
-) {
-    if (!record.clientId) return;
-
-    const cliente = await prisma.client.findUnique({
-        where: { id: record.clientId },
-        select: { email: true },
-    });
-    if (!cliente?.email) return;
-
-    const smtp = await prisma.smtpConfig.findFirst({ where: { isDefault: true, isActive: true } });
-    if (!smtp) return;
-
-    const config = await prisma.nfeConfig.findUnique({ where: { id: 'default' }, select: { razaoSocial: true } });
-    const valor = record.valorServicos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-    let linkNfseHtml = '';
-    if (providerName === 'ginfes' && nfse.codigoVerificacao) {
-        const link = `https://guarulhos.ginfes.com.br/report/consultarNota?chave=${nfse.codigoVerificacao}`;
-        linkNfseHtml = `<a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">Visualizar NFS-e</a>`;
-    }
-
-    const transporter = nodemailer.createTransport({
-        host: smtp.host, port: smtp.port, secure: smtp.secure,
-        auth: { user: smtp.user, pass: smtp.pass },
-    });
-
-    await transporter.sendMail({
-        from: `"${smtp.fromName || config?.razaoSocial || 'Empresa'}" <${smtp.fromEmail}>`,
-        to: cliente.email,
-        subject: `NFS-e nº ${nfse.numero} emitida — ${valor}`,
-        html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
-            <h2>Nota Fiscal de Serviço Emitida</h2>
-            <p>Sua NFS-e nº <strong>${nfse.numero}</strong> foi emitida — valor: <strong>${valor}</strong>.</p>
-            ${linkNfseHtml}
-        </div>`,
-    }).catch((e: Error) => console.error('[NFSE_EMAIL]', e.message));
-}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Briefcase,
   BarChart3, Calendar, Settings, ChevronLeft, ChevronRight, ChevronDown,
-  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key, Shield, Receipt,
+  Zap, Database, MessageSquare, Paintbrush, Clock, PieChart, Phone, Server, Key, Shield, Receipt, FileText,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,7 @@ const bottomItemsBase = [
   { href: "/dashboard/configuracoes/mcp", label: "MCP Server", icon: Server, masterOnly: false },
   { href: "/dashboard/configuracoes/grupos", label: "Grupos", icon: Shield, masterOnly: false },
   { href: "/dashboard/configuracoes/nfe", label: "NFS-e", icon: Receipt, masterOnly: false },
+  { href: "/dashboard/configuracoes/modelos", label: "Modelos", icon: FileText, masterOnly: false },
   { href: "/dashboard/configuracoes/plugin-licenses", label: "Licenças Plugin", icon: Key, masterOnly: true },
   { href: "/dashboard/configuracoes", label: "Sistema", icon: Settings, masterOnly: false },
   { href: "/dashboard/configuracoes/manutencao", label: "Manutenção", icon: Database, masterOnly: false },

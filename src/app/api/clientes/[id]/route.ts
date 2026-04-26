@@ -18,6 +18,8 @@ const updateSchema = z.object({
   zipCode: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ativo", "inativo", "prospecto", "pausado", "bloqueado"]).optional(),
+  nfseTemplateId: z.string().nullable().optional(),
+  emailTemplateId: z.string().nullable().optional(),
 });
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {

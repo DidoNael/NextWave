@@ -76,6 +76,8 @@ const clienteSchema = z.object({
   state: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ativo", "inativo"]).default("ativo"),
+  nfseTemplateId: z.string().nullable().optional(),
+  emailTemplateId: z.string().nullable().optional(),
 });
 
 type ClienteForm = z.infer<typeof clienteSchema>;
@@ -162,6 +164,9 @@ export default function ClientesPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
+  const [emailTemplates, setEmailTemplates] = useState<{ id: string; name: string }[]>([]);
+  const [nfseTipos, setNfseTipos] = useState<{ id: string; nome: string }[]>([]);
+
   // CEP state
   const [cepLoading, setCepLoading] = useState(false);
   const [cepStatus, setCepStatus] = useState<"idle" | "found" | "error">("idle");
@@ -223,13 +228,18 @@ export default function ClientesPage() {
     return () => clearTimeout(timer);
   }, [fetchClientes]);
 
+  useEffect(() => {
+    fetch("/api/modelos/email").then(r => r.ok ? r.json() : []).then(setEmailTemplates).catch(() => {});
+    fetch("/api/nfse/tipos").then(r => r.ok ? r.json() : []).then(setNfseTipos).catch(() => {});
+  }, []);
+
   // ── Dialog helpers ──────────────────────────────────────────────────────────
 
   function openCreate() {
     setEditingCliente(null);
     cepPrev.current = "";
     setCepStatus("idle");
-    reset({ name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "", status: "ativo" });
+    reset({ name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "", status: "ativo", nfseTemplateId: null, emailTemplateId: null });
     setDialogOpen(true);
   }
 
@@ -252,6 +262,8 @@ export default function ClientesPage() {
       state: c.state ?? "",
       notes: c.notes ?? "",
       status: c.status,
+      nfseTemplateId: (c as any).nfseTemplateId ?? null,
+      emailTemplateId: (c as any).emailTemplateId ?? null,
     });
     setDialogOpen(true);
   }
@@ -568,6 +580,56 @@ export default function ClientesPage() {
                 <Label>Observações</Label>
                 <Textarea placeholder="Informações adicionais..." rows={3} {...register("notes")} />
               </div>
+
+              {/* Modelo de E-mail NFS-e */}
+              {emailTemplates.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Modelo de E-mail (NFS-e)</Label>
+                  <Controller
+                    name="emailTemplateId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? "default"}
+                        onValueChange={v => field.onChange(v === "default" ? null : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Padrão do sistema" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Padrão do sistema</SelectItem>
+                          {emailTemplates.map(t => (
+                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Modelo Fiscal NFS-e */}
+              {nfseTipos.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Modelo Fiscal (NFS-e)</Label>
+                  <Controller
+                    name="nfseTemplateId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? "default"}
+                        onValueChange={v => field.onChange(v === "default" ? null : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Padrão do sistema" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Padrão do sistema</SelectItem>
+                          {nfseTipos.map(t => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              )}
             </div>
 
             <Separator />
