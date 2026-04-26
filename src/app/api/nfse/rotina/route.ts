@@ -82,6 +82,17 @@ export async function POST(req: Request) {
     const failed: { serviceId: string; title: string; error: string }[] = [];
     const skipped: string[] = [];
 
+    const dataCompetenciaBody: string | undefined = body?.dataCompetencia; // "YYYY-MM"
+
+    const now = new Date();
+    const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0];
+    let dataCompetenciaFmt: string;
+    if (dataCompetenciaBody && /^\d{4}-\d{2}$/.test(dataCompetenciaBody)) {
+        dataCompetenciaFmt = `${dataCompetenciaBody}-01T00:00:00`;
+    } else {
+        dataCompetenciaFmt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+    }
+
     // Reservar bloco de números RPS de forma atômica para toda a rotina
     const firstRps = parseInt(await nextRpsNumero());
     let nextRps = firstRps;
@@ -116,7 +127,8 @@ export async function POST(req: Request) {
             rpsNumero,
             rpsSerie:         config.serieRps || '1',
             rpsType:          config.tipoRps || '1',
-            dataEmissao:      new Date().toISOString().split('T')[0],
+            dataEmissao:      dataEmissaoFmt,
+            dataCompetencia:  dataCompetenciaFmt,
             valorServicos:    svc.amount,
             aliquota:         config.aliquotaIss || 0.0215,
             issRetido:        '2',

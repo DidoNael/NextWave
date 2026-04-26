@@ -51,10 +51,14 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // Mês atual no formato YYYY-MM para data de competência
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
   const [form, setForm] = useState({
     serviceId: "",
     discriminacao: "",
     valorServicos: "",
+    dataCompetencia: currentMonth,
     tomadorNome: "",
     tomadorDoc: "",
     tomadorEmail: "",
@@ -82,6 +86,30 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
   }, [clientId]);
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
+
+  // Polling automático enquanto houver notas em aguardando_processamento
+  useEffect(() => {
+    const hasAguardando = records.some(r => r.status === "aguardando_processamento");
+    if (!hasAguardando) return;
+
+    const interval = setInterval(async () => {
+      // Consulta cada nota aguardando individualmente — isso atualiza o status via GET /api/nfse/[id]
+      const aguardando = records.filter(r => r.status === "aguardando_processamento");
+      let updated = false;
+      for (const rec of aguardando) {
+        try {
+          const res = await fetch(`/api/nfse/${rec.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status !== rec.status) updated = true;
+          }
+        } catch { /* ignora */ }
+      }
+      if (updated) fetchRecords();
+    }, 10_000); // a cada 10 segundos
+
+    return () => clearInterval(interval);
+  }, [records, fetchRecords]);
 
   // Serviços elegíveis: não cancelados e ainda sem NFS-e emitida/aguardando
   const emittedServiceIds = new Set(
@@ -323,6 +351,17 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
                 value={form.valorServicos}
                 onChange={e => f("valorServicos", e.target.value)}
               />
+            </div>
+
+            {/* Data de Competência */}
+            <div className="space-y-1.5">
+              <Label>Competência <span className="text-destructive">*</span></Label>
+              <Input
+                type="month"
+                value={form.dataCompetencia}
+                onChange={e => f("dataCompetencia", e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground">Mês de referência da prestação do serviço</p>
             </div>
 
             <div className="space-y-1.5">

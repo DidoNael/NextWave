@@ -2,7 +2,8 @@ export interface RpsData {
     numero: string;
     serie: string;
     tipo: string;
-    dataEmissao: string; // formato: YYYY-MM-DDTHH:mm:ss
+    dataEmissao: string;    // formato: YYYY-MM-DDTHH:mm:ss
+    dataCompetencia: string; // formato: YYYY-MM-DDTHH:mm:ss — primeiro dia do mês de competência
     valorServicos: number;
     aliquota: number;
     issRetido: string;
@@ -41,6 +42,7 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
         <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
         <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
         <tipos:Status>1</tipos:Status>
+        <tipos:Competencia>${rps.dataCompetencia}</tipos:Competencia>
         <tipos:Servico>
           <tipos:Valores>
             <tipos:ValorServicos>${rps.valorServicos.toFixed(2)}</tipos:ValorServicos>

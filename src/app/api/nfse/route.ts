@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { serviceId, clientId, discriminacao, valorServicos, tomadorNome, tomadorDoc,
             tomadorEmail, tomadorEndereco, tomadorNumero, tomadorBairro,
-            tomadorCodigoMunicipio, tomadorUf, tomadorCep } = body;
+            tomadorCodigoMunicipio, tomadorUf, tomadorCep, dataCompetencia } = body;
 
         if (!discriminacao || !valorServicos) {
             return NextResponse.json({ error: 'discriminacao e valorServicos são obrigatórios' }, { status: 400 });
@@ -97,12 +97,26 @@ export async function POST(req: Request) {
             },
         });
 
+        // Montar data de emissão (now) e competência (1º do mês informado ou mês atual)
+        const now = new Date();
+        const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0]; // YYYY-MM-DDTHH:mm:ss
+
+        // dataCompetencia vem do body como "YYYY-MM" (ex: "2026-04"), convertido para 1º dia do mês
+        let dataCompetenciaFmt: string;
+        if (dataCompetencia && /^\d{4}-\d{2}$/.test(dataCompetencia)) {
+            dataCompetenciaFmt = `${dataCompetencia}-01T00:00:00`;
+        } else {
+            // fallback: 1º do mês atual
+            dataCompetenciaFmt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+        }
+
         // Montar opções provider-agnostic
         const emitirOptions: NfseEmitirOptions = {
             rpsNumero,
             rpsSerie:         config.serieRps || '1',
             rpsType:          config.tipoRps || '1',
-            dataEmissao:      new Date().toISOString().split('T')[0],
+            dataEmissao:      dataEmissaoFmt,
+            dataCompetencia:  dataCompetenciaFmt,
             valorServicos,
             aliquota:         config.aliquotaIss || 0.0215,
             issRetido:        '2', // 2 = Não retido

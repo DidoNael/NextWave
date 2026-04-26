@@ -9,7 +9,8 @@ export interface NfseEmitirOptions {
     rpsNumero: string;
     rpsSerie: string;
     rpsType: string;
-    dataEmissao: string;         // "YYYY-MM-DD"
+    dataEmissao: string;         // "YYYY-MM-DDTHH:mm:ss"
+    dataCompetencia: string;     // "YYYY-MM-DDTHH:mm:ss" — primeiro dia do mês de competência
     valorServicos: number;
     aliquota: number;
     issRetido: string;           // "1"=retido, "2"=não retido

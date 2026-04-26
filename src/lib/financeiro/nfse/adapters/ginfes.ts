@@ -33,6 +33,7 @@ export class GinfesAdapter extends NfseProvider {
             serie:            options.rpsSerie,
             tipo:             options.rpsType,
             dataEmissao:      options.dataEmissao,
+            dataCompetencia:  options.dataCompetencia,
             valorServicos:    options.valorServicos,
             aliquota:         options.aliquota,
             issRetido:        options.issRetido,
