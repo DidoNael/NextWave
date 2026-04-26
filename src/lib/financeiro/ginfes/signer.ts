@@ -2,56 +2,98 @@ import forge from 'node-forge';
 import { DOMParser } from '@xmldom/xmldom';
 import { ExclusiveCanonicalization } from 'xml-crypto';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 export class GinfesSigner {
-    private key: forge.pki.PrivateKey;
-    private cert: forge.pki.Certificate;
+    private keyPem: string;
+    private certPem: string;
 
     constructor(pfxBase64: string, password?: string) {
-        const pfxDer = forge.util.decode64(pfxBase64);
-        const p12Asn1 = forge.asn1.fromDer(pfxDer);
-
-        let p12: forge.pkcs12.Pkcs12Pfx;
+        const pfxBuffer = Buffer.from(pfxBase64, 'base64');
         const pass = password || '';
-        try {
-            // Tentativa 1 — strict (padrão, exige MAC SHA-1)
-            p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, pass);
-        } catch (e1: any) {
-            if (!e1?.message?.toLowerCase().includes('mac')) throw e1;
-            try {
-                // Tentativa 2 — strict=false (ignora falha de MAC; cobre SHA-256 em algumas versões do forge)
-                p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, pass);
-            } catch (e2: any) {
-                // Tentativa 3 — senha vazia (PFX sem senha salvo com senha em branco)
-                if (pass !== '') {
-                    try {
-                        p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, '');
-                    } catch {
-                        throw new Error(
-                            'Não foi possível abrir o certificado PFX. ' +
-                            'Verifique se a senha está correta e se o certificado ' +
-                            'está no formato legado (3DES/SHA-1). ' +
-                            'Se exportado com OpenSSL moderno, re-exporte com: ' +
-                            'openssl pkcs12 -legacy -in cert.pfx -out temp.pem && ' +
-                            'openssl pkcs12 -legacy -export -in temp.pem -out cert_legacy.pfx'
-                        );
-                    }
-                } else {
-                    throw new Error(
-                        'Não foi possível abrir o certificado PFX (mac verify failure). ' +
-                        'Re-exporte o certificado no formato legado: ' +
-                        'openssl pkcs12 -legacy -in cert.pfx -out temp.pem && ' +
-                        'openssl pkcs12 -legacy -export -in temp.pem -out cert_legacy.pfx'
-                    );
-                }
-            }
+
+        // Tentativa 1 e 2: node-forge (strict=true, depois strict=false)
+        const forgeResult = this.tryForge(pfxBase64, pass);
+        if (forgeResult) {
+            this.keyPem  = forgeResult.keyPem;
+            this.certPem = forgeResult.certPem;
+            return;
         }
 
-        const keyBags = p12!.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-        const certBags = p12!.getBags({ bagType: forge.pki.oids.certBag });
+        // Tentativa 3: openssl nativo do sistema (suporta todos os formatos)
+        const opensslResult = this.tryOpenssl(pfxBuffer, pass);
+        if (opensslResult) {
+            this.keyPem  = opensslResult.keyPem;
+            this.certPem = opensslResult.certPem;
+            return;
+        }
 
-        this.key = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]![0].key!;
-        this.cert = certBags[forge.pki.oids.certBag]![0].cert!;
+        throw new Error(
+            'Não foi possível abrir o certificado PFX. ' +
+            'Verifique a senha ou re-exporte no formato legado:\n' +
+            'openssl pkcs12 -legacy -in cert.pfx -out tmp.pem\n' +
+            'openssl pkcs12 -legacy -export -in tmp.pem -out cert_legacy.pfx'
+        );
+    }
+
+    private tryForge(pfxBase64: string, pass: string): { keyPem: string; certPem: string } | null {
+        try {
+            const pfxDer  = forge.util.decode64(pfxBase64);
+            const p12Asn1 = forge.asn1.fromDer(pfxDer);
+
+            let p12: forge.pkcs12.Pkcs12Pfx;
+            try {
+                p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, pass);
+            } catch {
+                // strict=false ignora falha de MAC — cobre SHA-256 em versões mais recentes do forge
+                p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, pass);
+            }
+
+            const keyBags  = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+            const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+
+            const key  = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]![0].key!;
+            const cert = certBags[forge.pki.oids.certBag]![0].cert!;
+
+            return {
+                keyPem:  forge.pki.privateKeyToPem(key),
+                certPem: forge.pki.certificateToPem(cert),
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    private tryOpenssl(pfxBuffer: Buffer, pass: string): { keyPem: string; certPem: string } | null {
+        const tmpPfx = join(tmpdir(), `ginfes_${Date.now()}_${Math.random().toString(36).slice(2)}.pfx`);
+        try {
+            writeFileSync(tmpPfx, pfxBuffer);
+
+            // Passa senha via variável de ambiente para evitar command injection
+            const env = { ...process.env, GINFES_PFX_PASS: pass };
+            const opts = { env, timeout: 10_000 };
+
+            const keyPem = execSync(
+                `openssl pkcs12 -in "${tmpPfx}" -nocerts -nodes -passin env:GINFES_PFX_PASS`,
+                opts
+            ).toString();
+
+            const certPem = execSync(
+                `openssl pkcs12 -in "${tmpPfx}" -nokeys -clcerts -passin env:GINFES_PFX_PASS`,
+                opts
+            ).toString();
+
+            if (!keyPem.includes('PRIVATE KEY') || !certPem.includes('CERTIFICATE')) return null;
+
+            return { keyPem, certPem };
+        } catch {
+            return null;
+        } finally {
+            try { unlinkSync(tmpPfx); } catch { /* ignora */ }
+        }
     }
 
     /**
@@ -61,9 +103,7 @@ export class GinfesSigner {
      *   Se false (padrão legado), a Signature vai dentro do elemento assinado.
      */
     public signXml(xml: string, tagToSign: string, elementId: string, insertAfterClose = true): string {
-        const privateKeyPem = forge.pki.privateKeyToPem(this.key);
-        const certPem = forge.pki.certificateToPem(this.cert);
-        const certContent = this.cleanCert(certPem);
+        const certContent = this.cleanCert(this.certPem);
 
         // 1. Garantir que o elemento-alvo tem o atributo Id
         let xmlToSign = xml;
@@ -114,10 +154,9 @@ export class GinfesSigner {
         // 8. Assinar o SignedInfo canonicalizado com RSA-SHA1
         const sigValue = crypto.createSign('SHA1')
             .update(Buffer.from(canonSI, 'utf8'))
-            .sign(privateKeyPem, 'base64');
+            .sign(this.keyPem, 'base64');
 
         // 9. Montar bloco <Signature> completo
-        // SignedInfo sem xmlns redundante (Signature pai já declara)
         const signedInfoInner = signedInfoXml.replace(
             `<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">`,
             `<SignedInfo>`
@@ -136,7 +175,6 @@ export class GinfesSigner {
         if (lastIdx === -1) throw new Error(`Tag </${tagToSign}> não encontrada`);
 
         if (insertAfterClose) {
-            // Signature vai APÓS o fechamento do elemento (padrão GINFES)
             const afterClose = lastIdx + closingTag.length;
             return (
                 xmlToSign.substring(0, afterClose) +

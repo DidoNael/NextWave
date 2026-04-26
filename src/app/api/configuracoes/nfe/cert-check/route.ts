@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { decryptCert } from '@/lib/financeiro/ginfes/cert-crypto';
+import { GinfesSigner } from '@/lib/financeiro/ginfes/signer';
 import forge from 'node-forge';
 
 /**
@@ -24,46 +25,45 @@ export async function GET() {
     const pfxBase64 = decryptCert(config.certificadoBase64);
     const senha     = config.senhaCertificado ? decryptCert(config.senhaCertificado) : '';
 
-    const pfxDer  = forge.util.decode64(pfxBase64);
-    const p12Asn1 = forge.asn1.fromDer(pfxDer);
-
-    const tentativas = [
-        () => forge.pkcs12.pkcs12FromAsn1(p12Asn1, senha),
-        () => forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, senha),
-        ...(senha ? [() => forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, '')] : []),
-    ];
-
-    let p12: forge.pkcs12.Pkcs12Pfx | null = null;
-    let tentativaUsada = 0;
-    for (const [i, fn] of tentativas.entries()) {
-        try { p12 = fn(); tentativaUsada = i + 1; break; } catch { /* tenta próxima */ }
-    }
-
-    if (!p12) {
+    // Usa o próprio GinfesSigner para testar — se construir sem erro, o cert abre
+    let metodo = 'forge';
+    try {
+        new GinfesSigner(pfxBase64, senha);
+    } catch (err: any) {
         return NextResponse.json({
             ok: false,
-            error: 'mac verify failure — senha incorreta ou formato PFX moderno (SHA-256/AES-256) incompatível com node-forge.',
-            fix: 'Re-exporte o certificado com formato legado: openssl pkcs12 -legacy -in cert.pfx -out temp.pem && openssl pkcs12 -legacy -export -in temp.pem -out cert_legacy.pfx',
+            error: err?.message ?? 'Erro desconhecido ao abrir certificado',
         }, { status: 422 });
     }
 
-    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-    const cert = certBags[forge.pki.oids.certBag]?.[0]?.cert;
-
-    const cn        = cert?.subject.getField('CN')?.value ?? '—';
-    const notBefore = cert?.validity.notBefore?.toISOString() ?? '—';
-    const notAfter  = cert?.validity.notAfter?.toISOString()  ?? '—';
-    const expired   = cert?.validity.notAfter ? new Date() > cert.validity.notAfter : null;
+    // Abre novamente com forge para extrair metadados (CN, validade)
+    // Se signer funcionou via openssl, esta parte pode falhar — retornamos info parcial
+    let cn = '—', notBefore = '—', notAfter = '—', expired: boolean | null = null;
+    try {
+        const pfxDer  = forge.util.decode64(pfxBase64);
+        const p12Asn1 = forge.asn1.fromDer(pfxDer);
+        let p12: forge.pkcs12.Pkcs12Pfx;
+        try { p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, senha); }
+        catch { p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, senha); }
+        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+        const cert     = certBags[forge.pki.oids.certBag]?.[0]?.cert;
+        cn        = cert?.subject.getField('CN')?.value ?? '—';
+        notBefore = cert?.validity.notBefore?.toISOString() ?? '—';
+        notAfter  = cert?.validity.notAfter?.toISOString()  ?? '—';
+        expired   = cert?.validity.notAfter ? new Date() > cert.validity.notAfter : null;
+    } catch {
+        metodo = 'openssl'; // forge falhou nos metadados, signer usou openssl
+    }
 
     return NextResponse.json({
         ok: true,
-        tentativaUsada,
-        aviso: tentativaUsada > 1
-            ? 'Certificado aberto com modo não-estrito (strict=false). Funcional, mas recomenda-se re-exportar no formato legado para máxima compatibilidade.'
-            : undefined,
+        metodo,
         cn,
-        notBefore,
-        notAfter,
+        notBefore: notBefore !== '—' ? new Date(notBefore).toLocaleDateString('pt-BR') : '—',
+        notAfter:  notAfter  !== '—' ? new Date(notAfter).toLocaleDateString('pt-BR')  : '—',
         expired,
+        aviso: metodo === 'openssl'
+            ? 'Certificado aberto via openssl (node-forge incompatível com este formato PFX). Emissão funciona normalmente.'
+            : undefined,
     });
 }
