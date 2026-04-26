@@ -16,6 +16,7 @@ import {
     NfseCancelarResult,
     NfseConsultarResult,
     NfseSincronizarResult,
+    NfseImportarPeriodoResult,
 } from '../provider';
 
 export interface EnotasConfig {
@@ -132,8 +133,11 @@ export class EnotasAdapter extends NfseProvider {
     }
 
     async sincronizarPorRps(_rpsNumero: string, _rpsSerie: string, _rpsTipo: string): Promise<NfseSincronizarResult> {
-        // eNotas não expõe busca por RPS — retorna sem erro para não bloquear o lote
         return { erro: 'Sincronização por RPS não suportada pelo eNotas' };
+    }
+
+    async importarPorPeriodo(_dataInicial: string, _dataFinal: string): Promise<NfseImportarPeriodoResult> {
+        return { notas: [], erro: 'Importação por período não suportada pelo eNotas' };
     }
 
     async consultarLote(protocolo: string): Promise<NfseConsultarResult> {

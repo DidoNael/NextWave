@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
     FileText, Upload, CheckCircle2, XCircle, Loader2,
     Building2, Key, Settings2, AlertTriangle, RefreshCw,
-    RotateCcw, Code2, ExternalLink, Bug
+    RotateCcw, Code2, ExternalLink, Bug, Download
 } from "lucide-react";
 
 interface NfeConfig {
@@ -74,6 +74,8 @@ export default function NfeConfigPage() {
     const [rotina, setRotina] = useState<{ running: boolean; result: any | null }>({ running: false, result: null });
     const [sync, setSync] = useState<{ running: boolean; forceAll: boolean; result: any | null }>({ running: false, forceAll: false, result: null });
     const [syncPeriodo, setSyncPeriodo] = useState({ de: '', ate: '' });
+    const [importar, setImportar] = useState<{ running: boolean; result: any | null }>({ running: false, result: null });
+    const [importarPeriodo, setImportarPeriodo] = useState({ de: '', ate: '' });
     const [xmlModal, setXmlModal] = useState<{ open: boolean; enviado: string; retorno: string; erro: string } | null>(null);
     const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
@@ -764,6 +766,89 @@ export default function NfeConfigPage() {
                     >
                         {rotina.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                         {rotina.running ? 'Processando...' : 'Executar Rotina Agora'}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {/* Importar NFS-e do GINFES */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2">
+                        <Download className="h-4 w-4 text-primary" /> Importar NFS-e do GINFES
+                    </CardTitle>
+                    <CardDescription>
+                        Busca notas emitidas diretamente no portal GINFES e as traz para o sistema.
+                        Selecione o período de emissão e clique em Importar.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                        <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs">De</Label>
+                            <Input
+                                type="date"
+                                value={importarPeriodo.de}
+                                onChange={e => setImportarPeriodo(p => ({ ...p, de: e.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs">Até</Label>
+                            <Input
+                                type="date"
+                                value={importarPeriodo.ate}
+                                onChange={e => setImportarPeriodo(p => ({ ...p, ate: e.target.value }))}
+                            />
+                        </div>
+                    </div>
+
+                    {importar.result && (
+                        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
+                            <p className="font-semibold">{importar.result.summary ?? importar.result.message}</p>
+                            {importar.result.detalhes?.length > 0 && (
+                                <details className="mt-2">
+                                    <summary className="text-xs text-muted-foreground cursor-pointer">
+                                        Ver detalhes ({importar.result.detalhes.length})
+                                    </summary>
+                                    <div className="mt-2 space-y-0.5 max-h-48 overflow-y-auto">
+                                        {importar.result.detalhes.map((d: any, i: number) => (
+                                            <p key={i} className="text-xs font-mono">
+                                                NFS-e {d.numeroNfse} / RPS {d.rps}: {d.resultado}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </details>
+                            )}
+                        </div>
+                    )}
+
+                    <Button
+                        onClick={async () => {
+                            if (!importarPeriodo.de || !importarPeriodo.ate) {
+                                toast.error('Selecione o período de emissão.');
+                                return;
+                            }
+                            setImportar({ running: true, result: null });
+                            try {
+                                const res = await fetch('/api/nfse/importar', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ dataInicial: importarPeriodo.de, dataFinal: importarPeriodo.ate }),
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data?.error ?? 'Erro na importação');
+                                setImportar({ running: false, result: data });
+                                toast.success(data.summary ?? data.message);
+                                fetchRecords();
+                            } catch (e: any) {
+                                setImportar({ running: false, result: null });
+                                toast.error(e.message);
+                            }
+                        }}
+                        disabled={importar.running || !importarPeriodo.de || !importarPeriodo.ate}
+                        className="gap-2"
+                    >
+                        {importar.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {importar.running ? 'Importando...' : 'Importar do GINFES'}
                     </Button>
                 </CardContent>
             </Card>
