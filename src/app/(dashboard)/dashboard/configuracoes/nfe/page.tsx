@@ -59,6 +59,49 @@ const STATUS_CFG: Record<string, { label: string; color: string }> = {
     erro: { label: "Erro", color: "bg-orange-100 text-orange-700" },
 };
 
+function CertCheck() {
+    const [state, setState] = useState<{ loading: boolean; result: any | null }>({ loading: false, result: null });
+
+    const check = async () => {
+        setState({ loading: true, result: null });
+        try {
+            const res = await fetch('/api/configuracoes/nfe/cert-check');
+            const data = await res.json();
+            setState({ loading: false, result: data });
+        } catch {
+            setState({ loading: false, result: { ok: false, error: 'Erro ao verificar' } });
+        }
+    };
+
+    return (
+        <div className="mt-3 space-y-2">
+            <Button type="button" variant="outline" size="sm" onClick={check} disabled={state.loading} className="gap-2">
+                {state.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Verificar Certificado
+            </Button>
+            {state.result && (
+                <div className={`p-3 rounded-lg border text-xs space-y-1 ${state.result.ok ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+                    {state.result.ok ? (
+                        <>
+                            <p className="font-semibold flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Certificado OK</p>
+                            <p>CN: <strong>{state.result.cn}</strong></p>
+                            <p>Validade: {new Date(state.result.notBefore).toLocaleDateString('pt-BR')} → {new Date(state.result.notAfter).toLocaleDateString('pt-BR')}</p>
+                            {state.result.expired && <p className="text-red-700 font-semibold">⚠ Certificado vencido!</p>}
+                            {state.result.aviso && <p className="text-amber-700 mt-1">{state.result.aviso}</p>}
+                        </>
+                    ) : (
+                        <>
+                            <p className="font-semibold flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Falha ao abrir certificado</p>
+                            <p>{state.result.error}</p>
+                            {state.result.fix && <p className="mt-1 font-mono break-all">{state.result.fix}</p>}
+                        </>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function NfeConfigPage() {
   const base = "/dashboard";
     const [loading, setLoading] = useState(true);
@@ -543,6 +586,9 @@ export default function NfeConfigPage() {
                                     placeholder={form.hasCertificado ? "Deixe em branco para manter" : "Senha do arquivo .pfx"}
                                 />
                             </div>
+                        )}
+                        {form.hasCertificado && (
+                            <CertCheck />
                         )}
                     </CardContent>
                 </Card>

@@ -10,10 +10,45 @@ export class GinfesSigner {
     constructor(pfxBase64: string, password?: string) {
         const pfxDer = forge.util.decode64(pfxBase64);
         const p12Asn1 = forge.asn1.fromDer(pfxDer);
-        const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password || '');
 
-        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+        let p12: forge.pkcs12.Pkcs12Pfx;
+        const pass = password || '';
+        try {
+            // Tentativa 1 — strict (padrão, exige MAC SHA-1)
+            p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, pass);
+        } catch (e1: any) {
+            if (!e1?.message?.toLowerCase().includes('mac')) throw e1;
+            try {
+                // Tentativa 2 — strict=false (ignora falha de MAC; cobre SHA-256 em algumas versões do forge)
+                p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, pass);
+            } catch (e2: any) {
+                // Tentativa 3 — senha vazia (PFX sem senha salvo com senha em branco)
+                if (pass !== '') {
+                    try {
+                        p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, '');
+                    } catch {
+                        throw new Error(
+                            'Não foi possível abrir o certificado PFX. ' +
+                            'Verifique se a senha está correta e se o certificado ' +
+                            'está no formato legado (3DES/SHA-1). ' +
+                            'Se exportado com OpenSSL moderno, re-exporte com: ' +
+                            'openssl pkcs12 -legacy -in cert.pfx -out temp.pem && ' +
+                            'openssl pkcs12 -legacy -export -in temp.pem -out cert_legacy.pfx'
+                        );
+                    }
+                } else {
+                    throw new Error(
+                        'Não foi possível abrir o certificado PFX (mac verify failure). ' +
+                        'Re-exporte o certificado no formato legado: ' +
+                        'openssl pkcs12 -legacy -in cert.pfx -out temp.pem && ' +
+                        'openssl pkcs12 -legacy -export -in temp.pem -out cert_legacy.pfx'
+                    );
+                }
+            }
+        }
+
+        const keyBags = p12!.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+        const certBags = p12!.getBags({ bagType: forge.pki.oids.certBag });
 
         this.key = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]![0].key!;
         this.cert = certBags[forge.pki.oids.certBag]![0].cert!;
