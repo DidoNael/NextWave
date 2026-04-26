@@ -17,8 +17,13 @@ export interface GinfesClientConfig {
     ambiente: 'homologacao' | 'producao';
 }
 
+function stripXmlDeclaration(xml: string): string {
+    return xml.replace(/^<\?xml[^?]*\?>\s*/i, '');
+}
+
 function buildSoapEnvelope(operation: string, xmlContent: string, ambiente: 'homologacao' | 'producao'): string {
     const ns = ambiente === 'producao' ? NS_PROD : NS_HOMOLOG;
+    const body = stripXmlDeclaration(xmlContent);
     return `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
   <soapenv:Header/>
@@ -29,7 +34,7 @@ function buildSoapEnvelope(operation: string, xmlContent: string, ambiente: 'hom
           <versaoDados>3</versaoDados>
         </ns2:cabecalho>
       </arg0>
-      <arg1>${xmlContent}</arg1>
+      <arg1>${body}</arg1>
     </ns1:${operation}>
   </soapenv:Body>
 </soapenv:Envelope>`;

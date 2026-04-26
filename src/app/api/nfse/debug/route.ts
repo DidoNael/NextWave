@@ -135,6 +135,7 @@ export async function POST(req: Request) {
             const senha = config.senhaCertificado ? decryptCert(config.senhaCertificado) : '';
 
             const soapNs = config.ambiente === 'producao' ? 'http://producao.ginfes.com.br' : 'http://homologacao.ginfes.com.br';
+            const xmlBody = xmlFinal.replace(/^<\?xml[^?]*\?>\s*/i, '');
             const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
   <soapenv:Header/>
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
           <versaoDados>3</versaoDados>
         </ns2:cabecalho>
       </arg0>
-      <arg1>${xmlFinal}</arg1>
+      <arg1>${xmlBody}</arg1>
     </ns1:RecepcionarLoteRpsV3>
   </soapenv:Body>
 </soapenv:Envelope>`;
