@@ -36,15 +36,32 @@ export async function GET() {
         });
     }
 
+    // Ler campos ABRASF novos via raw SQL (resiliente a Prisma client desatualizado)
+    let abrasfFields: Record<string, string | null> = {
+        regimeEspecialTributacao:  '6',
+        incentivadorCultural:      '2',
+        exigibilidadeIss:          '1',
+        codigoTributacaoMunicipio: null,
+    };
+    try {
+        const rows = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT "regimeEspecialTributacao", "incentivadorCultural",
+                   "exigibilidadeIss", "codigoTributacaoMunicipio"
+            FROM "NfeConfig" WHERE id = 'default' LIMIT 1
+        `);
+        if (rows[0]) abrasfFields = rows[0];
+    } catch { /* colunas ainda não existem — usa defaults */ }
+
     // Não retornar certificado ou credenciais em texto claro — apenas indicadores booleanos
     const { certificadoBase64, ...rest } = config as any;
     return NextResponse.json({
         ...rest,
-        hasCertificado: !!certificadoBase64,
-        senhaCertificado: '',          // não expor senha
-        provider: (config as any).provider ?? 'ginfes',
+        ...abrasfFields,
+        hasCertificado:         !!certificadoBase64,
+        senhaCertificado:       '',
+        provider:               (config as any).provider ?? 'ginfes',
         hasProviderCredentials: !!(config as any).providerCredentials,
-        providerCredentials: undefined, // NUNCA expor credentials raw
+        providerCredentials:    undefined,
     });
 }
 
@@ -74,59 +91,76 @@ export async function PUT(req: Request) {
 
         const activeProvider = provider || 'ginfes';
 
-        const data: any = {
-            cnpj: cnpj.replace(/\D/g, ''),
+        // Campos core — sempre conhecidos pelo Prisma client
+        const coreData: any = {
+            cnpj:                  cnpj.replace(/\D/g, ''),
             inscricaoMunicipal,
             razaoSocial,
-            ambiente: ambiente || 'homologacao',
-            aliquotaIss: parseFloat(aliquotaIss) || 0.02,
-            itemListaServico: itemListaServico || '14.06',
-            codigoMunicipio: codigoMunicipio || '3514700',
-            serieRps: serieRps || '1',
-            tipoRps: tipoRps || '1',
-            naturezaOperacao:          naturezaOperacao || '1',
-            optanteSimplesNacional:    optanteSimplesNacional || '1',
-            regimeEspecialTributacao:  regimeEspecialTributacao || '6',
-            incentivadorCultural:      incentivadorCultural || '2',
-            exigibilidadeIss:          exigibilidadeIss || '1',
-            codigoTributacaoMunicipio: codigoTributacaoMunicipio || null,
-            provider: activeProvider,
+            ambiente:              ambiente || 'homologacao',
+            aliquotaIss:           parseFloat(aliquotaIss) || 0.02,
+            itemListaServico:      itemListaServico || '14.06',
+            codigoMunicipio:       codigoMunicipio || '3514700',
+            serieRps:              serieRps || '1',
+            tipoRps:               tipoRps || '1',
+            naturezaOperacao:      naturezaOperacao || '1',
+            optanteSimplesNacional: optanteSimplesNacional || '1',
+            provider:              activeProvider,
         };
 
         // Certificado digital — apenas para GINFES e apenas se enviado
         if (activeProvider === 'ginfes') {
-            if (certificadoBase64) {
-                data.certificadoBase64 = encryptCert(certificadoBase64);
-            }
-            if (senhaCertificado) {
-                data.senhaCertificado = encryptCert(senhaCertificado);
-            }
+            if (certificadoBase64) coreData.certificadoBase64 = encryptCert(certificadoBase64);
+            if (senhaCertificado)  coreData.senhaCertificado  = encryptCert(senhaCertificado);
         }
 
-        // Credenciais SaaS — armazena JSON, não apaga se não enviado (preserva ao alternar)
+        // Credenciais SaaS
         if (providerCredentials !== undefined) {
             if (providerCredentials) {
-                // Aceita tanto objeto quanto string JSON
                 const credsObj = typeof providerCredentials === 'string'
                     ? JSON.parse(providerCredentials)
                     : providerCredentials;
-                data.providerCredentials = JSON.stringify(credsObj);
+                coreData.providerCredentials = JSON.stringify(credsObj);
             } else {
-                data.providerCredentials = null;
+                coreData.providerCredentials = null;
             }
         }
 
+        // Upsert com campos core (sempre funciona, independente do Prisma client gerado)
         const config = await prisma.nfeConfig.upsert({
-            where: { id: 'default' },
-            create: { id: 'default', ...data, updatedAt: new Date() },
-            update: { ...data, updatedAt: new Date() },
+            where:  { id: 'default' },
+            create: { id: 'default', ...coreData, updatedAt: new Date() },
+            update: { ...coreData, updatedAt: new Date() },
         });
+
+        // Campos ABRASF v3 novos — salva via raw SQL para não depender da versão do Prisma client
+        try {
+            await prisma.$executeRawUnsafe(`
+                UPDATE "NfeConfig" SET
+                    "regimeEspecialTributacao"  = $1,
+                    "incentivadorCultural"      = $2,
+                    "exigibilidadeIss"          = $3,
+                    "codigoTributacaoMunicipio" = $4
+                WHERE id = 'default'
+            `,
+                regimeEspecialTributacao  || '6',
+                incentivadorCultural      || '2',
+                exigibilidadeIss          || '1',
+                codigoTributacaoMunicipio || null,
+            );
+        } catch {
+            // Colunas ainda não existem no banco (migration pendente) — ignora silenciosamente
+        }
 
         const { certificadoBase64: _cert, providerCredentials: _creds, ...rest } = config as any;
         return NextResponse.json({
             ...rest,
-            hasCertificado: !!_cert,
+            hasCertificado:         !!_cert,
             hasProviderCredentials: !!_creds,
+            // Retorna os novos campos com fallback para os valores enviados
+            regimeEspecialTributacao:  regimeEspecialTributacao  || '6',
+            incentivadorCultural:      incentivadorCultural      || '2',
+            exigibilidadeIss:          exigibilidadeIss          || '1',
+            codigoTributacaoMunicipio: codigoTributacaoMunicipio || null,
         });
     } catch (error: any) {
         console.error('[NFE_CONFIG_PUT_ERROR]', error);
