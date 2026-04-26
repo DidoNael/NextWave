@@ -39,19 +39,22 @@ export async function POST(req: Request) {
     const rpsSerie = config?.serieRps || '1';
     const rpsTipo  = config?.tipoRps  || '1';
 
-    // Filtra por emitidaEm (data real de emissão) quando passado período
-    const dateFilter = (de || ate) ? {
-        emitidaEm: {
+    const hasPeriodo = !!(de || ate);
+
+    // Filtro de data: quando há período usa createdAt (emitidaEm pode ser null em aguardando)
+    const dateFilter = hasPeriodo ? {
+        createdAt: {
             ...(de  ? { gte: new Date(`${de}T00:00:00`) }  : {}),
             ...(ate ? { lte: new Date(`${ate}T23:59:59`) } : {}),
         },
     } : {};
 
-    // Quando há filtro de período, sincroniza todas as notas do intervalo (ignora codigoVerificacao)
-    const hasPeriodo = !!(de || ate);
+    // Inclui emitida + aguardando_processamento — protocolo GINFES expira,
+    // mas consultarNfsePorRps funciona independente do protocolo
+    const statusFiltro = { in: ['emitida', 'aguardando_processamento'] };
 
-    const where = {
-        status: 'emitida',
+    const where: any = {
+        status: statusFiltro,
         ...(!forceAll && !hasPeriodo ? { codigoVerificacao: null } : {}),
         ...dateFilter,
     };
@@ -60,17 +63,20 @@ export async function POST(req: Request) {
         where,
         orderBy: { createdAt: 'asc' },
         take: 50,
-        select: { id: true, rpsNumero: true, numeroNfse: true, codigoVerificacao: true },
+        select: { id: true, rpsNumero: true, numeroNfse: true, codigoVerificacao: true, status: true },
     });
 
     if (records.length === 0) {
-        const totalEmitidas = await prisma.nfseRecord.count({ where: { status: 'emitida' } });
+        const [totalEmitidas, totalAguardando] = await Promise.all([
+            prisma.nfseRecord.count({ where: { status: 'emitida' } }),
+            prisma.nfseRecord.count({ where: { status: 'aguardando_processamento' } }),
+        ]);
         return NextResponse.json({
             sincronizadas: 0,
             erros: 0,
             message: hasPeriodo
-                ? `Nenhuma nota emitida encontrada no período informado. Total de notas emitidas no sistema: ${totalEmitidas}.`
-                : 'Nenhum registro a sincronizar.',
+                ? `Nenhum registro encontrado no período (createdAt). Sistema: ${totalEmitidas} emitidas + ${totalAguardando} aguardando.`
+                : `Nenhum registro a sincronizar. Sistema: ${totalEmitidas} emitidas + ${totalAguardando} aguardando.`,
         });
     }
 
@@ -88,16 +94,13 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            const mudou = resultado.numeroNfse && (
-                resultado.numeroNfse !== record.numeroNfse ||
-                (resultado.codigoVerificacao && resultado.codigoVerificacao !== record.codigoVerificacao)
-            );
-
-            if (mudou || forceAll) {
+            if (resultado.numeroNfse) {
                 await prisma.nfseRecord.update({
                     where: { id: record.id },
                     data: {
-                        ...(resultado.numeroNfse       ? { numeroNfse:        resultado.numeroNfse }       : {}),
+                        status:            'emitida',
+                        numeroNfse:        resultado.numeroNfse,
+                        emitidaEm:         record.status !== 'emitida' ? new Date() : undefined,
                         ...(resultado.codigoVerificacao ? { codigoVerificacao: resultado.codigoVerificacao } : {}),
                         ...(resultado.xmlRetorno        ? { xmlRetorno:        resultado.xmlRetorno }        : {}),
                     },
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
                 sincronizadas++;
                 detalhes.push({ id: record.id, rps: record.rpsNumero, resultado: `ok: NFS-e ${resultado.numeroNfse}` });
             } else {
-                detalhes.push({ id: record.id, rps: record.rpsNumero, resultado: 'sem alteração' });
+                detalhes.push({ id: record.id, rps: record.rpsNumero, resultado: 'GINFES não retornou número de NFS-e' });
             }
         } catch (err: any) {
             erros++;
