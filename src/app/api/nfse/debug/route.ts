@@ -166,6 +166,9 @@ export async function POST(req: Request) {
                 req2.end();
             });
 
+            // Detectar página HTML de manutenção/indisponibilidade
+            const isHtml = resposta.trimStart().startsWith('<!') || resposta.includes('<html') || resposta.includes('indisponibilidade');
+
             // GINFES retorna o XML interno dentro de <return> como HTML-encoded
             const returnMatch = resposta.match(/<(?:[^:>]+:)?return[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?return>/);
             const innerXml = returnMatch
@@ -181,7 +184,9 @@ export async function POST(req: Request) {
             steps.push({
                 step: `Enviar ao Ginfes (${config.ambiente})`,
                 ok: hasProtocolo && !hasFault,
-                detail: hasFault && !hasProtocolo
+                detail: isHtml
+                    ? `Servidor GINFES em manutenção ou indisponível. XML e assinatura estão corretos — tente novamente mais tarde.`
+                    : hasFault && !hasProtocolo
                     ? `Erro GINFES: ${mensagem || 'sem detalhe'}`
                     : hasProtocolo
                         ? `Protocolo recebido: ${protocolo || '?'}`
