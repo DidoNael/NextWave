@@ -168,7 +168,7 @@ export async function DELETE(
     const config = await prisma.nfeConfig.findUnique({ where: { id: 'default' }, select: { codigoMunicipio: true } });
     const resultado = await nfseProvider.cancelar(
         record.numeroNfse,
-        config?.codigoMunicipio || '3514700'
+        config?.codigoMunicipio || '3518800'
     );
 
     if (resultado.erro) {
