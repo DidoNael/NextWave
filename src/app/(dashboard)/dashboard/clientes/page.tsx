@@ -72,6 +72,7 @@ const clienteSchema = z.object({
   number: z.string().optional(),
   complement: z.string().optional(),
   neighborhood: z.string().optional(),
+  cityCode: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   notes: z.string().optional(),
@@ -175,7 +176,7 @@ export default function ClientesPage() {
 
   const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<ClienteForm>({
     resolver: zodResolver(clienteSchema),
-    defaultValues: { name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "", status: "ativo" },
+    defaultValues: { name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", cityCode: "", city: "", state: "", notes: "", status: "ativo" },
   });
 
   // ── CEP lookup ──────────────────────────────────────────────────────────────
@@ -193,6 +194,7 @@ export default function ClientesPage() {
       if (data.erro) { setCepStatus("error"); setCepErrorMsg("CEP não encontrado"); return; }
       setValue("address", data.logradouro || "", { shouldValidate: true });
       setValue("neighborhood", data.bairro || "");
+      setValue("cityCode", data.ibge || "");
       setValue("city", data.localidade || "", { shouldValidate: true });
       setValue("state", data.uf || "", { shouldValidate: true });
       setCepStatus("found");
@@ -239,7 +241,7 @@ export default function ClientesPage() {
     setEditingCliente(null);
     cepPrev.current = "";
     setCepStatus("idle");
-    reset({ name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "", status: "ativo", nfseTemplateId: null, emailTemplateId: null });
+    reset({ name: "", email: "", phone: "", document: "", company: "", zipCode: "", address: "", number: "", complement: "", neighborhood: "", cityCode: "", city: "", state: "", notes: "", status: "ativo", nfseTemplateId: null, emailTemplateId: null });
     setDialogOpen(true);
   }
 
@@ -258,6 +260,7 @@ export default function ClientesPage() {
       number: c.number ?? "",
       complement: c.complement ?? "",
       neighborhood: c.neighborhood ?? "",
+      cityCode: (c as any).cityCode ?? "",
       city: c.city ?? "",
       state: c.state ?? "",
       notes: c.notes ?? "",
@@ -538,6 +541,10 @@ export default function ClientesPage() {
               <div className="col-span-2 space-y-1.5">
                 <Label>Bairro</Label>
                 <Input placeholder="Bairro" {...register("neighborhood")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Cód. Município (IBGE)</Label>
+                <Input placeholder="ex: 3518800" {...register("cityCode")} />
               </div>
 
               {/* Cidade + Estado */}
