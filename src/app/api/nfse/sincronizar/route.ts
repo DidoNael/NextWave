@@ -39,16 +39,20 @@ export async function POST(req: Request) {
     const rpsSerie = config?.serieRps || '1';
     const rpsTipo  = config?.tipoRps  || '1';
 
+    // Filtra por emitidaEm (data real de emissão) quando passado período
     const dateFilter = (de || ate) ? {
-        createdAt: {
+        emitidaEm: {
             ...(de  ? { gte: new Date(`${de}T00:00:00`) }  : {}),
             ...(ate ? { lte: new Date(`${ate}T23:59:59`) } : {}),
         },
     } : {};
 
+    // Quando há filtro de período, sincroniza todas as notas do intervalo (ignora codigoVerificacao)
+    const hasPeriodo = !!(de || ate);
+
     const where = {
         status: 'emitida',
-        ...(forceAll ? {} : { codigoVerificacao: null }),
+        ...(!forceAll && !hasPeriodo ? { codigoVerificacao: null } : {}),
         ...dateFilter,
     };
 
@@ -60,7 +64,14 @@ export async function POST(req: Request) {
     });
 
     if (records.length === 0) {
-        return NextResponse.json({ sincronizadas: 0, erros: 0, message: 'Nenhum registro a sincronizar.' });
+        const totalEmitidas = await prisma.nfseRecord.count({ where: { status: 'emitida' } });
+        return NextResponse.json({
+            sincronizadas: 0,
+            erros: 0,
+            message: hasPeriodo
+                ? `Nenhuma nota emitida encontrada no período informado. Total de notas emitidas no sistema: ${totalEmitidas}.`
+                : 'Nenhum registro a sincronizar.',
+        });
     }
 
     let sincronizadas = 0;

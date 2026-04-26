@@ -780,10 +780,10 @@ export default function NfeConfigPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Filtro de período */}
+                    {/* Filtro de período de emissão */}
                     <div className="flex flex-col sm:flex-row gap-3 items-end">
                         <div className="space-y-1.5 flex-1">
-                            <Label className="text-xs">De</Label>
+                            <Label className="text-xs">Emitida de</Label>
                             <Input
                                 type="date"
                                 value={syncPeriodo.de}
@@ -791,7 +791,7 @@ export default function NfeConfigPage() {
                             />
                         </div>
                         <div className="space-y-1.5 flex-1">
-                            <Label className="text-xs">Até</Label>
+                            <Label className="text-xs">Emitida até</Label>
                             <Input
                                 type="date"
                                 value={syncPeriodo.ate}
