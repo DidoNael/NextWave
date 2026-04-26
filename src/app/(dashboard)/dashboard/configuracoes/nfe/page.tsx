@@ -73,6 +73,7 @@ export default function NfeConfigPage() {
     const [limpando, setLimpando] = useState(false);
     const [rotina, setRotina] = useState<{ running: boolean; result: any | null }>({ running: false, result: null });
     const [sync, setSync] = useState<{ running: boolean; forceAll: boolean; result: any | null }>({ running: false, forceAll: false, result: null });
+    const [syncPeriodo, setSyncPeriodo] = useState({ de: '', ate: '' });
     const [xmlModal, setXmlModal] = useState<{ open: boolean; enviado: string; retorno: string; erro: string } | null>(null);
     const [xmlTab, setXmlTab] = useState<"enviado" | "retorno" | "erro">("retorno");
     const fileRef = useRef<HTMLInputElement>(null);
@@ -774,14 +775,44 @@ export default function NfeConfigPage() {
                         <RefreshCw className="h-4 w-4 text-primary" /> Sincronizar Notas Emitidas
                     </CardTitle>
                     <CardDescription>
-                        Re-consulta o provedor GINFES por RPS e atualiza número da nota e código de verificação
-                        para registros que estejam divergentes ou sem código de verificação.
+                        Re-consulta o provedor GINFES por RPS e atualiza número da nota e código de verificação.
+                        Filtre por período para sincronizar apenas as notas de um intervalo específico.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Filtro de período */}
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                        <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs">De</Label>
+                            <Input
+                                type="date"
+                                value={syncPeriodo.de}
+                                onChange={e => setSyncPeriodo(p => ({ ...p, de: e.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs">Até</Label>
+                            <Input
+                                type="date"
+                                value={syncPeriodo.ate}
+                                onChange={e => setSyncPeriodo(p => ({ ...p, ate: e.target.value }))}
+                            />
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground"
+                            onClick={() => setSyncPeriodo({ de: '', ate: '' })}
+                            disabled={!syncPeriodo.de && !syncPeriodo.ate}
+                        >
+                            Limpar filtro
+                        </Button>
+                    </div>
+
                     {sync.result && (
                         <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
                             <p className="font-semibold">{sync.result.summary}</p>
+                            {sync.result.message && <p className="text-xs text-muted-foreground">{sync.result.message}</p>}
                             {sync.result.detalhes?.length > 0 && (
                                 <details className="mt-2">
                                     <summary className="text-xs text-muted-foreground cursor-pointer">Ver detalhes ({sync.result.detalhes.length})</summary>
@@ -794,17 +825,21 @@ export default function NfeConfigPage() {
                             )}
                         </div>
                     )}
+
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Button
                             variant="outline"
                             onClick={async () => {
                                 setSync(s => ({ ...s, running: true, forceAll: false, result: null }));
                                 try {
-                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ forceAll: false }) });
+                                    const body: any = { forceAll: false };
+                                    if (syncPeriodo.de)  body.de  = syncPeriodo.de;
+                                    if (syncPeriodo.ate) body.ate = syncPeriodo.ate;
+                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data?.error ?? 'Erro na sincronização');
                                     setSync(s => ({ ...s, running: false, result: data }));
-                                    toast.success(data.summary);
+                                    toast.success(data.summary ?? data.message);
                                     fetchRecords();
                                 } catch (e: any) {
                                     setSync(s => ({ ...s, running: false, result: null }));
@@ -821,11 +856,14 @@ export default function NfeConfigPage() {
                             onClick={async () => {
                                 setSync(s => ({ ...s, running: true, forceAll: true, result: null }));
                                 try {
-                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ forceAll: true }) });
+                                    const body: any = { forceAll: true };
+                                    if (syncPeriodo.de)  body.de  = syncPeriodo.de;
+                                    if (syncPeriodo.ate) body.ate = syncPeriodo.ate;
+                                    const res = await fetch('/api/nfse/sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data?.error ?? 'Erro na sincronização');
                                     setSync(s => ({ ...s, running: false, result: data }));
-                                    toast.success(data.summary);
+                                    toast.success(data.summary ?? data.message);
                                     fetchRecords();
                                 } catch (e: any) {
                                     setSync(s => ({ ...s, running: false, result: null }));

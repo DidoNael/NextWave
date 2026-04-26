@@ -21,8 +21,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    // forceAll=true sincroniza todas as emitidas; padrão: apenas as sem codigoVerificacao
     const forceAll: boolean = body.forceAll === true;
+    // de / ate filtram por createdAt (YYYY-MM-DD) — opcional
+    const de: string | undefined  = body.de;
+    const ate: string | undefined = body.ate;
 
     const nfseProvider = await getActiveNfseProvider();
     if (!nfseProvider) {
@@ -37,9 +39,18 @@ export async function POST(req: Request) {
     const rpsSerie = config?.serieRps || '1';
     const rpsTipo  = config?.tipoRps  || '1';
 
-    const where = forceAll
-        ? { status: 'emitida' }
-        : { status: 'emitida', codigoVerificacao: null };
+    const dateFilter = (de || ate) ? {
+        createdAt: {
+            ...(de  ? { gte: new Date(`${de}T00:00:00`) }  : {}),
+            ...(ate ? { lte: new Date(`${ate}T23:59:59`) } : {}),
+        },
+    } : {};
+
+    const where = {
+        status: 'emitida',
+        ...(forceAll ? {} : { codigoVerificacao: null }),
+        ...dateFilter,
+    };
 
     const records = await prisma.nfseRecord.findMany({
         where,
