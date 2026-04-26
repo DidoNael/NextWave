@@ -155,7 +155,7 @@ export class GinfesClient {
     async emitirLote(rpsList: RpsData[], loteId: string): Promise<EmitirLoteResult> {
         const xmlLote = generateLoteRpsXml(loteId, rpsList);
         // Assina cada InfRps (o template já inclui Id="rps{numero}")
-        const xmlAssinado = this.signer.signXml(xmlLote, 'InfRps', `rps${rpsList[0].numero}`);
+        const xmlAssinado = this.signer.signXml(xmlLote, 'tipos:InfRps', `rps${rpsList[0].numero}`);
         // Assina o LoteRps (o template já inclui Id="lote{loteId}" — sem replace duplicado)
         const xmlLoteAssinado = this.signer.signXml(xmlAssinado, 'LoteRps', `lote${loteId}`);
 

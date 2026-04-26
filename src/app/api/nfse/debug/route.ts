@@ -8,47 +8,47 @@ import https from 'https';
 import crypto from 'crypto';
 
 const XML_TESTE = (cnpj: string, im: string) => `<?xml version="1.0" encoding="UTF-8"?>
-<EnviarLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_enviar_lote_rps_envio_v03.xsd">
+<EnviarLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_enviar_lote_rps_envio_v03.xsd" xmlns:tipos="http://www.ginfes.com.br/tipos_v03.xsd">
   <LoteRps Id="lote999">
-    <NumeroLote>999</NumeroLote>
-    <Cnpj>${cnpj}</Cnpj>
-    <InscricaoMunicipal>${im}</InscricaoMunicipal>
-    <QuantidadeRps>1</QuantidadeRps>
-    <ListaRps>
-      <Rps>
-        <InfRps Id="rps999">
-          <IdentificacaoRps><Numero>999</Numero><Serie>1</Serie><Tipo>1</Tipo></IdentificacaoRps>
-          <DataEmissao>${new Date().toISOString().split('T')[0]}</DataEmissao>
-          <NaturezaOperacao>1</NaturezaOperacao>
-          <OptanteSimplesNacional>1</OptanteSimplesNacional>
-          <IncentivadorCultural>2</IncentivadorCultural>
-          <Status>1</Status>
-          <Servico>
-            <Valores>
-              <ValorServicos>1.00</ValorServicos>
-              <IssRetido>2</IssRetido>
-              <BaseCalculo>1.00</BaseCalculo>
-              <Aliquota>0.0215</Aliquota>
-            </Valores>
-            <ItemListaServico>1.07</ItemListaServico>
-            <CodigoMunicipio>3514700</CodigoMunicipio>
-            <Discriminacao>TESTE DE DIAGNOSTICO - NAO PROCESSAR</Discriminacao>
-          </Servico>
-          <Prestador>
-            <Cnpj>${cnpj}</Cnpj>
-            <InscricaoMunicipal>${im}</InscricaoMunicipal>
-          </Prestador>
-          <Tomador>
-            <IdentificacaoTomador><CpfCnpj><Cpf>00000000000</Cpf></CpfCnpj></IdentificacaoTomador>
-            <RazaoSocial>CONSUMIDOR FINAL TESTE</RazaoSocial>
-            <Endereco>
-              <Endereco>Rua Teste</Endereco><Numero>1</Numero><Bairro>Centro</Bairro>
-              <CodigoMunicipio>3514700</CodigoMunicipio><Uf>SP</Uf><Cep>07000000</Cep>
-            </Endereco>
-          </Tomador>
-        </InfRps>
-      </Rps>
-    </ListaRps>
+    <tipos:NumeroLote>999</tipos:NumeroLote>
+    <tipos:Cnpj>${cnpj}</tipos:Cnpj>
+    <tipos:InscricaoMunicipal>${im}</tipos:InscricaoMunicipal>
+    <tipos:QuantidadeRps>1</tipos:QuantidadeRps>
+    <tipos:ListaRps>
+      <tipos:Rps>
+        <tipos:InfRps Id="rps999">
+          <tipos:IdentificacaoRps><tipos:Numero>999</tipos:Numero><tipos:Serie>1</tipos:Serie><tipos:Tipo>1</tipos:Tipo></tipos:IdentificacaoRps>
+          <tipos:DataEmissao>${new Date().toISOString().split('T')[0]}</tipos:DataEmissao>
+          <tipos:NaturezaOperacao>1</tipos:NaturezaOperacao>
+          <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
+          <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
+          <tipos:Status>1</tipos:Status>
+          <tipos:Servico>
+            <tipos:Valores>
+              <tipos:ValorServicos>1.00</tipos:ValorServicos>
+              <tipos:IssRetido>2</tipos:IssRetido>
+              <tipos:BaseCalculo>1.00</tipos:BaseCalculo>
+              <tipos:Aliquota>0.0215</tipos:Aliquota>
+            </tipos:Valores>
+            <tipos:ItemListaServico>1.07</tipos:ItemListaServico>
+            <tipos:CodigoMunicipio>3518800</tipos:CodigoMunicipio>
+            <tipos:Discriminacao>TESTE DE DIAGNOSTICO - NAO PROCESSAR</tipos:Discriminacao>
+          </tipos:Servico>
+          <tipos:Prestador>
+            <tipos:Cnpj>${cnpj}</tipos:Cnpj>
+            <tipos:InscricaoMunicipal>${im}</tipos:InscricaoMunicipal>
+          </tipos:Prestador>
+          <tipos:Tomador>
+            <tipos:IdentificacaoTomador><tipos:CpfCnpj><tipos:Cpf>00000000000</tipos:Cpf></tipos:CpfCnpj></tipos:IdentificacaoTomador>
+            <tipos:RazaoSocial>CONSUMIDOR FINAL TESTE</tipos:RazaoSocial>
+            <tipos:Endereco>
+              <tipos:Endereco>Rua Teste</tipos:Endereco><tipos:Numero>1</tipos:Numero><tipos:Bairro>Centro</tipos:Bairro>
+              <tipos:CodigoMunicipio>3518800</tipos:CodigoMunicipio><tipos:Uf>SP</tipos:Uf><tipos:Cep>07000000</tipos:Cep>
+            </tipos:Endereco>
+          </tipos:Tomador>
+        </tipos:InfRps>
+      </tipos:Rps>
+    </tipos:ListaRps>
   </LoteRps>
 </EnviarLoteRpsEnvio>`;
 
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     const xmlTeste = XML_TESTE(cnpj, config.inscricaoMunicipal);
     let xmlAssinado1: string;
     try {
-        xmlAssinado1 = signer.signXml(xmlTeste, 'InfRps', 'rps999');
+        xmlAssinado1 = signer.signXml(xmlTeste, 'tipos:InfRps', 'rps999');
         steps.push({ step: 'Assinar InfRps', ok: true, detail: `XML gerado: ${xmlAssinado1.length} bytes` });
     } catch (e: any) {
         steps.push({ step: 'Assinar InfRps', ok: false, detail: e.message });

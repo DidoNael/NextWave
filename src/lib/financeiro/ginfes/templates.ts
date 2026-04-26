@@ -28,63 +28,63 @@ export interface RpsData {
 
 export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
     const rpsXmls = rpsList.map(rps => `
-    <Rps>
-      <InfRps Id="rps${rps.numero}">
-        <IdentificacaoRps>
-          <Numero>${rps.numero}</Numero>
-          <Serie>${rps.serie}</Serie>
-          <Tipo>${rps.tipo}</Tipo>
-        </IdentificacaoRps>
-        <DataEmissao>${rps.dataEmissao}</DataEmissao>
-        <NaturezaOperacao>1</NaturezaOperacao>
-        <OptanteSimplesNacional>1</OptanteSimplesNacional>
-        <IncentivadorCultural>2</IncentivadorCultural>
-        <Status>1</Status>
-        <Servico>
-          <Valores>
-            <ValorServicos>${rps.valorServicos.toFixed(2)}</ValorServicos>
-            <IssRetido>${rps.issRetido}</IssRetido>
-            <BaseCalculo>${rps.valorServicos.toFixed(2)}</BaseCalculo>
-            <Aliquota>${rps.aliquota.toFixed(4)}</Aliquota>
-          </Valores>
-          <ItemListaServico>${rps.itemListaServico}</ItemListaServico>
-          <CodigoMunicipio>${rps.codigoMunicipio}</CodigoMunicipio>
-          <Discriminacao>${rps.discriminacao}</Discriminacao>
-        </Servico>
-        <Prestador>
-          <Cnpj>${rps.prestador.cnpj}</Cnpj>
-          <InscricaoMunicipal>${rps.prestador.inscricaoMunicipal}</InscricaoMunicipal>
-        </Prestador>
-        <Tomador>
-          <IdentificacaoTomador>
-            <CpfCnpj>
-              <${rps.tomador.cpfCnpj.length > 11 ? 'Cnpj' : 'Cpf'}>${rps.tomador.cpfCnpj}</${rps.tomador.cpfCnpj.length > 11 ? 'Cnpj' : 'Cpf'}>
-            </CpfCnpj>
-          </IdentificacaoTomador>
-          <RazaoSocial>${rps.tomador.razaoSocial}</RazaoSocial>
-          <Endereco>
-            <Endereco>${rps.tomador.endereco}</Endereco>
-            <Numero>${rps.tomador.numero}</Numero>
-            <Bairro>${rps.tomador.bairro}</Bairro>
-            <CodigoMunicipio>${rps.tomador.codigoMunicipio}</CodigoMunicipio>
-            <Uf>${rps.tomador.uf}</Uf>
-            <Cep>${rps.tomador.cep}</Cep>
-          </Endereco>
-          ${rps.tomador.email ? `<Contato><Email>${rps.tomador.email}</Email></Contato>` : ''}
-        </Tomador>
-      </InfRps>
-    </Rps>`).join('');
+    <tipos:Rps>
+      <tipos:InfRps Id="rps${rps.numero}">
+        <tipos:IdentificacaoRps>
+          <tipos:Numero>${rps.numero}</tipos:Numero>
+          <tipos:Serie>${rps.serie}</tipos:Serie>
+          <tipos:Tipo>${rps.tipo}</tipos:Tipo>
+        </tipos:IdentificacaoRps>
+        <tipos:DataEmissao>${rps.dataEmissao}</tipos:DataEmissao>
+        <tipos:NaturezaOperacao>1</tipos:NaturezaOperacao>
+        <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
+        <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
+        <tipos:Status>1</tipos:Status>
+        <tipos:Servico>
+          <tipos:Valores>
+            <tipos:ValorServicos>${rps.valorServicos.toFixed(2)}</tipos:ValorServicos>
+            <tipos:IssRetido>${rps.issRetido}</tipos:IssRetido>
+            <tipos:BaseCalculo>${rps.valorServicos.toFixed(2)}</tipos:BaseCalculo>
+            <tipos:Aliquota>${rps.aliquota.toFixed(4)}</tipos:Aliquota>
+          </tipos:Valores>
+          <tipos:ItemListaServico>${rps.itemListaServico}</tipos:ItemListaServico>
+          <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
+          <tipos:Discriminacao>${rps.discriminacao}</tipos:Discriminacao>
+        </tipos:Servico>
+        <tipos:Prestador>
+          <tipos:Cnpj>${rps.prestador.cnpj}</tipos:Cnpj>
+          <tipos:InscricaoMunicipal>${rps.prestador.inscricaoMunicipal}</tipos:InscricaoMunicipal>
+        </tipos:Prestador>
+        <tipos:Tomador>
+          <tipos:IdentificacaoTomador>
+            <tipos:CpfCnpj>
+              <tipos:${rps.tomador.cpfCnpj.length > 11 ? 'Cnpj' : 'Cpf'}>${rps.tomador.cpfCnpj}</tipos:${rps.tomador.cpfCnpj.length > 11 ? 'Cnpj' : 'Cpf'}>
+            </tipos:CpfCnpj>
+          </tipos:IdentificacaoTomador>
+          <tipos:RazaoSocial>${rps.tomador.razaoSocial}</tipos:RazaoSocial>
+          <tipos:Endereco>
+            <tipos:Endereco>${rps.tomador.endereco}</tipos:Endereco>
+            <tipos:Numero>${rps.tomador.numero}</tipos:Numero>
+            <tipos:Bairro>${rps.tomador.bairro}</tipos:Bairro>
+            <tipos:CodigoMunicipio>${rps.tomador.codigoMunicipio}</tipos:CodigoMunicipio>
+            <tipos:Uf>${rps.tomador.uf}</tipos:Uf>
+            <tipos:Cep>${rps.tomador.cep}</tipos:Cep>
+          </tipos:Endereco>
+          ${rps.tomador.email ? `<tipos:Contato><tipos:Email>${rps.tomador.email}</tipos:Email></tipos:Contato>` : ''}
+        </tipos:Tomador>
+      </tipos:InfRps>
+    </tipos:Rps>`).join('');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<EnviarLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_enviar_lote_rps_envio_v03.xsd">
+<EnviarLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_enviar_lote_rps_envio_v03.xsd" xmlns:tipos="http://www.ginfes.com.br/tipos_v03.xsd">
   <LoteRps Id="lote${loteId}">
-    <NumeroLote>${loteId}</NumeroLote>
-    <Cnpj>${rpsList[0].prestador.cnpj}</Cnpj>
-    <InscricaoMunicipal>${rpsList[0].prestador.inscricaoMunicipal}</InscricaoMunicipal>
-    <QuantidadeRps>${rpsList.length}</QuantidadeRps>
-    <ListaRps>
+    <tipos:NumeroLote>${loteId}</tipos:NumeroLote>
+    <tipos:Cnpj>${rpsList[0].prestador.cnpj}</tipos:Cnpj>
+    <tipos:InscricaoMunicipal>${rpsList[0].prestador.inscricaoMunicipal}</tipos:InscricaoMunicipal>
+    <tipos:QuantidadeRps>${rpsList.length}</tipos:QuantidadeRps>
+    <tipos:ListaRps>
       ${rpsXmls}
-    </ListaRps>
+    </tipos:ListaRps>
   </LoteRps>
 </EnviarLoteRpsEnvio>`;
 }
