@@ -18,8 +18,9 @@ const XML_TESTE = (cnpj: string, im: string) => `<?xml version="1.0" encoding="U
       <tipos:Rps>
         <tipos:InfRps Id="rps999">
           <tipos:IdentificacaoRps><tipos:Numero>999</tipos:Numero><tipos:Serie>1</tipos:Serie><tipos:Tipo>1</tipos:Tipo></tipos:IdentificacaoRps>
-          <tipos:DataEmissao>${new Date().toISOString().split('T')[0]}</tipos:DataEmissao>
+          <tipos:DataEmissao>${new Date().toISOString().replace(/\.\d{3}Z$/, '')}</tipos:DataEmissao>
           <tipos:NaturezaOperacao>1</tipos:NaturezaOperacao>
+          <tipos:RegimeEspecialTributacao>6</tipos:RegimeEspecialTributacao>
           <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
           <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
           <tipos:Status>1</tipos:Status>

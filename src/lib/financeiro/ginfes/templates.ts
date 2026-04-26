@@ -2,7 +2,7 @@ export interface RpsData {
     numero: string;
     serie: string;
     tipo: string;
-    dataEmissao: string;
+    dataEmissao: string; // formato: YYYY-MM-DDTHH:mm:ss
     valorServicos: number;
     aliquota: number;
     issRetido: string;
@@ -37,6 +37,7 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
         </tipos:IdentificacaoRps>
         <tipos:DataEmissao>${rps.dataEmissao}</tipos:DataEmissao>
         <tipos:NaturezaOperacao>1</tipos:NaturezaOperacao>
+        <tipos:RegimeEspecialTributacao>6</tipos:RegimeEspecialTributacao>
         <tipos:OptanteSimplesNacional>1</tipos:OptanteSimplesNacional>
         <tipos:IncentivadorCultural>2</tipos:IncentivadorCultural>
         <tipos:Status>1</tipos:Status>
