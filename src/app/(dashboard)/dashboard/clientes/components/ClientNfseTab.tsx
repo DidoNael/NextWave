@@ -14,7 +14,8 @@ import {
     Clock,
     Eye,
     RefreshCw,
-    Mail
+    Mail,
+    Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,12 @@ interface ClientNfseTabProps {
 export function ClientNfseTab({ clientId, nfseRecords, onRefresh }: ClientNfseTabProps) {
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [viewXml, setViewXml] = useState<string | null>(null);
+    const [showEmitDialog, setShowEmitDialog] = useState(false);
+    const [emitLoading, setEmitLoading] = useState(false);
+    const [emitData, setEmitData] = useState({
+        valor: 0,
+        discriminacao: "Prestação de serviços de tecnologia"
+    });
 
     const handleSendEmail = async (id: string) => {
         setLoadingId(id + "_email");
@@ -88,6 +95,57 @@ export function ClientNfseTab({ clientId, nfseRecords, onRefresh }: ClientNfseTa
         }
     };
 
+    const handleEmitManual = async () => {
+        if (emitData.valor <= 0) {
+            toast.error("O valor da nota deve ser maior que zero");
+            return;
+        }
+
+        setEmitLoading(true);
+        try {
+            const res = await fetch(`/api/nfse/emitir-manual`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    clientId,
+                    valor: emitData.valor,
+                    discriminacao: emitData.discriminacao
+                })
+            });
+
+            if (res.ok) {
+                toast.success("Solicitação de emissão enviada com sucesso!");
+                setShowEmitDialog(false);
+                onRefresh();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "Erro ao emitir nota");
+            }
+        } catch {
+            toast.error("Falha na comunicação com o servidor");
+        } finally {
+            setEmitLoading(false);
+        }
+    };
+
+    const handleRetry = async (id: string) => {
+        setLoadingId(id + "_retry");
+        try {
+            const res = await fetch(`/api/nfse/${id}/retry`, { method: "POST" });
+            if (res.ok) {
+                toast.success("Reenvio solicitado com sucesso!");
+                onRefresh();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "Erro ao reenviar");
+            }
+        } catch {
+            toast.error("Erro ao reenviar");
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
     const handleViewPdf = (record: any) => {
         // Se temos link guardado ou gerável
         // Para GINFES usamos a lógica de subdomínio
@@ -115,10 +173,16 @@ export function ClientNfseTab({ clientId, nfseRecords, onRefresh }: ClientNfseTa
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-border/50">
                 <h3 className="font-bold text-slate-800 dark:text-slate-200 uppercase text-xs tracking-widest">Histórico de NFS-e</h3>
-                <Button variant="outline" size="sm" onClick={onRefresh} className="h-8 gap-2">
-                    <RefreshCw className="h-3 w-3" />
-                    Sincronizar
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={onRefresh} className="h-8 gap-2">
+                        <RefreshCw className="h-3 w-3" />
+                        Sincronizar
+                    </Button>
+                    <Button size="sm" onClick={() => setShowEmitDialog(true)} className="h-8 gap-2 bg-primary text-primary-foreground">
+                        <Plus className="h-3 w-3" />
+                        Gerar NFS-e
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -232,10 +296,23 @@ export function ClientNfseTab({ clientId, nfseRecords, onRefresh }: ClientNfseTa
                                         Atualizar Status
                                     </Button>
                                 )}
-                                {record.status === 'erro' && record.errorMessage && (
-                                    <div className="flex items-center gap-2 text-xs text-red-500 font-medium">
-                                        <AlertCircle className="h-3.5 w-3.5" />
-                                        {record.errorMessage.substring(0, 30)}...
+                                {record.status === 'erro' && (
+                                    <div className="flex items-center gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-xs gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                                            onClick={() => handleRetry(record.id)}
+                                            disabled={loadingId === record.id + "_retry"}
+                                        >
+                                            {loadingId === record.id + "_retry" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                            Reenviar
+                                        </Button>
+                                        {record.errorMessage && (
+                                            <div className="text-[10px] text-red-400 font-medium max-w-[150px] truncate" title={record.errorMessage}>
+                                                {record.errorMessage}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -245,10 +322,56 @@ export function ClientNfseTab({ clientId, nfseRecords, onRefresh }: ClientNfseTa
                     <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed rounded-3xl opacity-60">
                         <Receipt className="h-12 w-12 text-muted-foreground mb-3" />
                         <p className="text-sm font-medium">Nenhuma nota fiscal emitida para este cliente.</p>
-                        <p className="text-xs text-muted-foreground mt-1">As notas são geradas automaticamente após o pagamento ou manualmente via financeiro.</p>
+                        <p className="text-xs text-muted-foreground mt-1 mb-4">As notas podem ser geradas automaticamente ou manualmente.</p>
+                        <Button size="sm" onClick={() => setShowEmitDialog(true)} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Gerar Primeira NFS-e
+                        </Button>
                     </div>
                 )}
             </div>
+
+            {/* Manual Emit Dialog */}
+            <Dialog open={showEmitDialog} onOpenChange={setShowEmitDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Gerar NFS-e Manual</DialogTitle>
+                        <DialogDescription>
+                            Preencha os dados abaixo para emitir a nota fiscal agora.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Valor do Serviço (R$)</label>
+                            <input 
+                                type="number" 
+                                className="w-full p-2 rounded-lg border bg-background"
+                                value={emitData.valor}
+                                onChange={(e) => setEmitData({ ...emitData, valor: parseFloat(e.target.value) })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Discriminação dos Serviços</label>
+                            <textarea 
+                                className="w-full p-2 rounded-lg border bg-background h-24"
+                                value={emitData.discriminacao}
+                                onChange={(e) => setEmitData({ ...emitData, discriminacao: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowEmitDialog(false)}>Cancelar</Button>
+                        <Button 
+                            className="bg-primary text-white"
+                            onClick={handleEmitManual}
+                            disabled={emitLoading}
+                        >
+                            {emitLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                            Emitir Nota Agora
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* XML Viewer Dialog */}
             <Dialog open={!!viewXml} onOpenChange={() => setViewXml(null)}>
