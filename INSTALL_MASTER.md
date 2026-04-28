@@ -70,5 +70,22 @@ Para maior segurança, o sistema vem configurado para aceitar conexões apenas v
 3. **Portas**: As portas 3010 e 8081 estão bloqueadas para acesso externo direto (bind no 127.0.0.1). Todo acesso deve passar pelo seu domínio configurado no Nginx.
 
 ---
+## 🔄 Solução de Problemas e Reset
+
+### Esqueci a senha ou quero refazer o Wizard
+Se você precisar rodar o Wizard de configuração novamente sem apagar todo o banco de dados, você pode apenas "limpar" os usuários. Isso fará o sistema entender que é uma nova instalação:
+
+```bash
+# Rodar no terminal da sua VPS
+docker exec -it nextwave-db psql -h localhost -U root -d nextwave_crm -c "TRUNCATE TABLE \"User\" CASCADE;"
+```
+
+### O sistema não redireciona para o Setup
+Certifique-se de que o volume `nextwave-setup` foi limpo se você estiver tentando uma instalação do zero absoluta:
+```bash
+docker compose down -v
+```
+
+---
 > [!TIP]
 > **Segurança Máxima (v3.0.49)**: Este sistema foi sanitizado. Nenhuma senha ou chave de API está "vazada" ou hardcoded no código. Todas as credenciais são geradas de forma aleatória e privada durante o seu Setup.
