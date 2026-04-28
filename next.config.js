@@ -2,7 +2,9 @@
 const path = require('path');
 
 const nextConfig = {
-  serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  experimental: {
+    serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
+  },
   webpack: (config) => {
     config.resolve.alias['@'] = path.join(__dirname, 'src');
     return config;

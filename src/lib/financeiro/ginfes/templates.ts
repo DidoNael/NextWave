@@ -43,7 +43,6 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
           <tipos:Tipo>${rps.tipo}</tipos:Tipo>
         </tipos:IdentificacaoRps>
         <tipos:DataEmissao>${rps.dataEmissao}</tipos:DataEmissao>
-        <tipos:DataCompetencia>${rps.dataCompetencia}</tipos:DataCompetencia>
         <tipos:NaturezaOperacao>${rps.naturezaOperacao}</tipos:NaturezaOperacao>
         ${rps.regimeEspecialTributacao ? `<tipos:RegimeEspecialTributacao>${rps.regimeEspecialTributacao}</tipos:RegimeEspecialTributacao>` : ''}
         <tipos:OptanteSimplesNacional>${rps.optanteSimplesNacional}</tipos:OptanteSimplesNacional>
@@ -60,7 +59,7 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
           ${rps.codigoTributacaoMunicipio ? `<tipos:CodigoTributacaoMunicipio>${rps.codigoTributacaoMunicipio}</tipos:CodigoTributacaoMunicipio>` : ''}
           <tipos:Discriminacao>${rps.discriminacao}</tipos:Discriminacao>
           <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
-          <tipos:ExigibilidadeIss>${rps.exigibilidadeIss}</tipos:ExigibilidadeIss>
+          <tipos:ExigibilidadeISS>${rps.exigibilidadeIss}</tipos:ExigibilidadeISS>
         </tipos:Servico>
         <tipos:Prestador>
           <tipos:Cnpj>${rps.prestador.cnpj}</tipos:Cnpj>
