@@ -70,11 +70,11 @@ export function ImportClientsDialog({ open, onOpenChange, onSuccess }: ImportCli
                     zipCode: String(row.CEP || row.zipCode || ""),
                     address: row.Endereco || row.address || row["Rua"],
                     number: String(row.Numero || row.number || ""),
-                    complement: row.Complemento || row.complement || ""),
-                    neighborhood: row.Bairro || row.neighborhood || ""),
-                    city: row.Cidade || row.city || ""),
-                    state: row.Estado || row.state || row["UF"] || ""),
-                    notes: row.Notas || row.notes || row["Observações"] || ""),
+                    complement: row.Complemento || row.complement || "",
+                    neighborhood: row.Bairro || row.neighborhood || "",
+                    city: row.Cidade || row.city || "",
+                    state: row.Estado || row.state || row["UF"] || "",
+                    notes: row.Notas || row.notes || row["Observações"] || "",
                     status: "ativo",
                 })).filter(c => c.name); // Nome é obrigatório
 
