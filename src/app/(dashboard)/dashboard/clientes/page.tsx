@@ -7,9 +7,10 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   Plus, Search, Pencil, Trash2, UserRound, Building2,
-  MapPin, Phone, Mail, CheckCircle2, AlertCircle, Eye,
+  MapPin, Phone, Mail, CheckCircle2, AlertCircle, Eye, Download, Upload,
 } from "lucide-react";
 import { ClientProfile } from "./components/ClientProfile";
+import { ImportClientsDialog } from "./components/ImportClientsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,46 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// ── Export to CSV ─────────────────────────────────────────────────────────────
+
+const exportToCSV = (data: Cliente[]) => {
+  const headers = [
+    "Nome", "Status", "Empresa", "Documento", "Email", "Telefone", 
+    "CEP", "Endereco", "Numero", "Bairro", "Cidade", "Estado", "Notas", "Criado Em"
+  ];
+  
+  const rows = data.map(c => [
+    c.name,
+    c.status,
+    c.company || "",
+    c.document || "",
+    c.email || "",
+    c.phone || "",
+    c.zipCode || "",
+    c.address || "",
+    c.number || "",
+    c.neighborhood || "",
+    c.city || "",
+    c.state || "",
+    (c.notes || "").replace(/\n/g, " "),
+    c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : ""
+  ]);
+
+  const csvContent = [
+    headers.join(";"),
+    ...rows.map(row => row.map(val => `"${val}"`).join(";"))
+  ].join("\n");
+
+  const blob = new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `clientes_nextwave_${new Date().toISOString().split("T")[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 // ── Skeleton Row ──────────────────────────────────────────────────────────────
 
 function SkeletonRow() {
@@ -164,6 +205,8 @@ export default function ClientesPage() {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [emailTemplates, setEmailTemplates] = useState<{ id: string; name: string }[]>([]);
   const [nfseTipos, setNfseTipos] = useState<{ id: string; nome: string }[]>([]);
@@ -205,6 +248,31 @@ export default function ClientesPage() {
       setCepLoading(false);
     }
   }, [setValue]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ limit: "1000", all: "true" });
+      if (search) params.set("search", search);
+      if (statusFilter !== "todos") params.set("status", statusFilter);
+      
+      const res = await fetch(`/api/clientes?${params.toString()}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.clientes ?? []);
+      
+      if (list.length > 0) {
+        exportToCSV(list);
+        toast.success(`${list.length} clientes exportados!`);
+      } else {
+        toast.error("Nenhum cliente para exportar");
+      }
+    } catch {
+      toast.error("Erro ao exportar clientes");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
 
@@ -342,10 +410,21 @@ export default function ClientesPage() {
             {loading ? "Carregando..." : `${clientes.length} cliente${clientes.length !== 1 ? "s" : ""} encontrado${clientes.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Button onClick={openCreate} className="shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="shrink-0 gap-2">
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Importar</span>
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={exporting} className="shrink-0 gap-2">
+            <Download className={cn("h-4 w-4", exporting && "animate-pulse")} />
+            <span className="hidden sm:inline">{exporting ? "Exportando..." : "Exportar"}</span>
+          </Button>
+          <Button onClick={openCreate} className="shrink-0 gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo Cliente</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -683,6 +762,12 @@ export default function ClientesPage() {
           }}
         />
       )}
+
+      <ImportClientsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={fetchClientes}
+      />
     </div>
   );
 }
