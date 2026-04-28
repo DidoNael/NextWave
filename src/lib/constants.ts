@@ -4,7 +4,7 @@
  */
 
 export const SYSTEM_INFO = {
-    version: "3.0.51",
+    version: "3.0.52",
     releaseName: "NextWave CRM SASS Master",
     buildDate: "2026-04-28",
     securityGateway: "Active",
