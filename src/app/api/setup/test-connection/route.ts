@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { Client } from "pg";
 import { DATABASE_DEFAULTS } from "@/lib/constants";
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-
 
 export async function POST(req: Request) {
     try {
@@ -14,125 +14,128 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Todos os campos do banco são obrigatórios." }, { status: 400 });
         }
 
-        // 0. Gatilho Web Soberano: Se estivermos em Docker, tentamos acordar o banco
+        // Gatilho soberano Docker: escreve senha apenas se o arquivo ainda não existe
+        // (evita re-inicializar o banco a cada teste)
         const sharedPath = "/var/shared/db_init_password.txt";
         try {
-            // Se o diretório existir (estamos no Docker com volume), gravamos a senha
-            if (fs.existsSync("/var/shared")) {
-                console.log("[SETUP] Enviando gatilho de senha para o Banco de Dados...");
+            if (fs.existsSync("/var/shared") && !fs.existsSync(sharedPath)) {
+                console.log("[SETUP] Escrevendo gatilho de senha soberana...");
                 fs.writeFileSync(sharedPath, dbPassword);
-                // Aguardar o banco ler e inicializar (10s para segurança v3.0.6-GOLD)
                 await new Promise(resolve => setTimeout(resolve, 10000));
             }
         } catch (e) {
-            console.warn("[SETUP] Falha ao gravar gatilho (pode não estar em ambiente Docker de produção):", e);
+            console.warn("[SETUP] Falha ao gravar gatilho (não é ambiente Docker de produção):", e);
         }
 
-        // Construir string de conexão para teste
-        const safeDbPasswordTest = encodeURIComponent(dbPassword);
-        const connectionString = `postgresql://${dbUser}:${safeDbPasswordTest}@${dbHost}:${dbPort}/${dbName}`;
-        
-        // 1. Tentar conectar com a senha que o usuário digitou
-        let client = new Client({
-            connectionString,
-            connectionTimeoutMillis: 5000,
-        });
+        const safePassword = encodeURIComponent(dbPassword);
+        const buildConnStr = (pwd: string, db: string) =>
+            `postgresql://${dbUser}:${encodeURIComponent(pwd)}@${dbHost}:${dbPort}/${db}`;
 
-        const DEFAULT_BOOT_PWD = DATABASE_DEFAULTS.factoryPassword;
-
-
-        try {
-            await client.connect();
-            await client.query("SELECT 1");
-            await client.end();
-            
-            return NextResponse.json({ 
-                success: true, 
-                message: "Conexão estabelecida com sucesso com sua senha!"
-            });
-        } catch (connErr: any) {
-            console.warn("[CHECK] Analisando falha de conexão...", connErr.code, connErr.message);
-            
-            // TRATAMENTO: Banco de dados não existe (Código 3D000 no Postgres)
-            // Vamos tentar criar o banco dinamicamente!
-            if (connErr.code === '3D000') {
-                console.log(`[CHECK] Banco ${dbName} não existe. Tentando criar via banco 'postgres'...`);
-                const adminConnStr = `postgresql://${dbUser}:${safeDbPasswordTest}@${dbHost}:${dbPort}/postgres`;
-                const adminClient = new Client({ connectionString: adminConnStr, connectionTimeoutMillis: 5000 });
-                
-                try {
-                    await adminClient.connect();
-                    // Importante: CREATE DATABASE não aceita parâmetros, usamos template literal com cuidado
-                    await adminClient.query(`CREATE DATABASE "${dbName}"`);
-                    await adminClient.end();
-                    
-                    return NextResponse.json({ 
-                        success: true, 
-                        message: `Banco de dados '${dbName}' criado e conectado com sucesso!`
-                    });
-                } catch (createErr: any) {
-                    console.error("[CHECK_CREATE_DB_FAILED]", createErr);
-                    // Se falhar por autenticação no banco 'postgres', tentamos a MARATONA DE FALLBACKS
-                    if (createErr.code === '28P01') {
-                        const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
-                        for (const fbPwd of fallbacks) {
-                            if (dbPassword === fbPwd) continue;
-                            console.log(`[CHECK] Tentando criar banco via fallback: ${fbPwd}`);
-                            const factoryAdminClient = new Client({ 
-                                connectionString: `postgresql://${dbUser}:${fbPwd}@${dbHost}:${dbPort}/postgres`, 
-                                connectionTimeoutMillis: 5000 
-                            });
-                            try {
-                                await factoryAdminClient.connect();
-                                await factoryAdminClient.query(`CREATE DATABASE "${dbName}"`);
-                                // Aproveitamos e já mudamos a senha do usuário
-                                await factoryAdminClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
-                                await factoryAdminClient.end();
-                                
-                                return NextResponse.json({ 
-                                    success: true, 
-                                    message: `Banco '${dbName}' criado e senha sincronizada via fallback: ${fbPwd}`
-                                });
-                            } catch (e) {
-                                console.warn(`[CHECK] Fallback de criação ${fbPwd} falhou.`);
-                            }
-                        }
-                    }
-                }
+        const tryConnect = async (connStr: string): Promise<Client | null> => {
+            const c = new Client({ connectionString: connStr, connectionTimeoutMillis: 5000 });
+            try {
+                await c.connect();
+                await c.query("SELECT 1");
+                return c;
+            } catch {
+                try { await c.end(); } catch {}
+                return null;
             }
+        };
 
-            // 2. Se falhar por erro de autenticação (invalid password), tentamos os fallbacks de fábrica
-            if (connErr.code === '28P01') {
-                const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
-                
-                for (const fallbackPwd of fallbacks) {
-                    if (dbPassword === fallbackPwd) continue; // Pula se já testamos
-                    
-                    console.log(`[CHECK] Tentando fallback de fábrica: ${fallbackPwd}`);
-                    const factoryClient = new Client({
-                        connectionString: `postgresql://${dbUser}:${fallbackPwd}@${dbHost}:${dbPort}/${dbName}`,
-                        connectionTimeoutMillis: 5000,
-                    });
+        // Passo 1: tentar com a senha fornecida
+        let workingConnStr = buildConnStr(dbPassword, dbName);
+        let client = await tryConnect(workingConnStr);
+        let statusMessage = "Banco de dados conectado e tabelas criadas com sucesso!";
 
+        if (!client) {
+            // Passo 2: tentar fallbacks de fábrica para sincronizar a senha
+            const fallbacks = [DATABASE_DEFAULTS.factoryPassword, ...DATABASE_DEFAULTS.factoryFallbacks];
+            let synced = false;
+
+            for (const fbPwd of fallbacks) {
+                if (dbPassword === fbPwd) continue;
+
+                // Tenta no banco alvo
+                const fbClient = await tryConnect(buildConnStr(fbPwd, dbName));
+                if (fbClient) {
                     try {
-                        await factoryClient.connect();
-                        await factoryClient.query(`ALTER USER ${dbUser} WITH PASSWORD '${dbPassword}'`);
-                        await factoryClient.end();
-                        
-                        return NextResponse.json({ 
-                            success: true, 
-                            message: "Conexão estabelecida e senha sincronizada via ponte de fábrica!"
-                        });
-                    } catch (fErr) {
-                        console.warn(`[CHECK] Fallback ${fallbackPwd} falhou.`);
+                        await fbClient.query(`ALTER USER "${dbUser}" WITH PASSWORD '${dbPassword}'`);
+                        await fbClient.end();
+                        synced = true;
+                        statusMessage = "Senha sincronizada com sucesso. Tabelas criadas!";
+                        console.log(`[SETUP] Senha sincronizada via fallback.`);
+                        break;
+                    } catch (e) {
+                        await fbClient.end();
+                    }
+                }
+
+                // Tenta no banco padrão 'postgres' (banco alvo pode não existir)
+                const pgClient = await tryConnect(buildConnStr(fbPwd, "postgres"));
+                if (pgClient) {
+                    try {
+                        const exists = await pgClient.query(
+                            `SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]
+                        );
+                        if (exists.rows.length === 0) {
+                            await pgClient.query(`CREATE DATABASE "${dbName}"`);
+                            console.log(`[SETUP] Banco '${dbName}' criado.`);
+                        }
+                        await pgClient.query(`ALTER USER "${dbUser}" WITH PASSWORD '${dbPassword}'`);
+                        await pgClient.end();
+                        synced = true;
+                        statusMessage = `Banco '${dbName}' criado e senha sincronizada. Tabelas criadas!`;
+                        console.log(`[SETUP] Banco criado e senha sincronizada via fallback.`);
+                        break;
+                    } catch (e) {
+                        await pgClient.end();
                     }
                 }
             }
 
-            return NextResponse.json({ 
-                error: `Falha na conexão: ${connErr.message || "Verifique as credenciais."}` 
+            if (!synced) {
+                return NextResponse.json({
+                    error: "Falha na conexão. Verifique host, porta, usuário e senha do banco."
+                }, { status: 500 });
+            }
+
+            // Verificar se a conexão com a nova senha funciona
+            client = await tryConnect(workingConnStr);
+            if (!client) {
+                return NextResponse.json({
+                    error: "Senha atualizada, mas a reconexão falhou. Aguarde alguns segundos e tente novamente."
+                }, { status: 500 });
+            }
+        }
+
+        await client.end();
+
+        // Passo 3: publicar o schema (prisma db push)
+        // Feito aqui no step 3 para dar feedback imediato ao usuário, antes do submit final.
+        console.log("[SETUP] Executando prisma db push...");
+        try {
+            const prismaBin = path.join(process.cwd(), "node_modules", ".bin", "prisma");
+            const schemaPath = path.join(process.cwd(), "prisma", "schema.prisma");
+
+            const output = execSync(
+                `"${prismaBin}" db push --accept-data-loss --schema="${schemaPath}"`,
+                {
+                    env: { ...process.env, DATABASE_URL: workingConnStr },
+                    encoding: "utf-8",
+                    timeout: 120000,
+                }
+            );
+            console.log("[SETUP] Prisma db push OK:", output.substring(0, 300));
+        } catch (pErr: any) {
+            const detail = pErr.stdout || pErr.stderr || pErr.message || "Erro desconhecido";
+            console.error("[SETUP] Prisma db push falhou:", detail);
+            return NextResponse.json({
+                error: `Conexão OK, mas falha ao criar as tabelas: ${detail.substring(0, 300)}`
             }, { status: 500 });
         }
+
+        return NextResponse.json({ success: true, message: statusMessage });
     } catch (error) {
         console.error("[TEST_CONN_API_ERROR]", error);
         return NextResponse.json({ error: "Erro interno ao testar conexão." }, { status: 500 });

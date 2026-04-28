@@ -48,14 +48,14 @@ export async function POST(req: Request) {
             console.log(`[SETUP] Importação de backup detectada: ${backupName}`);
             const { DBMigrator } = await import("@/lib/db-migrator");
             const migrator = new DBMigrator(prisma);
-            
+
             const dbUrl = process.env.DATABASE_URL;
             const isSQLFile = backupName.toLowerCase().endsWith('.sql');
 
             // 1. Salvar o conteúdo do backup em um arquivo temporário
             const tempPath = path.join(process.cwd(), 'data', `temp_${Date.now()}_${backupName}`);
             const buffer = Buffer.from(backupData, 'base64');
-            
+
             if (!fs.existsSync(path.dirname(tempPath))) {
                 fs.mkdirSync(path.dirname(tempPath), { recursive: true });
             }
@@ -81,8 +81,8 @@ export async function POST(req: Request) {
             } catch (err: any) {
                 console.error("[SETUP_BACKUP_ERROR]", err);
                 if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-                return NextResponse.json({ 
-                    error: `Falha na restauração: ${err.message || 'Erro desconhecido'}` 
+                return NextResponse.json({
+                    error: `Falha na restauração: ${err.message || 'Erro desconhecido'}`
                 }, { status: 500 });
             }
         }
@@ -92,9 +92,9 @@ export async function POST(req: Request) {
             const { host, port, user, password: dbPassword, database } = dbConfig;
             const safeDbPassword = encodeURIComponent(dbPassword);
             const dbUrl = `postgresql://${user}:${safeDbPassword}@${host}:${port}/${database}?schema=public`;
-            
+
             console.log(`[SETUP] Configurando DATABASE_URL dinamicamente...`);
-            
+
             // Gatilho Web Soberano (Caso não tenha sido disparado no teste)
             try {
                 if (fs.existsSync("/var/shared")) {
@@ -149,11 +149,11 @@ export async function POST(req: Request) {
             } catch (dbErr) {
                 console.error("[SETUP_DB_SYNC_ERROR]", dbErr);
             }
-            
+
             // Salvar no .env
             const envPath = path.join(process.cwd(), ".env");
             let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
-            
+
             if (envContent.includes("DATABASE_URL=")) {
                 envContent = envContent.replace(/DATABASE_URL=.*/, `DATABASE_URL="${dbUrl}"`);
             } else {
@@ -165,15 +165,40 @@ export async function POST(req: Request) {
             } else {
                 envContent += `POSTGRES_PASSWORD="${dbPassword}"\n`;
             }
-            
+
             fs.writeFileSync(envPath, envContent);
 
             // Sincronizar Schema
-            console.log(`[SETUP] Sincronizando schema...`);
+            console.log(`[SETUP] Verificando se o banco está pronto para o schema...`);
+            let schemaReady = false;
+            const { Client: PgClient } = await import("pg");
+            
+            // Loop de 15 tentativas (30 segundos total) para o banco acordar com a senha nova
+            for (let i = 0; i < 15; i++) {
+                try {
+                    const client = new PgClient({ 
+                        connectionString: dbUrl, 
+                        connectionTimeoutMillis: 3000 
+                    });
+                    await client.connect();
+                    await client.end();
+                    schemaReady = true;
+                    console.log("[SETUP] Banco de dados detectado e pronto!");
+                    break;
+                } catch (e) {
+                    console.log(`[SETUP] Banco ainda não respondeu (tentativa ${i+1}/15). Aguardando 2s...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+
+            if (!schemaReady) {
+                throw new Error("O Banco de Dados demorou demais para iniciar ou a senha digitada é inválida. Verifique os logs do container 'nextwave-db'.");
+            }
+
+            console.log(`[SETUP] Sincronizando schema (prisma db push)...`);
             try {
                 const { execSync } = await import("child_process");
                 process.env.DATABASE_URL = dbUrl;
-                // Rodar o push e capturar a saída em caso de erro
                 const output = execSync("npx prisma db push --accept-data-loss", { 
                     env: process.env,
                     encoding: 'utf-8' 
@@ -184,110 +209,110 @@ export async function POST(req: Request) {
                 throw new Error(`Falha ao criar tabelas: ${pErr.stdout || pErr.message}`);
             }
 
-        // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
-        console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
-        const tempPrisma = new PrismaClient({
-            datasources: {
-                db: {
-                    url: dbUrl,
-                },
-            },
-        });
-
-        try {
-            // 3. Criar Organização primeiro (Essencial para SASS v3.0.0) - Com Idempotência (v3.0.6)
-            console.log(`[SETUP] Sincronizando organização master: ${orgName}`);
-            const organization = await tempPrisma.organization.upsert({
-                where: { slug: orgSlug || "master" },
-                update: {
-                    name: orgName || "NextWave Master",
-                    siteUrl: siteUrl || "",
-                },
-                create: {
-                    name: orgName || "NextWave Master",
-                    slug: orgSlug || "master",
-                    siteUrl: siteUrl || "",
-                }
-            });
-
-            // 4. Criar o usuário administrador vinculado à organização - Com Idempotência (v3.0.6)
-            const hashedPassword = await bcrypt.hash(password, 12);
-            await tempPrisma.user.upsert({
-                where: { email: email },
-                update: {
-                    name,
-                    password: hashedPassword,
-                    role: "master",
-                    organizationId: organization.id,
-                },
-                create: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    role: "master",
-                    allowedIps: allowedIps || "*",
-                    workDayStart: workDayStart || null,
-                    workDayEnd: workDayEnd || null,
-                    organizationId: organization.id,
+            // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
+            console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
+            const tempPrisma = new PrismaClient({
+                datasources: {
+                    db: {
+                        url: dbUrl,
+                    },
                 },
             });
 
-            // 5. Salvar Branding
-            if (siteUrl) {
-                await (tempPrisma as any).systemBranding.upsert({
-                    where: { id: "default" },
-                    update: { siteUrl, name: orgName },
-                    create: { id: "default", siteUrl, name: orgName },
+            try {
+                // 3. Criar Organização primeiro (Essencial para SASS v3.0.0) - Com Idempotência (v3.0.6)
+                console.log(`[SETUP] Sincronizando organização master: ${orgName}`);
+                const organization = await tempPrisma.organization.upsert({
+                    where: { slug: orgSlug || "master" },
+                    update: {
+                        name: orgName || "NextWave Master",
+                        siteUrl: siteUrl || "",
+                    },
+                    create: {
+                        name: orgName || "NextWave Master",
+                        slug: orgSlug || "master",
+                        siteUrl: siteUrl || "",
+                    }
                 });
-            }
 
-            // 6. Configurar Módulos
-            if (modules && Array.isArray(modules)) {
-                const allPossibleModules = [
-                    { key: "clientes", label: "Clientes" },
-                    { key: "financeiro", label: "Financeiro" },
-                    { key: "projetos", label: "Projetos" },
-                    { key: "servicos", label: "Serviços" },
-                    { key: "agenda", label: "Agenda" },
-                    { key: "whatsapp", label: "WhatsApp" },
-                    { key: "usuarios", label: "Usuários" }
-                ];
+                // 4. Criar o usuário administrador vinculado à organização - Com Idempotência (v3.0.6)
+                const hashedPassword = await bcrypt.hash(password, 12);
+                await tempPrisma.user.upsert({
+                    where: { email: email },
+                    update: {
+                        name,
+                        password: hashedPassword,
+                        role: "master",
+                        organizationId: organization.id,
+                    },
+                    create: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        role: "master",
+                        allowedIps: allowedIps || "*",
+                        workDayStart: workDayStart || null,
+                        workDayEnd: workDayEnd || null,
+                        organizationId: organization.id,
+                    },
+                });
 
-                for (const m of allPossibleModules) {
-                    await (tempPrisma as any).systemModule.upsert({
-                        where: { key: m.key },
-                        update: { enabled: modules.includes(m.key) },
-                        create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
-                    });
-                }
-
-                // 7. Configuração Inicial do WhatsApp no banco
-                if (modules.includes("whatsapp")) {
-                    const evolutionKey = crypto.randomUUID();
-                    const evolutionUrl = "http://evolution-api:8081";
-                    
-                    await (tempPrisma as any).whatsAppConfig.upsert({
+                // 5. Salvar Branding
+                if (siteUrl) {
+                    await (tempPrisma as any).systemBranding.upsert({
                         where: { id: "default" },
-                        update: { 
-                            globalApiKey: evolutionKey,
-                            apiUrl: evolutionUrl,
-                            isActive: true
-                        },
-                        create: { 
-                            id: "default",
-                            globalApiKey: evolutionKey,
-                            apiUrl: evolutionUrl,
-                            instanceName: "NextWave",
-                            isActive: true,
-                            waVersion: "2.3000.x"
-                        }
+                        update: { siteUrl, name: orgName },
+                        create: { id: "default", siteUrl, name: orgName },
                     });
                 }
+
+                // 6. Configurar Módulos
+                if (modules && Array.isArray(modules)) {
+                    const allPossibleModules = [
+                        { key: "clientes", label: "Clientes" },
+                        { key: "financeiro", label: "Financeiro" },
+                        { key: "projetos", label: "Projetos" },
+                        { key: "servicos", label: "Serviços" },
+                        { key: "agenda", label: "Agenda" },
+                        { key: "whatsapp", label: "WhatsApp" },
+                        { key: "usuarios", label: "Usuários" }
+                    ];
+
+                    for (const m of allPossibleModules) {
+                        await (tempPrisma as any).systemModule.upsert({
+                            where: { key: m.key },
+                            update: { enabled: modules.includes(m.key) },
+                            create: { key: m.key, name: m.label, enabled: modules.includes(m.key) }
+                        });
+                    }
+
+                    // 7. Configuração Inicial do WhatsApp no banco
+                    if (modules.includes("whatsapp")) {
+                        const evolutionKey = crypto.randomUUID();
+                        const evolutionUrl = "http://evolution-api:8081";
+
+                        await (tempPrisma as any).whatsAppConfig.upsert({
+                            where: { id: "default" },
+                            update: {
+                                globalApiKey: evolutionKey,
+                                apiUrl: evolutionUrl,
+                                isActive: true
+                            },
+                            create: {
+                                id: "default",
+                                globalApiKey: evolutionKey,
+                                apiUrl: evolutionUrl,
+                                instanceName: "NextWave",
+                                isActive: true,
+                                waVersion: "2.3000.x"
+                            }
+                        });
+                    }
+                }
+            } finally {
+                await tempPrisma.$disconnect();
             }
-        } finally {
-            await tempPrisma.$disconnect();
         }
-    }
 
         // 7. Persistência Consolidada no .env
         try {
@@ -322,7 +347,7 @@ export async function POST(req: Request) {
         console.log(`[SETUP] Setup concluído. Reiniciando processo para aplicar soberania do Prisma.`);
         setTimeout(() => {
             console.log(`[SETUP] SINAL DE REINÍCIO ENVIADO.`);
-            process.exit(0); 
+            process.exit(0);
         }, 1500);
 
         return NextResponse.json({
