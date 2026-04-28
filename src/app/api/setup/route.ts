@@ -99,9 +99,13 @@ export async function POST(req: Request) {
             try {
                 if (fs.existsSync("/var/shared")) {
                     fs.writeFileSync("/var/shared/db_init_password.txt", dbPassword);
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // Aumentar o wait para o Postgres ter tempo de reiniciar e ler a senha nova
+                    console.log("[SETUP] Aguardando 5 segundos para reinicialização do Postgres...");
+                    await new Promise(resolve => setTimeout(resolve, 5000));
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("[SETUP_SOVEREIGN_ERROR]", e);
+            }
 
             // Sincronizar senha via ponte de fábrica (Multi-Fallback Resiliente)
             try {
@@ -169,8 +173,16 @@ export async function POST(req: Request) {
             try {
                 const { execSync } = await import("child_process");
                 process.env.DATABASE_URL = dbUrl;
-                execSync("npx prisma db push --accept-data-loss", { env: process.env });
-            } catch (pErr) { console.error("Prisma push failed", pErr); }
+                // Rodar o push e capturar a saída em caso de erro
+                const output = execSync("npx prisma db push --accept-data-loss", { 
+                    env: process.env,
+                    encoding: 'utf-8' 
+                });
+                console.log("[SETUP] Prisma Push Success:", output);
+            } catch (pErr: any) { 
+                console.error("[SETUP] Prisma push failed:", pErr.stdout || pErr.message);
+                throw new Error(`Falha ao criar tabelas: ${pErr.stdout || pErr.message}`);
+            }
 
         // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
         console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
