@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Users, Receipt, Calendar, Briefcase, TrendingUp, TrendingDown, Clock, Plug, AlertTriangle } from "lucide-react";
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     <div className="space-y-6 animate-in">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">OlÃ¡, {session.user.name} â€” aqui estÃ¡ o resumo do sistema.</p>
+        <p className="text-sm text-muted-foreground">Olá, {session.user.name} — aqui está o resumo do sistema.</p>
       </div>
 
       {/* KPIs */}
@@ -102,11 +102,11 @@ export default async function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Ãšltimas transaÃ§Ãµes */}
+        {/* Últimas transações */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Receipt className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold text-sm">Ãšltimas TransaÃ§Ãµes</h2>
+            <h2 className="font-semibold text-sm">Últimas Transações</h2>
           </div>
           <div className="flex flex-col gap-2">
             {(Array.isArray(totalTransacoes) ? totalTransacoes : []).map((tx: any) => (
@@ -128,11 +128,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* PrÃ³ximos eventos */}
+        {/* Próximos eventos */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold text-sm">PrÃ³ximos Eventos</h2>
+            <h2 className="font-semibold text-sm">Próximos Eventos</h2>
           </div>
           <div className="flex flex-col gap-2">
             {(Array.isArray(totalEventos) ? totalEventos : []).map((ev: any) => (

@@ -47,6 +47,8 @@ export async function GET() {
         incentivadorCultural:      rest.incentivadorCultural      ?? '2',
         exigibilidadeIss:          rest.exigibilidadeIss          ?? '1',
         codigoTributacaoMunicipio: rest.codigoTributacaoMunicipio ?? null,
+        smtpId:                    rest.smtpId                    ?? '',
+        emailTemplateId:           rest.emailTemplateId           ?? '',
     });
 }
 
@@ -68,6 +70,8 @@ export async function PUT(req: Request) {
             exigibilidadeIss, codigoTributacaoMunicipio,
             provider,
             providerCredentials,
+            smtpId,
+            emailTemplateId,
         } = body;
 
         if (!cnpj || !inscricaoMunicipal || !razaoSocial) {
@@ -93,6 +97,8 @@ export async function PUT(req: Request) {
             exigibilidadeIss:         exigibilidadeIss      || '1',
             codigoTributacaoMunicipio: codigoTributacaoMunicipio || null,
             provider:                 activeProvider,
+            smtpId:                   smtpId || null,
+            emailTemplateId:          emailTemplateId || null,
         };
 
         // Certificado digital — apenas para GINFES e apenas se enviado

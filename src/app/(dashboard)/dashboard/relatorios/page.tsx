@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -240,11 +240,11 @@ export default function RelatoriosPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/relatorios?months=${m}`);
-      if (!res.ok) throw new Error("Erro ao carregar relatÃ³rios");
+      if (!res.ok) throw new Error("Erro ao carregar relatórios");
       const json: RelatoriosData = await res.json();
       setData(json);
     } catch {
-      toast.error("NÃ£o foi possÃ­vel carregar os relatÃ³rios.");
+      toast.error("Não foi possível carregar os relatórios.");
     } finally {
       setLoading(false);
     }
@@ -270,7 +270,7 @@ export default function RelatoriosPage() {
             <TrendingUp className="h-5 w-5 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            RelatÃ³rios
+            Relatórios
           </h1>
         </div>
 
@@ -515,7 +515,7 @@ export default function RelatoriosPage() {
 function EmptyChart() {
   return (
     <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-      Sem dados para o perÃ­odo selecionado.
+      Sem dados para o período selecionado.
     </div>
   );
 }

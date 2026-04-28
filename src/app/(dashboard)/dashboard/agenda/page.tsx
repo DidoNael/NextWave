@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -62,8 +62,8 @@ interface AgendaEvent {
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  reuniao: "ReuniÃ£o",
-  sessao: "SessÃ£o",
+  reuniao: "Reunião",
+  sessao: "Sessão",
   evento: "Evento",
   casamento: "Casamento",
   entrega: "Entrega",
@@ -88,20 +88,20 @@ const EVENT_TYPE_PILL: Record<EventType, string> = {
   newborn: "bg-teal-500/10 text-teal-600",
 };
 
-const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b"];
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
 // â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const eventSchema = z.object({
-  title: z.string().min(1, "TÃ­tulo obrigatÃ³rio"),
+  title: z.string().min(1, "Título obrigatório"),
   type: z.enum(["reuniao", "sessao", "evento", "casamento", "entrega", "newborn"]),
   status: z.enum(["agendado", "realizado", "cancelado"]),
-  startDate: z.string().min(1, "Data de inÃ­cio obrigatÃ³ria"),
+  startDate: z.string().min(1, "Data de início obrigatória"),
   endDate: z.string().optional(),
   location: z.string().optional(),
   description: z.string().optional(),
@@ -166,7 +166,7 @@ export default function AgendaPage() {
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);
     } catch {
-      toast.error("NÃ£o foi possÃ­vel carregar os eventos");
+      toast.error("Não foi possível carregar os eventos");
     } finally {
       setLoading(false);
     }
@@ -279,7 +279,7 @@ export default function AgendaPage() {
     try {
       const res = await fetch(`/api/agenda/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("Evento excluÃ­do");
+      toast.success("Evento excluído");
       setDeleteId(null);
       void fetchEvents();
     } catch {
@@ -441,7 +441,7 @@ export default function AgendaPage() {
           <div className="flex items-center gap-2 px-4 py-4 border-b border-border">
             <CalendarDays className="h-4 w-4 text-primary" />
             <h3 className="font-semibold text-sm text-foreground">
-              PrÃ³ximos Eventos
+              Próximos Eventos
             </h3>
           </div>
 
@@ -453,7 +453,7 @@ export default function AgendaPage() {
             </div>
           ) : upcomingEvents.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum evento prÃ³ximo
+              Nenhum evento próximo
             </div>
           ) : (
             <div className="divide-y divide-border/50">
@@ -565,7 +565,7 @@ export default function AgendaPage() {
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="title">
-                TÃ­tulo <span className="text-destructive">*</span>
+                Título <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
@@ -637,7 +637,7 @@ export default function AgendaPage() {
               {/* Start date */}
               <div className="space-y-1.5">
                 <Label htmlFor="startDate">
-                  InÃ­cio <span className="text-destructive">*</span>
+                  Início <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="startDate"
@@ -653,7 +653,7 @@ export default function AgendaPage() {
 
               {/* End date */}
               <div className="space-y-1.5">
-                <Label htmlFor="endDate">TÃ©rmino</Label>
+                <Label htmlFor="endDate">Término</Label>
                 <Input
                   id="endDate"
                   type="datetime-local"
@@ -667,14 +667,14 @@ export default function AgendaPage() {
               <Label htmlFor="location">Local</Label>
               <Input
                 id="location"
-                placeholder="EndereÃ§o ou link"
+                placeholder="Endereço ou link"
                 {...form.register("location")}
               />
             </div>
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="description">DescriÃ§Ã£o</Label>
+              <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
                 placeholder="Detalhes do evento..."
@@ -694,7 +694,7 @@ export default function AgendaPage() {
                 Cancelar
               </Button>
               <Button type="submit" loading={form.formState.isSubmitting}>
-                {editingEvent ? "Salvar alteraÃ§Ãµes" : "Criar evento"}
+                {editingEvent ? "Salvar alterações" : "Criar evento"}
               </Button>
             </DialogFooter>
           </form>

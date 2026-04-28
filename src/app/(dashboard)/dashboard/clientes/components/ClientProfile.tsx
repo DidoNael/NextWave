@@ -30,6 +30,7 @@ import { ClientDashboardTabs } from "./ClientDashboardTabs";
 import { ClientCadastroTab } from "./ClientCadastroTab";
 import { ClientServicosTab } from "./ClientServicosTab";
 import { ClientFinanceiroTab } from "./ClientFinanceiroTab";
+import { ClientNfseTab } from "./ClientNfseTab";
 
 interface ClientProfileProps {
     clientId: string;
@@ -71,6 +72,7 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
     const [svcForm, setSvcForm] = useState({
         title: "",
         description: "",
+        nfseDescription: "",
         amount: "",
         category: "Desenvolvimento",
         status: "rascunho",
@@ -177,7 +179,7 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
 
     const openCreateSvc = () => {
         setSvcForm({
-            title: "", description: "", amount: "", category: "Desenvolvimento",
+            title: "", description: "", nfseDescription: "", amount: "", category: "Desenvolvimento",
             status: "rascunho", dueDate: "", billingFrequency: "avulso",
             paymentReceived: false, paymentMethod: "Pix", notes: "",
         });
@@ -304,6 +306,13 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                                           clientName={client?.name}
                                         />
                                     )}
+                                    renderNfse={() => (
+                                        <ClientNfseTab 
+                                            clientId={clientId} 
+                                            nfseRecords={client?.nfseRecords || []}
+                                            onRefresh={fetchClientDetails}
+                                        />
+                                    )}
                                 />
                             </div>
                         </ScrollArea>
@@ -426,8 +435,20 @@ export function ClientProfile({ clientId, open, onOpenChange, onEdit }: ClientPr
                             <Input placeholder="Ex: Criação de Logotipo" value={svcForm.title} onChange={(e) => setSvcForm({ ...svcForm, title: e.target.value })} />
                         </div>
                         <div className="space-y-2">
-                            <Label>Descrição</Label>
-                            <Textarea placeholder="Detalhes do serviíºo..." value={svcForm.description} onChange={(e) => setSvcForm({ ...svcForm, description: e.target.value })} />
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição Interna</Label>
+                            <Textarea placeholder="Detalhes do serviço (apenas interno)..." value={svcForm.description} onChange={(e) => setSvcForm({ ...svcForm, description: e.target.value })} />
+                        </div>
+                        <div className="space-y-2 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                            <Label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                                <Receipt className="h-3 w-3" />
+                                Discriminação NFS-e (Texto que sai na Nota)
+                            </Label>
+                            <Textarea 
+                                placeholder="Descreva aqui o serviço como deve aparecer na nota fiscal..." 
+                                value={svcForm.nfseDescription} 
+                                onChange={(e) => setSvcForm({ ...svcForm, nfseDescription: e.target.value })} 
+                                className="bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-800"
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">

@@ -8,6 +8,7 @@ import { createPluginLicense } from "@/lib/license";
 const serviceSchema = z.object({
   title: z.string().min(2, "Título obrigatório"),
   description: z.string().optional(),
+  nfseDescription: z.string().optional(),
   amount: z.number().positive("Valor deve ser positivo"),
   status: z.enum(["rascunho", "enviado", "aprovado", "em_andamento", "concluido", "cancelado"]).default("rascunho"),
   category: z.string().optional(),
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
         // Gera transação automática para consulta no financeiro
         transactions: {
           create: {
-            description: `Fatura: ${serviceData.title} (${serviceData.billingFrequency})`,
+            description: serviceData.nfseDescription || `Fatura: ${serviceData.title} (${serviceData.billingFrequency})`,
             amount: serviceData.amount,
             type: "receita",
             category: "Serviços",

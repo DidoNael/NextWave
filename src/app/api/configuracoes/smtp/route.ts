@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { v4 as uuidv4 } from "uuid";
+import { encrypt } from "@/lib/crypto";
 
 export async function GET() {
     const session = await auth();
@@ -10,10 +10,17 @@ export async function GET() {
     }
 
     try {
-        const configs = await prisma.$queryRawUnsafe(
-            `SELECT * FROM "SmtpConfig" ORDER BY "updatedAt" DESC`
-        );
-        return NextResponse.json(configs);
+        const configs = await prisma.smtpConfig.findMany({
+            orderBy: { updatedAt: 'desc' }
+        });
+        
+        // NUNCA retorne a senha real ou criptografada para o frontend
+        const sanitized = configs.map(c => ({
+            ...c,
+            pass: "********" 
+        }));
+        
+        return NextResponse.json(sanitized);
     } catch (error) {
         console.error("[SMTP_CONFIG_GET]", error);
         return NextResponse.json({ error: "Erro ao listar configurações SMTP" }, { status: 500 });
@@ -22,7 +29,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
     const session = await auth();
-    if (!session || session.user?.role?.toUpperCase() !== "ADMIN") {
+    const userRole = (session?.user as any)?.role?.toUpperCase();
+    if (!session || (userRole !== "ADMIN" && userRole !== "MASTER")) {
         return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -34,23 +42,31 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
         }
 
-        const id = uuidv4();
-        const now = new Date().toISOString();
-
         // Se for definir como padrão, remover o padrão dos outros
         if (isDefault) {
-            await prisma.$executeRawUnsafe(`UPDATE "SmtpConfig" SET "isDefault" = 0`);
+            await prisma.smtpConfig.updateMany({
+                data: { isDefault: false }
+            });
         }
 
-        await prisma.$executeRawUnsafe(
-            `INSERT INTO "SmtpConfig" ("id", "name", "host", "port", "user", "pass", "fromEmail", "fromName", "secure", "isActive", "isDefault", "updatedAt") 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            id, name, host, parseInt(port), user, pass, fromEmail, fromName || "", secure ? 1 : 0, 1, isDefault ? 1 : 0, now
-        );
+        const config = await prisma.smtpConfig.create({
+            data: {
+                name,
+                host,
+                port: parseInt(port),
+                user,
+                pass: encrypt(pass), // CRIPTOGRAFAR ANTES DE SALVAR
+                fromEmail,
+                fromName: fromName || "",
+                secure: !!secure,
+                isActive: true,
+                isDefault: !!isDefault,
+            }
+        });
 
-        return NextResponse.json({ id, name, success: true });
-    } catch (error) {
+        return NextResponse.json({ ...config, pass: "********" });
+    } catch (error: any) {
         console.error("[SMTP_CONFIG_POST]", error);
-        return NextResponse.json({ error: "Erro ao criar configuração SMTP" }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao criar configuração SMTP: " + error.message }, { status: 500 });
     }
 }

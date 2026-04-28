@@ -93,6 +93,7 @@ model Client {
   transactions    Transaction[]
   attachments     ClientAttachment[]
   pluginLicenses  PluginLicense[]
+  nfseRecords     NfseRecord[]
 
   @@index([organizationId])
   @@index([organizationId, status])
@@ -159,6 +160,7 @@ model Service {
   id               String         @id @default(cuid())
   title            String
   description      String?
+  nfseDescription  String?
   amount           Float
   status           String         @default("rascunho")
   category         String?
@@ -410,6 +412,8 @@ model NfeConfig {
   provider               String   @default("ginfes")
   /// Credenciais JSON para provedores SaaS. Ex: { "apiKey": "...", "empresaId": "..." }
   providerCredentials    String?
+  smtpId                 String?
+  emailTemplateId        String?
   updatedAt              DateTime @updatedAt
 }
 
@@ -450,15 +454,19 @@ model NfseRecord {
   discriminacao     String
   tomadorNome       String?
   tomadorDoc        String?
+  tomadorEmail      String?
   xmlEnviado        String?
   xmlRetorno        String?
   errorMessage      String?
   serviceId         String?
   clientId          String?
+  client            Client?   @relation(fields: [clientId], references: [id])
   emitidaEm         DateTime?
   canceladaEm       DateTime?
+  ambiente          String?   @default("producao") // homologacao, producao
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  logs              FiscalLog[]
 
   @@index([clientId])
   @@index([serviceId])
@@ -616,4 +624,18 @@ model PluginLicenseLog {
   createdAt   DateTime      @default(now())
 
   @@index([licenseId])
+}
+
+model FiscalLog {
+  id        String      @id @default(cuid())
+  nfseId    String?
+  nfse      NfseRecord? @relation(fields: [nfseId], references: [id], onDelete: SetNull)
+  type      String      // email, whatsapp, cancelamento, emissao
+  status    String      // sucesso, erro
+  message   String
+  details   String?     @db.Text
+  actor     String?     @default("system")
+  createdAt DateTime    @default(now())
+
+  @@index([nfseId])
 }

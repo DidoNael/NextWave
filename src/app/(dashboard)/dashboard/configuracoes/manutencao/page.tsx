@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -139,13 +139,13 @@ export default function ManutencaoPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{backups.length}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Mííximo de 10 arquivos (rotação ativa)</p>
+                        <p className="text-xs text-muted-foreground mt-1">Máximo de 10 arquivos (rotação ativa)</p>
                     </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-none shadow-md hover:shadow-lg transition-all cursor-default">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Espaíºo Utilizado</CardTitle>
+                        <CardTitle className="text-sm font-medium">Espaço Utilizado</CardTitle>
                         <div className="p-2 bg-blue-100/50 dark:bg-blue-900/20 rounded-lg">
                             <HardDrive className="h-4 w-4 text-blue-500" />
                         </div>
@@ -158,7 +158,7 @@ export default function ManutencaoPage() {
 
                 <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-none shadow-md hover:shadow-lg transition-all cursor-default">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Áltima Cópia</CardTitle>
+                        <CardTitle className="text-sm font-medium">Última Cópia</CardTitle>
                         <div className="p-2 bg-amber-100/50 dark:bg-amber-900/20 rounded-lg">
                             <Clock className="h-4 w-4 text-amber-500" />
                         </div>
@@ -181,7 +181,7 @@ export default function ManutencaoPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-emerald-500">Saudíível</div>
+                        <div className="text-2xl font-bold text-emerald-500">Saudável</div>
                         <p className="text-xs text-muted-foreground mt-1">Monitoramento de banco ativo</p>
                     </CardContent>
                 </Card>
@@ -193,7 +193,7 @@ export default function ManutencaoPage() {
                         <div className="flex justify-between items-center">
                             <div>
                                 <CardTitle>Gestão de Snapshots</CardTitle>
-                                <CardDescription>Lista detalhada de cópias de seguraníºa locais.</CardDescription>
+                                <CardDescription>Lista detalhada de cópias de segurança locais.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
@@ -203,7 +203,7 @@ export default function ManutencaoPage() {
                         ) : backups.length === 0 ? (
                             <div className="text-center py-20">
                                 <Clock className="h-16 w-16 mx-auto text-muted-foreground opacity-10" />
-                                <p className="mt-4 text-muted-foreground font-medium">Inicie seu primeiro backup para comeíºar.</p>
+                                <p className="mt-4 text-muted-foreground font-medium">Inicie seu primeiro backup para começar.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -213,7 +213,7 @@ export default function ManutencaoPage() {
                                             <th className="px-6 py-4">Arquivo</th>
                                             <th className="px-6 py-4">Tamanho</th>
                                             <th className="px-6 py-4">Data de Criação</th>
-                                            <th className="px-6 py-4 text-right">Aíºàes</th>
+                                            <th className="px-6 py-4 text-right">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -247,8 +247,8 @@ export default function ManutencaoPage() {
                                                                         <AlertTriangle className="h-5 w-5" /> Confirmar Restauração?
                                                                     </AlertDialogTitle>
                                                                     <AlertDialogDescription className="text-base">
-                                                                        Esta ação iríí sobrescrever o banco de dados atual com os dados deste backup.
-                                                                        O sistema seríí reiniciado automaticamente. **ESTA AíçÃO íë IRREVERSíìVEL.**
+                                                                        Esta ação irá sobrescrever o banco de dados atual com os dados deste backup.
+                                                                        O sistema será reiniciado automaticamente. **ESTA AÇÃO É IRREVERSÍVEL.**
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
@@ -279,7 +279,7 @@ export default function ManutencaoPage() {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <AlertTriangle className="h-5 w-5 text-amber-500" />
-                                Recomendaíºàes
+                                Recomendações
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -290,9 +290,9 @@ export default function ManutencaoPage() {
                                 </p>
                             </div>
                             <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 text-sm">
-                                <p className="font-bold text-blue-800 dark:text-blue-400 mb-1">Restauração Instantíónea</p>
+                                <p className="font-bold text-blue-800 dark:text-blue-400 mb-1">Restauração Instantânea</p>
                                 <p className="text-blue-700/80 dark:text-blue-300/80 leading-relaxed">
-                                    Para ambientes SQLite, a restauração í® processada em segundos. Outros bancos requerem importação via CLI.
+                                    Para ambientes SQLite, a restauração é processada em segundos. Outros bancos requerem importação via CLI.
                                 </p>
                             </div>
                         </CardContent>
@@ -303,11 +303,11 @@ export default function ManutencaoPage() {
                             <Database className="h-24 w-24" />
                         </div>
                         <CardHeader>
-                            <CardTitle className="text-lg">Dica Tí®cnica</CardTitle>
+                            <CardTitle className="text-lg">Dica Técnica</CardTitle>
                         </CardHeader>
                         <CardContent className="relative z-10">
                             <p className="text-sm opacity-90 leading-relaxed">
-                                Agende backups automííticos no seu servidor Host/VPS utilizando o cron:
+                                Agende backups automáticos no seu servidor Host/VPS utilizando o cron:
                             </p>
                             <div className="mt-3 p-3 bg-black/20 rounded-xl font-mono text-[10px] break-all border border-white/10 uppercase tracking-tighter">
                                 npm run backup

@@ -35,8 +35,19 @@ export async function GET(req: Request) {
         prisma.nfseRecord.count({ where }),
     ]);
 
+    const config = await prisma.nfeConfig.findUnique({ where: { id: 'default' } });
+    const nfseProvider = await getActiveNfseProvider();
+
+    const recordsWithUrl = records.map(rec => {
+        let nfseUrl = undefined;
+        if (rec.status === 'emitida' && rec.numeroNfse && rec.codigoVerificacao && config && nfseProvider?.getNfseUrl) {
+            nfseUrl = nfseProvider.getNfseUrl(rec.numeroNfse, rec.codigoVerificacao, config.cnpj, config.codigoMunicipio);
+        }
+        return { ...rec, nfseUrl };
+    });
+
     return NextResponse.json({
-        records,
+        records: recordsWithUrl,
         pagination: {
             page,
             limit,
@@ -94,12 +105,19 @@ export async function POST(req: Request) {
                 tomadorDoc: tomadorDoc || null,
                 serviceId: serviceId || null,
                 clientId: clientId || null,
+                ambiente: config.ambiente,
             },
         });
 
         // Montar data de emissão (now) e competência (1º do mês informado ou mês atual)
         const now = new Date();
-        const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0]; // YYYY-MM-DDTHH:mm:ss
+        const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        const dataEmissaoFmt = spTime.getFullYear() + '-' +
+            String(spTime.getMonth() + 1).padStart(2, '0') + '-' +
+            String(spTime.getDate()).padStart(2, '0') + 'T' +
+            String(spTime.getHours()).padStart(2, '0') + ':' +
+            String(spTime.getMinutes()).padStart(2, '0') + ':' +
+            String(spTime.getSeconds()).padStart(2, '0');
 
         // dataCompetencia vem do body como "YYYY-MM" (ex: "2026-04"), convertido para 1º dia do mês
         let dataCompetenciaFmt: string;
@@ -146,7 +164,9 @@ export async function POST(req: Request) {
             },
         };
 
+        console.log('[NFSE_EMITIR] Enviando para GINFES. RPS:', rpsNumero, '| Prestador CNPJ:', emitirOptions.prestador.cnpj, '| IM:', emitirOptions.prestador.inscricaoMunicipal, '| Município:', emitirOptions.codigoMunicipio, '| Item:', emitirOptions.itemListaServico, '| Cód.Trib:', emitirOptions.codigoTributacaoMunicipio);
         const result = await nfseProvider.emitir(emitirOptions, loteId);
+        console.log('[NFSE_EMITIR] Retorno GINFES:', { protocolo: result.protocolo, erro: result.erro, xmlFull: result.xmlRetorno });
 
         if (result.erro) {
             await prisma.nfseRecord.update({
@@ -155,18 +175,34 @@ export async function POST(req: Request) {
                     status: 'erro',
                     errorMessage: result.erro,
                     xmlRetorno: result.xmlRetorno,
+                    xmlEnviado: result.xmlEnviado,
                 },
             });
             return NextResponse.json({ error: result.erro, recordId: record.id }, { status: 422 });
+        }
+
+        // Se GINFES não retornou protocolo nem erro, trata como erro
+        if (!result.protocolo) {
+            await prisma.nfseRecord.update({
+                where: { id: record.id },
+                data: {
+                    status: 'erro',
+                    errorMessage: 'GINFES não retornou protocolo. Verifique o XML de retorno.',
+                    xmlRetorno: result.xmlRetorno,
+                    xmlEnviado: result.xmlEnviado,
+                },
+            });
+            return NextResponse.json({ error: 'GINFES não retornou protocolo', recordId: record.id }, { status: 422 });
         }
 
         // Atualizar com protocolo/ID do provedor
         const updated = await prisma.nfseRecord.update({
             where: { id: record.id },
             data: {
-                protocolo: result.protocolo || null,
+                protocolo: result.protocolo,
                 status: 'aguardando_processamento',
                 xmlRetorno: result.xmlRetorno,
+                xmlEnviado: result.xmlEnviado,
             },
         });
 

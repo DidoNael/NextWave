@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
     FileText, Upload, CheckCircle2, XCircle, Loader2,
     Building2, Key, Settings2, AlertTriangle, RefreshCw,
-    RotateCcw, Code2, ExternalLink, Bug, Download
+    RotateCcw, Code2, ExternalLink, Bug, Download, Mail
 } from "lucide-react";
 
 interface NfeConfig {
@@ -35,6 +35,8 @@ interface NfeConfig {
     codigoTributacaoMunicipio: string | null;
     provider?: string;
     hasProviderCredentials?: boolean;
+    smtpId?: string | null;
+    emailTemplateId?: string | null;
 }
 
 interface NfseRecord {
@@ -132,6 +134,10 @@ export default function NfeConfigPage() {
     const [tipoModal, setTipoModal] = useState<{ open: boolean; editing: any | null }>({ open: false, editing: null });
     const [tipoForm, setTipoForm] = useState({ nome: "", itemListaServico: "", aliquotaIss: "", issRetido: "2", naturezaOperacao: "1", discriminacaoModelo: "", isDefault: false });
     const [savingTipo, setSavingTipo] = useState(false);
+    
+    // Configurações de SMTP e Templates
+    const [smtps, setSmtps] = useState<any[]>([]);
+    const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
 
     const [form, setForm] = useState({
         cnpj: "",
@@ -159,6 +165,9 @@ export default function NfeConfigPage() {
         hasProviderCredentials: false,
         enotasApiKey: "",
         enotasEmpresaId: "",
+        // comunicação
+        smtpId: "",
+        emailTemplateId: "",
     });
 
     const fetchConfig = async () => {
@@ -187,6 +196,8 @@ export default function NfeConfigPage() {
                     codigoTributacaoMunicipio: data.codigoTributacaoMunicipio || "",
                     provider: (data.provider as "ginfes" | "enotas") || "ginfes",
                     hasProviderCredentials: !!data.hasProviderCredentials,
+                    smtpId: data.smtpId || "",
+                    emailTemplateId: data.emailTemplateId || "",
                 }));
             }
         } catch {
@@ -214,6 +225,20 @@ export default function NfeConfigPage() {
         try {
             const res = await fetch("/api/nfse/tipos");
             if (res.ok) setTipos(await res.json());
+        } catch { /* silencioso */ }
+    };
+
+    const fetchSmtps = async () => {
+        try {
+            const res = await fetch("/api/configuracoes/smtp");
+            if (res.ok) setSmtps(await res.json());
+        } catch { /* silencioso */ }
+    };
+
+    const fetchEmailTemplates = async () => {
+        try {
+            const res = await fetch("/api/modelos/email");
+            if (res.ok) setEmailTemplates(await res.json());
         } catch { /* silencioso */ }
     };
 
@@ -259,6 +284,8 @@ export default function NfeConfigPage() {
         fetchConfig();
         fetchRecords();
         fetchTipos();
+        fetchSmtps();
+        fetchEmailTemplates();
     }, []);
 
     const handleCertUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -295,6 +322,8 @@ export default function NfeConfigPage() {
                 provider: form.provider,
                 ...(form.certificadoBase64 ? { certificadoBase64: form.certificadoBase64 } : {}),
                 ...(form.senhaCertificado ? { senhaCertificado: form.senhaCertificado } : {}),
+                smtpId: form.smtpId || null,
+                emailTemplateId: form.emailTemplateId || null,
             };
 
             // Credenciais eNotas — só envia se algum campo foi preenchido
@@ -778,6 +807,51 @@ export default function NfeConfigPage() {
                                 placeholder="ex: 620910003"
                             />
                             <p className="text-xs text-muted-foreground">Código municipal do serviço (parte após / no campo Serviço/Atividade do GINFES)</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Comunicação e Modelos */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Mail className="h-5 w-5" /></div>
+                            <div>
+                                <CardTitle>Comunicação e Modelos</CardTitle>
+                                <CardDescription>Defina qual conta de e-mail (SMTP) e qual modelo de mensagem usar para NFS-e.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Conta SMTP (Envio de E-mail)</Label>
+                            <Select value={form.smtpId} onValueChange={v => setForm({ ...form, smtpId: v })}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Usar SMTP padrão" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="default_global">Usar SMTP Padrão do Sistema</SelectItem>
+                                    {smtps.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name} ({s.user})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-muted-foreground">Escolha uma conta específica para e-mails fiscais ou mantenha o padrão.</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Modelo de E-mail (NFS-e Emitida)</Label>
+                            <Select value={form.emailTemplateId} onValueChange={v => setForm({ ...form, emailTemplateId: v })}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Usar modelo padrão" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="default_global">Usar Modelo Padrão do Sistema</SelectItem>
+                                    {emailTemplates.map(t => (
+                                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-muted-foreground">O modelo define o assunto e o corpo do e-mail com variáveis (ex: {"{{nomeCliente}}"}).</p>
                         </div>
                     </CardContent>
                 </Card>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -76,15 +76,15 @@ interface Resumo {
 // â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const txSchema = z.object({
-  description: z.string().min(2, "DescriÃ§Ã£o obrigatÃ³ria"),
+  description: z.string().min(2, "Descrição obrigatória"),
   amount: z
     .string()
-    .min(1, "Valor obrigatÃ³rio")
+    .min(1, "Valor obrigatório")
     .refine((v) => !isNaN(parseFloat(v.replace(",", "."))) && parseFloat(v.replace(",", ".")) > 0, {
       message: "Valor deve ser positivo",
     }),
   type: z.enum(["receita", "despesa"]),
-  category: z.string().min(1, "Categoria obrigatÃ³ria"),
+  category: z.string().min(1, "Categoria obrigatória"),
   status: z.enum(["pago", "pendente", "cancelado"]),
   dueDate: z.string().optional(),
   paidAt: z.string().optional(),
@@ -97,7 +97,7 @@ type TxFormValues = z.infer<typeof txSchema>;
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
@@ -212,7 +212,7 @@ export default function FinanceiroPage() {
         });
       }
     } catch {
-      toast.error("NÃ£o foi possÃ­vel carregar as transaÃ§Ãµes");
+      toast.error("Não foi possível carregar as transações");
     } finally {
       setLoading(false);
     }
@@ -313,7 +313,7 @@ export default function FinanceiroPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
-        toast.success("TransaÃ§Ã£o atualizada");
+        toast.success("Transação atualizada");
       } else {
         const res = await fetch("/api/financeiro", {
           method: "POST",
@@ -321,12 +321,12 @@ export default function FinanceiroPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
-        toast.success("TransaÃ§Ã£o criada");
+        toast.success("Transação criada");
       }
       setDialogOpen(false);
       void fetchTransactions();
     } catch {
-      toast.error("Erro ao salvar transaÃ§Ã£o");
+      toast.error("Erro ao salvar transação");
     }
   }
 
@@ -335,11 +335,11 @@ export default function FinanceiroPage() {
     try {
       const res = await fetch(`/api/financeiro/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("TransaÃ§Ã£o excluÃ­da");
+      toast.success("Transação excluída");
       setDeleteId(null);
       void fetchTransactions();
     } catch {
-      toast.error("Erro ao excluir transaÃ§Ã£o");
+      toast.error("Erro ao excluir transação");
     } finally {
       setDeleting(false);
     }
@@ -359,7 +359,7 @@ export default function FinanceiroPage() {
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" />
-          Nova TransaÃ§Ã£o
+          Nova Transação
         </Button>
       </div>
 
@@ -406,7 +406,7 @@ export default function FinanceiroPage() {
           </button>
           <span className="px-3 text-sm font-medium text-foreground min-w-[140px] text-center">
             {showAll
-              ? "Todos os perÃ­odos"
+              ? "Todos os períodos"
               : `${MONTH_NAMES[filterMonth ?? today.getMonth()]} ${filterYear}`}
           </span>
           <button
@@ -431,7 +431,7 @@ export default function FinanceiroPage() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Buscar transaÃ§Ã£o..."
+            placeholder="Buscar transação..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -480,7 +480,7 @@ export default function FinanceiroPage() {
           <div className="py-16 text-center">
             <Wallet className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma transaÃ§Ã£o encontrada
+              Nenhuma transação encontrada
             </p>
           </div>
         ) : (
@@ -488,7 +488,7 @@ export default function FinanceiroPage() {
             {/* Table header */}
             <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 items-center px-4 py-2 bg-muted/40">
               <span className="w-6" />
-              <span className="text-xs font-medium text-muted-foreground">DescriÃ§Ã£o</span>
+              <span className="text-xs font-medium text-muted-foreground">Descrição</span>
               <span className="text-xs font-medium text-muted-foreground hidden md:block">Categoria</span>
               <span className="text-xs font-medium text-muted-foreground hidden md:block">Vencimento</span>
               <span className="text-xs font-medium text-muted-foreground text-right">Valor</span>
@@ -537,7 +537,7 @@ export default function FinanceiroPage() {
                         {formatDate(tx.dueDate)}
                       </>
                     ) : (
-                      "â€”"
+                      "—"
                     )}
                   </span>
 
@@ -617,7 +617,7 @@ export default function FinanceiroPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingTx ? "Editar TransaÃ§Ã£o" : "Nova TransaÃ§Ã£o"}
+              {editingTx ? "Editar Transação" : "Nova Transação"}
             </DialogTitle>
           </DialogHeader>
 
@@ -625,11 +625,11 @@ export default function FinanceiroPage() {
             {/* Description */}
             <div className="space-y-1.5">
               <Label htmlFor="description">
-                DescriÃ§Ã£o <span className="text-destructive">*</span>
+                Descrição <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="description"
-                placeholder="Ex: SessÃ£o fotogrÃ¡fica"
+                placeholder="Ex: Sessão fotográfica"
                 {...form.register("description")}
               />
               {form.formState.errors.description && (
@@ -761,7 +761,7 @@ export default function FinanceiroPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label htmlFor="notes">ObservaÃ§Ãµes</Label>
+              <Label htmlFor="notes">Observações</Label>
               <Textarea
                 id="notes"
                 placeholder="Notas adicionais..."
@@ -781,7 +781,7 @@ export default function FinanceiroPage() {
                 Cancelar
               </Button>
               <Button type="submit" loading={form.formState.isSubmitting}>
-                {editingTx ? "Salvar alteraÃ§Ãµes" : "Criar transaÃ§Ã£o"}
+                {editingTx ? "Salvar alterações" : "Criar transação"}
               </Button>
             </DialogFooter>
           </form>

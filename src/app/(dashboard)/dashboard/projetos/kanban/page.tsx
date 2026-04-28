@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { Plus, FolderKanban, Loader2, ChevronDown, MoreHorizontal, ArrowRight } from "lucide-react";
@@ -55,7 +55,7 @@ function PriorityBadge({ priority }: { priority: string }) {
     media: "bg-muted text-muted-foreground border-border",
     baixa: "bg-primary/10 text-primary border-primary/20",
   };
-  const label: Record<string, string> = { alta: "Alta", media: "MÃ©dia", baixa: "Baixa" };
+  const label: Record<string, string> = { alta: "Alta", media: "Média", baixa: "Baixa" };
   return (
     <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", map[priority] ?? map.media)}>
       {label[priority] ?? priority}
@@ -167,7 +167,7 @@ function KanbanColumn({
           <div className="bg-background border border-primary/40 rounded-xl p-3 space-y-2">
             <Input
               autoFocus
-              placeholder="TÃ­tulo da tarefa..."
+              placeholder="Título da tarefa..."
               className="h-8 text-sm bg-muted/50 border-border/60"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
@@ -225,7 +225,7 @@ export default function ProjetosKanbanPage() {
         setSummaries(Array.isArray(data) ? data : []);
         if (data.length > 0) setSelectedId(data[0].id);
       } catch {
-        toast.error("NÃ£o foi possÃ­vel carregar os projetos.");
+        toast.error("Não foi possível carregar os projetos.");
       } finally {
         setLoadingList(false);
       }
@@ -244,7 +244,7 @@ export default function ProjetosKanbanPage() {
         const data: Project = await res.json();
         setProject(data);
       } catch {
-        toast.error("NÃ£o foi possÃ­vel carregar o projeto.");
+        toast.error("Não foi possível carregar o projeto.");
       } finally {
         setLoadingProject(false);
       }
@@ -378,7 +378,7 @@ export default function ProjetosKanbanPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Projetos</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {summaries.length} projeto{summaries.length !== 1 ? "s" : ""} Â· Quadro Kanban
+            {summaries.length} projeto{summaries.length !== 1 ? "s" : ""} · Quadro Kanban
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="gap-2 rounded-full h-9 text-sm font-semibold">
@@ -393,7 +393,7 @@ export default function ProjetosKanbanPage() {
           </div>
           <div>
             <p className="font-semibold text-foreground">Nenhum projeto ainda</p>
-            <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro projeto para comeÃ§ar</p>
+            <p className="text-sm text-muted-foreground mt-1">Crie seu primeiro projeto para começar</p>
           </div>
           <Button onClick={() => setDialogOpen(true)} className="gap-2 rounded-full">
             <Plus className="h-4 w-4" /> Criar projeto
@@ -467,9 +467,9 @@ export default function ProjetosKanbanPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>DescriÃ§Ã£o</Label>
+              <Label>Descrição</Label>
               <Input
-                placeholder="DescriÃ§Ã£o opcional..."
+                placeholder="Descrição opcional..."
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />

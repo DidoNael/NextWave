@@ -94,6 +94,41 @@ export async function sendWhatsAppMessage(to: string, message: string) {
     }
 }
 
+export async function sendWhatsAppMedia(to: string, fileName: string, base64: string, mimeType: string, caption?: string) {
+    try {
+        const config = await getActiveConfig();
+        if (!config || !config.apiUrl) return false;
+        const instance = await getActiveInstance();
+        if (!instance) return false;
+
+        let cleanNumber = to.replace(/\D/g, "");
+        if (cleanNumber.length <= 11) cleanNumber = "55" + cleanNumber;
+
+        const url = `${config.apiUrl}/message/sendMedia/${instance}`;
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "apikey": config.apiKey,
+            },
+            body: JSON.stringify({
+                number: cleanNumber,
+                media: base64,
+                mediatype: "document",
+                mimetype: mimeType,
+                caption: caption || "",
+                fileName: fileName
+            }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error("[WHATSAPP_MEDIA_ERROR]", error);
+        return false;
+    }
+}
+
 export async function getWhatsAppMessages(phone: string) {
     const cleanPhone = phone.replace(/\D/g, "");
     const remoteJid = `${cleanPhone}@s.whatsapp.net`;

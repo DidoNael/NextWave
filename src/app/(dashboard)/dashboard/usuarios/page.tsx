@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
@@ -67,8 +67,8 @@ interface Usuario {
 // â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const baseSchema = z.object({
-  name: z.string().min(1, "Nome Ã© obrigatÃ³rio"),
-  email: z.string().email("E-mail invÃ¡lido"),
+  name: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().email("E-mail inválido"),
   role: z.enum(["master", "admin", "user"] as const).default("user"),
   allowedIps: z.string().optional(),
   workDayStart: z.string().optional(),
@@ -76,7 +76,7 @@ const baseSchema = z.object({
 });
 
 const createSchema = baseSchema.extend({
-  password: z.string().min(6, "Senha deve ter no mÃ­nimo 6 caracteres"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
 });
 
 const editSchema = baseSchema.extend({
@@ -84,7 +84,7 @@ const editSchema = baseSchema.extend({
     .string()
     .optional()
     .refine((v) => !v || v.length >= 6, {
-      message: "Senha deve ter no mÃ­nimo 6 caracteres",
+      message: "Senha deve ter no mínimo 6 caracteres",
     }),
 });
 
@@ -103,7 +103,7 @@ function RoleBadge({ role }: { role: UserRole }) {
   const labels: Record<UserRole, string> = {
     master: "Master",
     admin: "Admin",
-    user: "UsuÃ¡rio",
+    user: "Usuário",
   };
   return (
     <span
@@ -179,11 +179,11 @@ export default function UsuariosPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/usuarios");
-      if (!res.ok) throw new Error("Erro ao buscar usuÃ¡rios");
+      if (!res.ok) throw new Error("Erro ao buscar usuários");
       const data = await res.json();
       setUsuarios(Array.isArray(data) ? data : (data.usuarios ?? []));
     } catch {
-      toast.error("NÃ£o foi possÃ­vel carregar os usuÃ¡rios.");
+      toast.error("Não foi possível carregar os usuários.");
     } finally {
       setLoading(false);
     }
@@ -272,13 +272,13 @@ export default function UsuariosPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message ?? "Erro ao salvar usuÃ¡rio");
+        throw new Error(err?.message ?? "Erro ao salvar usuário");
       }
 
       toast.success(
         editingUsuario
-          ? "UsuÃ¡rio atualizado com sucesso."
-          : "UsuÃ¡rio criado com sucesso."
+          ? "Usuário atualizado com sucesso."
+          : "Usuário criado com sucesso."
       );
       setDialogOpen(false);
       fetchUsuarios();
@@ -298,12 +298,12 @@ export default function UsuariosPage() {
       const res = await fetch(`/api/usuarios/${deletingUsuario.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Erro ao excluir usuÃ¡rio");
-      toast.success("UsuÃ¡rio excluÃ­do.");
+      if (!res.ok) throw new Error("Erro ao excluir usuário");
+      toast.success("Usuário excluído.");
       setDeleteDialogOpen(false);
       fetchUsuarios();
     } catch {
-      toast.error("NÃ£o foi possÃ­vel excluir o usuÃ¡rio.");
+      toast.error("Não foi possível excluir o usuário.");
     } finally {
       setDeleting(false);
     }
@@ -316,16 +316,16 @@ export default function UsuariosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">UsuÃ¡rios</h1>
+          <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
           <p className="text-sm text-muted-foreground">
             {loading
               ? "Carregando..."
-              : `${filtered.length} usuÃ¡rio${filtered.length !== 1 ? "s" : ""} no sistema`}
+              : `${filtered.length} usuário${filtered.length !== 1 ? "s" : ""} no sistema`}
           </p>
         </div>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4 mr-2" />
-          Novo UsuÃ¡rio
+          Novo Usuário
         </Button>
       </div>
 
@@ -344,11 +344,11 @@ export default function UsuariosPage() {
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* List header */}
         <div className="hidden md:grid grid-cols-[2fr_1fr_1.5fr_1fr_auto] gap-4 px-4 py-2.5 border-b border-border bg-muted/40">
-          <span className="text-xs font-medium text-muted-foreground">UsuÃ¡rio</span>
+          <span className="text-xs font-medium text-muted-foreground">Usuário</span>
           <span className="text-xs font-medium text-muted-foreground">Perfil</span>
-          <span className="text-xs font-medium text-muted-foreground">HorÃ¡rio</span>
+          <span className="text-xs font-medium text-muted-foreground">Horário</span>
           <span className="text-xs font-medium text-muted-foreground">IPs</span>
-          <span className="text-xs font-medium text-muted-foreground">AÃ§Ãµes</span>
+          <span className="text-xs font-medium text-muted-foreground">Ações</span>
         </div>
 
         {loading ? (
@@ -357,12 +357,12 @@ export default function UsuariosPage() {
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Users className="h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm font-medium text-foreground">
-              {search ? "Nenhum usuÃ¡rio encontrado" : "Nenhum usuÃ¡rio cadastrado"}
+              {search ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
             </p>
             <p className="text-xs text-muted-foreground">
               {search
                 ? "Tente ajustar o termo de busca."
-                : "Clique em \"Novo UsuÃ¡rio\" para comeÃ§ar."}
+                : "Clique em \"Novo Usuário\" para começar."}
             </p>
           </div>
         ) : (
@@ -387,7 +387,7 @@ export default function UsuariosPage() {
                       </p>
                       {isCurrentUser && (
                         <span className="text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-medium shrink-0">
-                          VocÃª
+                          Você
                         </span>
                       )}
                     </div>
@@ -437,7 +437,7 @@ export default function UsuariosPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        aria-label="AÃ§Ãµes"
+                        aria-label="Ações"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
@@ -473,7 +473,7 @@ export default function UsuariosPage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingUsuario ? "Editar UsuÃ¡rio" : "Novo UsuÃ¡rio"}
+              {editingUsuario ? "Editar Usuário" : "Novo Usuário"}
             </DialogTitle>
           </DialogHeader>
 
@@ -527,7 +527,7 @@ export default function UsuariosPage() {
               <Input
                 id="u-password"
                 type="password"
-                placeholder={editingUsuario ? "Nova senha (opcional)" : "MÃ­nimo 6 caracteres"}
+                placeholder={editingUsuario ? "Nova senha (opcional)" : "Mínimo 6 caracteres"}
                 {...form.register("password")}
               />
               {form.formState.errors.password && (
@@ -552,7 +552,7 @@ export default function UsuariosPage() {
                 <SelectContent>
                   <SelectItem value="master">Master</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">UsuÃ¡rio</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -560,7 +560,7 @@ export default function UsuariosPage() {
             {/* Work hours */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="u-workStart">InÃ­cio do expediente</Label>
+                <Label htmlFor="u-workStart">Início do expediente</Label>
                 <Input
                   id="u-workStart"
                   type="time"
@@ -587,7 +587,7 @@ export default function UsuariosPage() {
                 {...form.register("allowedIps")}
               />
               <p className="text-xs text-muted-foreground">
-                Um endereÃ§o IP por linha. Deixe vazio para permitir acesso de qualquer IP.
+                Um endereço IP por linha. Deixe vazio para permitir acesso de qualquer IP.
               </p>
             </div>
 
@@ -606,8 +606,8 @@ export default function UsuariosPage() {
                 {submitting
                   ? "Salvando..."
                   : editingUsuario
-                  ? "Salvar AlteraÃ§Ãµes"
-                  : "Criar UsuÃ¡rio"}
+                  ? "Salvar Alterações"
+                  : "Criar Usuário"}
               </Button>
             </DialogFooter>
           </form>
@@ -618,14 +618,14 @@ export default function UsuariosPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir UsuÃ¡rio</DialogTitle>
+            <DialogTitle>Excluir Usuário</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir{" "}
             <span className="font-semibold text-foreground">
               {deletingUsuario?.name}
             </span>
-            ? Esta aÃ§Ã£o nÃ£o pode ser desfeita.
+            ? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter className="gap-2">
             <Button

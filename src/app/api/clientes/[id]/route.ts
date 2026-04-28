@@ -34,6 +34,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         transactions: { orderBy: { dueDate: "desc" } },
         services: { orderBy: { createdAt: "desc" }, include: { pluginLicense: true } },
         subscriptions: { orderBy: { nextBillingDate: "asc" } },
+        nfseRecords: { orderBy: { createdAt: "desc" } },
         _count: { select: { transactions: true, services: true } },
       },
     });

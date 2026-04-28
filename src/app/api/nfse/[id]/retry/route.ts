@@ -75,7 +75,13 @@ export async function POST(
     });
 
     const now = new Date();
-    const dataEmissaoFmt = now.toISOString().replace('Z', '').split('.')[0];
+    const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const dataEmissaoFmt = spTime.getFullYear() + '-' +
+        String(spTime.getMonth() + 1).padStart(2, '0') + '-' +
+        String(spTime.getDate()).padStart(2, '0') + 'T' +
+        String(spTime.getHours()).padStart(2, '0') + ':' +
+        String(spTime.getMinutes()).padStart(2, '0') + ':' +
+        String(spTime.getSeconds()).padStart(2, '0');
     const dataCompetenciaFmt = overrides.dataCompetencia && /^\d{4}-\d{2}$/.test(overrides.dataCompetencia)
         ? `${overrides.dataCompetencia}-01T00:00:00`
         : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;

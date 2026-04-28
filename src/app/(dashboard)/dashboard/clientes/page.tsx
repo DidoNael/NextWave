@@ -9,7 +9,7 @@ import {
   Plus, Search, Pencil, Trash2, UserRound, Building2,
   MapPin, Phone, Mail, CheckCircle2, AlertCircle, Eye,
 } from "lucide-react";
-import { ClientProfile } from "@/app/[orgSlug]/(dashboard)/clientes/components/ClientProfile";
+import { ClientProfile } from "./components/ClientProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

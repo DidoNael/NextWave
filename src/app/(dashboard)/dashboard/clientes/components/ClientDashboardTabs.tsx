@@ -1,6 +1,6 @@
-﻿import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { User, Briefcase, DollarSign } from "lucide-react";
+import React from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Briefcase, DollarSign, Receipt } from "lucide-react";
 import { Client } from "@/types";
 
 interface ClientDashboardTabsProps {
@@ -8,28 +8,34 @@ interface ClientDashboardTabsProps {
   renderCadastro: () => React.ReactNode;
   renderServicos: () => React.ReactNode;
   renderFinanceiro: () => React.ReactNode;
+  renderNfse: () => React.ReactNode;
 }
 
 export function ClientDashboardTabs({ 
   client, 
   renderCadastro, 
   renderServicos, 
-  renderFinanceiro 
+  renderFinanceiro,
+  renderNfse
 }: ClientDashboardTabsProps) {
   return (
     <Tabs defaultValue="cadastro" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 p-1">
+      <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 p-1">
         <TabsTrigger value="cadastro" className="gap-2">
           <User className="h-4 w-4" />
           <span className="hidden sm:inline">Cadastro</span>
         </TabsTrigger>
         <TabsTrigger value="servicos" className="gap-2">
           <Briefcase className="h-4 w-4" />
-          <span className="hidden sm:inline">Serviíºos</span>
+          <span className="hidden sm:inline">Serviços</span>
         </TabsTrigger>
         <TabsTrigger value="financeiro" className="gap-2">
           <DollarSign className="h-4 w-4" />
           <span className="hidden sm:inline">Financeiro</span>
+        </TabsTrigger>
+        <TabsTrigger value="nfse" className="gap-2">
+          <Receipt className="h-4 w-4" />
+          <span className="hidden sm:inline">NFS-e</span>
         </TabsTrigger>
       </TabsList>
       
@@ -44,7 +50,10 @@ export function ClientDashboardTabs({
       <TabsContent value="financeiro" className="space-y-4 animate-in">
         {renderFinanceiro()}
       </TabsContent>
+
+      <TabsContent value="nfse" className="space-y-4 animate-in">
+        {renderNfse()}
+      </TabsContent>
     </Tabs>
   );
 }
-
