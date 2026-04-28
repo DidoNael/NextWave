@@ -15,25 +15,10 @@ services:
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-nextwave_evo_temp_key}
       - LOG_LEVEL=ERROR
-      - LOG_BAILEYS=error
-      - DEL_INSTANCE=false
       - DATABASE_ENABLED=true
       - DATABASE_SAVE_DATA_INSTANCE=true
-      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-      - DATABASE_SAVE_DATA_CONTACTS=true
-      - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://root:${POSTGRES_PASSWORD}@nextwave-db:5432/nextwave_crm?schema=public
-      - CACHE_REDIS_ENABLED=false
-      - CACHE_LOCAL_ENABLED=true
-      - WA_VERSION=2.3000.1035214861
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1035214861
-      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
-      - WEBHOOK_GLOBAL_ENABLED=false
-      - STORE_MESSAGES=true
-      - STORE_MESSAGE_UP=true
-      - STORE_CONTACTS=true
-      - STORE_CHATS=true
     volumes:
       - evolution-data:/app/evolution/instances
     logging:
@@ -64,7 +49,7 @@ services:
       - nextwave-setup:/var/shared
     depends_on:
       nextwave-db:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:3010/api/health || exit 1" ]
       interval: 30s
@@ -86,71 +71,27 @@ services:
     entrypoint: [ "/bin/bash", "/var/shared/db-sovereign-init.sh" ]
     environment:
       - POSTGRES_USER=root
-      - POSTGRES_DB=nextwave_crm
+      # O nome do banco inicial não importa tanto aqui, o Wizard criará o correto
+      - POSTGRES_DB=postgres 
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - nextwave-setup:/var/shared
       - ./db-sovereign-init.sh:/var/shared/db-sovereign-init.sh
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U root -d nextwave_crm" ]
+      test: [ "CMD-SHELL", "pg_isready -U root -d postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - nextwave_network
-
-  mcp-server:
-    profiles:
-      - mcp
-    build:
-      context: .
-      dockerfile: mcp-server/Dockerfile
-    image: nextwave-mcp-server:latest
-    container_name: nextwave-mcp-server
-    restart: unless-stopped
-    ports:
-      - "${MCP_PORT:-3001}:3001"
-    environment:
-      - MCP_PORT=3001
-      - MCP_BIND_ADDRESS=0.0.0.0
-      - MCP_API_KEY=${MCP_API_KEY:-TROQUE-POR-UMA-CHAVE-FORTE}
-      - MCP_ALLOWED_IPS=${MCP_ALLOWED_IPS:-127.0.0.1}
-      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
-      - MCP_RATE_LIMIT=${MCP_RATE_LIMIT:-100}
-      - MCP_RATE_WINDOW=${MCP_RATE_WINDOW:-60}
-      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-info}
-      - DATABASE_URL=postgresql://root:${POSTGRES_PASSWORD}@nextwave-db:5432/nextwave_crm?schema=public
-    volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-      - nextwave-setup:/var/shared
-    depends_on:
-      nextwave-crm:
-        condition: service_started
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:3001/health" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - nextwave_network
+      - nginx
 
 volumes:
-  crm-data:
-    name: crm-data
-    driver: local
   evolution-data:
     driver: local
   postgres-data:
     driver: local
   nextwave-setup:
-    # Volume compartilhado para despertar o Banco via Web
     driver: local
 
 networks:
