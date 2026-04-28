@@ -8,6 +8,7 @@ Este guia contém os passos exatos para colocar o seu CRM online, desde o `git c
 Antes de começar, certifique-se de ter instalado:
 - **Git**
 - **Docker & Docker Compose**
+- **Rede Docker `nginx`** (Criar com: `docker network create nginx`)
 - **Node.js v20 ou superior**
 
 ---
@@ -56,5 +57,18 @@ O sistema vai configurar automaticamente:
 - **WhatsApp**: Gerará uma chave API única e aleatória para a sua Evolution API.
 
 ---
+## 🛡️ Configuração de Proxy Reverso (Nginx)
+Para maior segurança, o sistema vem configurado para aceitar conexões apenas via Nginx (localhost).
+
+1. **Rede Nginx**: Certifique-se de que a rede `nginx` existe antes de subir o docker:
+   ```bash
+   docker network create nginx
+   ```
+
+2. **Configuração Nginx**: Aponte o `proxy_pass` para `http://127.0.0.1:3010`.
+
+3. **Portas**: As portas 3010 e 8081 estão bloqueadas para acesso externo direto (bind no 127.0.0.1). Todo acesso deve passar pelo seu domínio configurado no Nginx.
+
+---
 > [!TIP]
-> **Segurança Máxima (v2.0.5)**: Este sistema foi sanitizado. Nenhuma senha ou chave de API está "vazada" ou hardcoded no código. Todas as credenciais são geradas de forma aleatória e privada durante o seu Setup.
+> **Segurança Máxima (v3.0.49)**: Este sistema foi sanitizado. Nenhuma senha ou chave de API está "vazada" ou hardcoded no código. Todas as credenciais são geradas de forma aleatória e privada durante o seu Setup.
