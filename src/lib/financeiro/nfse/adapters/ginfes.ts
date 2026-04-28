@@ -59,6 +59,7 @@ export class GinfesAdapter extends NfseProvider {
             erro:       result.erro,
             protocolo:  result.protocolo,
             xmlRetorno: result.xmlRetorno,
+            xmlEnviado: result.xmlEnviado,
         };
     }
 
@@ -95,20 +96,54 @@ export class GinfesAdapter extends NfseProvider {
 
         // GinfesClient retorna situacao como string ("1","2","3","4") — converte para number
         const situacaoNum = result.situacao ? parseInt(result.situacao, 10) : 1;
-        const nfseNumeros = result.nfseList?.map(n => n.numero);
+
+        // Se Processado com Erro (3) ou Sucesso (4), buscamos os detalhes (erros ou lista de notas)
+        if (situacaoNum === 3 || situacaoNum === 4) {
+            console.log(`[GINFES_ADAPTER] Lote processado (Situação ${situacaoNum}). Consultando detalhes...`);
+            const detalhe = await this.client.consultarLote(protocolo);
+            
+            const nfseNumeros = detalhe.nfseList?.map(n => n.numero);
+            
+            return {
+                situacao: situacaoNum,
+                erro: detalhe.erro,
+                nfseNumeros: nfseNumeros?.length ? nfseNumeros : undefined,
+                xmlRetorno: detalhe.xmlRetorno
+            };
+        }
 
         return {
             situacao:    situacaoNum,
-            nfseNumeros: nfseNumeros?.length ? nfseNumeros : undefined,
-            // xmlRetorno contém <CodigoVerificacao> — extraído pela rota de consulta
             xmlRetorno:  result.xmlRetorno,
         };
     }
+
+
 
     async importarPorPeriodo(dataInicial: string, dataFinal: string): Promise<any> {
         return {
             situacao: 1,
             erro: "O Ginfes não possui suporte nativo REST para importar NFS-e por período de forma consolidada no painel Ginfes. Utilize o portal do município.",
         };
+    }
+
+    getNfseUrl(
+        numero: string,
+        codigoVerificacao: string,
+        cnpjPrestador: string,
+        codigoMunicipio: string
+    ): string {
+        const subdominios: Record<string, string> = {
+            '3518800': 'guarulhos',
+            '3514700': 'eliasfausto',
+            // Adicionar mais se necessário
+        };
+
+        const sub = 'visualizar';
+        const maskedCnpj = cnpjPrestador.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+
+        // Padrão GINFES que redireciona para o report correto (usando parâmetros observados pelo usuário)
+        // Adicionamos __format=pdf para que o GINFES retorne os bytes do PDF diretamente
+        return `https://${sub}.ginfes.com.br/report/consultarNota?__report=nfs_ver4RT&cnpjPrestador=${maskedCnpj}&numNota=${numero}&cdVerificacao=${codigoVerificacao}&__format=pdf`;
     }
 }

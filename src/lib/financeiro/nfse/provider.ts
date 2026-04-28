@@ -44,6 +44,7 @@ export interface NfseEmitirResult {
     erro?: string;
     protocolo?: string;    // protocolo GINFES ou ID interno do provedor SaaS (usado para polling)
     xmlRetorno?: string;   // resposta raw (XML para GINFES, JSON para SaaS)
+    xmlEnviado?: string;   // XML assinado enviado ao provedor
 }
 
 export interface NfseCancelarResult {
@@ -76,7 +77,7 @@ export abstract class NfseProvider {
     abstract readonly name: string;
     abstract readonly provider: string;
 
-    constructor(protected config: unknown) {}
+    constructor(protected config: unknown) { }
 
     /**
      * Emite um único RPS / NFS-e.
@@ -121,4 +122,14 @@ export abstract class NfseProvider {
         dataInicial: string,
         dataFinal: string
     ): Promise<any>;
+
+    /**
+     * Retorna a URL para visualização/impressão da NFS-e.
+     */
+    getNfseUrl?(
+        numero: string,
+        codigoVerificacao: string,
+        cnpjPrestador: string,
+        codigoMunicipio: string
+    ): string;
 }

@@ -67,7 +67,7 @@ async function soapCall(
             passphrase: pfxPassword,
             rejectUnauthorized: false, // Ginfes usa cert interno
             // Ginfes usa TLS com renegociação legada — necessário no OpenSSL 3.x
-            secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
+            secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION | crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
         };
 
         const req = https.request(options, (res) => {
@@ -107,14 +107,39 @@ function safeError(err: unknown): string {
 }
 
 function parseSoapFault(xml: string): string | null {
-    const fault = extractTagContent(xml, 'faultstring') || extractTagContent(xml, 'mensagem');
-    return fault;
+    return extractTagContent(xml, 'faultstring') || extractTagContent(xml, 'mensagem') || null;
+}
+
+/** Extrai mensagens de erro do ListaMensagemRetorno (ABRASF v3) */
+function parseListaMensagemRetorno(xml: string): string | null {
+    const mensagens: string[] = [];
+    // Tenta encontrar ListaMensagemRetorno ou MensagemRetorno diretamente
+    const msgRegex = /<(?:[^:>]+:)?MensagemRetorno[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?MensagemRetorno>/g;
+    let m: RegExpExecArray | null;
+    while ((m = msgRegex.exec(xml)) !== null) {
+        const inner = m[1];
+        const codigo = extractTagContent(inner, 'Codigo') || extractTagContent(inner, 'codigo') || '';
+        const msg    = extractTagContent(inner, 'Mensagem') || extractTagContent(inner, 'mensagem') || '';
+        const corr   = extractTagContent(inner, 'Correcao') || extractTagContent(inner, 'correcao') || '';
+        const part   = [codigo, msg, corr].filter(Boolean).join(' — ');
+        if (part) mensagens.push(part);
+    }
+    
+    // Fallback para códigos de erro soltos (alguns provedores enviam fora da lista)
+    if (mensagens.length === 0) {
+        const cod = extractTagContent(xml, 'Codigo');
+        const msg = extractTagContent(xml, 'Mensagem');
+        if (cod && msg) return `${cod} — ${msg}`;
+    }
+
+    return mensagens.length ? mensagens.join(' | ') : null;
 }
 
 export interface EmitirLoteResult {
     protocolo?: string;
     erro?: string;
     xmlRetorno: string;
+    xmlEnviado?: string;
 }
 
 export interface ConsultarLoteResult {
@@ -156,11 +181,12 @@ export class GinfesClient {
 
     async emitirLote(rpsList: RpsData[], loteId: string): Promise<EmitirLoteResult> {
         const xmlLote = generateLoteRpsXml(loteId, rpsList);
-        // Assina cada InfRps (o template já inclui Id="rps{numero}")
-        const xmlAssinado = this.signer.signXml(xmlLote, 'tipos:InfRps', `rps${rpsList[0].numero}`);
-        // Assina o LoteRps (o template já inclui Id="lote{loteId}" — sem replace duplicado)
-        const xmlLoteAssinado = this.signer.signXml(xmlAssinado, 'LoteRps', `lote${loteId}`);
+        // Assina cada InfRps — Signature inserida após </tipos:InfRps> (dentro de Rps)
+        const xmlAssinado = this.signer.signXml(xmlLote, 'tipos:InfRps', `rps${rpsList[0].numero}`, true);
+        // Assina o LoteRps — Signature inserida após </LoteRps> (dentro de EnviarLoteRpsEnvio)
+        const xmlLoteAssinado = this.signer.signXml(xmlAssinado, 'LoteRps', `lote${loteId}`, true);
 
+        console.log('[GINFES_XML_ENVIADO]', xmlLoteAssinado);
         try {
             const xmlRetorno = await soapCall(
                 this.baseUrl,
@@ -172,13 +198,20 @@ export class GinfesClient {
             );
 
             const innerXml = decodeGinfesReturn(xmlRetorno);
-            const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
-            if (fault) return { erro: fault, xmlRetorno };
+            const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno)
+                || parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
+            if (fault) return { erro: fault, xmlRetorno, xmlEnviado: xmlLoteAssinado };
 
             const protocolo = extractTagContent(innerXml, 'Protocolo') ||
                 extractTagContent(innerXml, 'protocolo');
 
-            return { protocolo: protocolo || undefined, xmlRetorno };
+            // GINFES retornou sem erro e sem protocolo — extrair mensagem de retorno se houver
+            if (!protocolo) {
+                const msgRetorno = parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
+                if (msgRetorno) return { erro: msgRetorno, xmlRetorno, xmlEnviado: xmlLoteAssinado };
+            }
+
+            return { protocolo: protocolo || undefined, xmlRetorno, xmlEnviado: xmlLoteAssinado };
         } catch (err) {
             console.error('[GINFES_EMITIR_ERROR]', safeError(err));
             throw new Error(`Erro ao comunicar com Ginfes: ${safeError(err)}`);
@@ -187,15 +220,16 @@ export class GinfesClient {
 
     async consultarSituacaoLote(protocolo: string): Promise<ConsultarLoteResult> {
         const xmlConsulta = `<?xml version="1.0" encoding="UTF-8"?>
-<ConsultarSituacaoLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_consultar_situacao_lote_rps_envio_v03.xsd">
+<ConsultarSituacaoLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_consultar_situacao_lote_rps_envio_v03.xsd" xmlns:tipos="http://www.ginfes.com.br/tipos_v03.xsd">
   <Prestador>
-    <Cnpj>${this.config.cnpj}</Cnpj>
-    <InscricaoMunicipal>${this.config.inscricaoMunicipal}</InscricaoMunicipal>
+    <tipos:Cnpj>${this.config.cnpj}</tipos:Cnpj>
+    <tipos:InscricaoMunicipal>${this.config.inscricaoMunicipal}</tipos:InscricaoMunicipal>
   </Prestador>
   <Protocolo>${protocolo}</Protocolo>
 </ConsultarSituacaoLoteRpsEnvio>`;
 
-        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarSituacaoLoteRpsEnvio', 'consultaSituacao');
+        console.log('[GINFES_CONSULTA_XML]', xmlConsulta);
+        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarSituacaoLoteRpsEnvio', 'consultaSituacao', false);
         const xmlRetorno = await soapCall(
             this.baseUrl,
             'ConsultarSituacaoLoteRpsV3',
@@ -206,7 +240,8 @@ export class GinfesClient {
         );
 
         const innerXml = decodeGinfesReturn(xmlRetorno);
-        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno);
+        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno)
+            || parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
         if (fault) return { erro: fault, xmlRetorno };
 
         const situacao = extractTagContent(innerXml, 'Situacao');
@@ -225,21 +260,63 @@ export class GinfesClient {
         return { situacao: situacao || undefined, nfseList, xmlRetorno };
     }
 
+    /**
+     * Consulta o lote completo (incluindo erros e notas).
+     * Essencial quando Situacao = 3 para saber o motivo do erro.
+     */
+    async consultarLote(protocolo: string): Promise<ConsultarLoteResult> {
+        const xmlConsulta = `<?xml version="1.0" encoding="UTF-8"?>
+<ConsultarLoteRpsEnvio xmlns="http://www.ginfes.com.br/servico_consultar_lote_rps_envio_v03.xsd" xmlns:tipos="http://www.ginfes.com.br/tipos_v03.xsd">
+  <Prestador>
+    <tipos:Cnpj>${this.config.cnpj}</tipos:Cnpj>
+    <tipos:InscricaoMunicipal>${this.config.inscricaoMunicipal}</tipos:InscricaoMunicipal>
+  </Prestador>
+  <Protocolo>${protocolo}</Protocolo>
+</ConsultarLoteRpsEnvio>`;
+
+        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarLoteRpsEnvio', 'consultaLote', false);
+        const xmlRetorno = await soapCall(
+            this.baseUrl,
+            'ConsultarLoteRpsV3',
+            xmlAssinado,
+            this.pfxBuffer,
+            this.pfxPassword,
+            this.ambiente
+        );
+
+        const innerXml = decodeGinfesReturn(xmlRetorno);
+        const fault = parseSoapFault(innerXml) || parseSoapFault(xmlRetorno)
+            || parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
+        
+        // Extrair lista de NFS-e se houver sucesso parcial ou total
+        const nfseList: Array<{ numero: string; codigoVerificacao: string }> = [];
+        const nfseRegex = /<(?:[^:>]+:)?Nfse[^>]*>([\s\S]*?)<\/(?:[^:>]+:)?Nfse>/g;
+        let nfseMatch: RegExpExecArray | null;
+        while ((nfseMatch = nfseRegex.exec(innerXml)) !== null) {
+            const inner = nfseMatch[1];
+            const numero = extractTagContent(inner, 'Numero') || '';
+            const codigo = extractTagContent(inner, 'CodigoVerificacao') || '';
+            if (numero) nfseList.push({ numero, codigoVerificacao: codigo });
+        }
+
+        return { erro: fault || undefined, nfseList, xmlRetorno };
+    }
+
     async consultarNfsePorRps(rpsNumero: string, rpsSerie: string, rpsTipo: string = '1'): Promise<ConsultarNfseResult> {
         const xmlConsulta = `<?xml version="1.0" encoding="UTF-8"?>
-<ConsultarNfsePorRpsEnvio xmlns="http://www.ginfes.com.br/servico_consultar_nfse_rps_envio_v03.xsd">
+<ConsultarNfsePorRpsEnvio xmlns="http://www.ginfes.com.br/servico_consultar_nfse_rps_envio_v03.xsd" xmlns:tipos="http://www.ginfes.com.br/tipos_v03.xsd">
   <IdentificacaoRps>
-    <Numero>${rpsNumero}</Numero>
-    <Serie>${rpsSerie}</Serie>
-    <Tipo>${rpsTipo}</Tipo>
+    <tipos:Numero>${rpsNumero}</tipos:Numero>
+    <tipos:Serie>${rpsSerie}</tipos:Serie>
+    <tipos:Tipo>${rpsTipo}</tipos:Tipo>
   </IdentificacaoRps>
   <Prestador>
-    <Cnpj>${this.config.cnpj}</Cnpj>
-    <InscricaoMunicipal>${this.config.inscricaoMunicipal}</InscricaoMunicipal>
+    <tipos:Cnpj>${this.config.cnpj}</tipos:Cnpj>
+    <tipos:InscricaoMunicipal>${this.config.inscricaoMunicipal}</tipos:InscricaoMunicipal>
   </Prestador>
 </ConsultarNfsePorRpsEnvio>`;
 
-        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarNfsePorRpsEnvio', 'consultaRps');
+        const xmlAssinado = this.signer.signXml(xmlConsulta, 'ConsultarNfsePorRpsEnvio', 'consultaRps', false);
         const xmlRetorno = await soapCall(
             this.baseUrl,
             'ConsultarNfsePorRpsV3',

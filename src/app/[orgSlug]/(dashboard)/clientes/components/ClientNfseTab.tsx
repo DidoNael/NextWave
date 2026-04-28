@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { FileText, Plus, RefreshCw, XCircle, Loader2, CheckCircle2, Clock, AlertTriangle, Receipt } from "lucide-react";
+import { FileText, Plus, RefreshCw, XCircle, Loader2, CheckCircle2, Clock, AlertTriangle, Receipt, Code2, Copy, Check, Printer, Mail, MessageCircle, Download, History, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,19 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
   const [emitting, setEmitting] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [sendingWaId, setSendingWaId] = useState<string | null>(null);
+  const [xmlView, setXmlView] = useState<{ enviado?: string; retorno?: string } | null>(null);
+  const [logView, setLogView] = useState<{ nfseId: string; logs: any[] } | null>(null);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    });
+  };
 
   // Mês atual no formato YYYY-MM para data de competência
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -200,6 +213,54 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
     }
   }
 
+  async function handleSendEmail(id: string) {
+    setSendingEmailId(id);
+    try {
+      const res = await fetch(`/api/nfse/${id}/send-email`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Erro ao enviar e-mail");
+      }
+      toast.success("E-mail enviado com sucesso!");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSendingEmailId(null);
+    }
+  }
+
+  async function handleSendWa(id: string) {
+    setSendingWaId(id);
+    try {
+      const res = await fetch(`/api/nfse/${id}/send-whatsapp`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Erro ao enviar WhatsApp");
+      }
+      toast.success("Mensagem de WhatsApp enviada!");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSendingWaId(null);
+    }
+  }
+
+  async function handleViewLogs(id: string) {
+    setLoadingLogs(true);
+    setLogView({ nfseId: id, logs: [] });
+    try {
+      const res = await fetch(`/api/nfse/${id}/logs`);
+      if (res.ok) {
+        const data = await res.json();
+        setLogView({ nfseId: id, logs: data });
+      }
+    } catch {
+      toast.error("Erro ao carregar logs");
+    } finally {
+      setLoadingLogs(false);
+    }
+  }
+
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
@@ -256,6 +317,12 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <NfseBadge status={rec.status} />
+                  {rec.ambiente === "producao" && (
+                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30">Produção</Badge>
+                  )}
+                  {rec.ambiente === "homologacao" && (
+                    <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-500 border-orange-500/30">Homologação</Badge>
+                  )}
                   {rec.numeroNfse && (
                     <span className="text-xs font-mono text-muted-foreground">NFS-e #{rec.numeroNfse}</span>
                   )}
@@ -271,6 +338,66 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {rec.status === "emitida" && (
+                  <>
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-600"
+                      disabled={sendingEmailId === rec.id}
+                      onClick={() => handleSendEmail(rec.id)}
+                      title="Enviar por E-mail"
+                    >
+                      {sendingEmailId === rec.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Mail className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-green-500 hover:text-green-600"
+                      disabled={sendingWaId === rec.id}
+                      onClick={() => handleSendWa(rec.id)}
+                      title="Enviar por WhatsApp"
+                    >
+                      {sendingWaId === rec.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <MessageCircle className="h-3.5 w-3.5" />}
+                    </Button>
+                  </>
+                )}
+                {rec.status === "emitida" && (
+                  <Button
+                    variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-50"
+                    onClick={() => {
+                      window.open(`/api/nfse/${rec.id}/pdf`, "_blank");
+                    }}
+                    title="Ver PDF"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                )}
+                {rec.xmlRetorno && (
+                  <>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                      onClick={() => {
+                          const blob = new Blob([rec.xmlRetorno || ''], { type: 'text/xml' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `NFSe-${rec.numeroNfse}.xml`;
+                          a.click();
+                      }}
+                      title="Baixar XML"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-100"
+                      onClick={() => setXmlView({ retorno: rec.xmlRetorno })}
+                      title="Ver Dados XML"
+                    >
+                      <Code2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 {(rec.status === "erro" || rec.status === "pendente") && (
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-600"
@@ -295,11 +422,115 @@ export function ClientNfseTab({ clientId, client, services, onRefresh }: ClientN
                       : <XCircle className="h-3.5 w-3.5" />}
                   </Button>
                 )}
+                <Button
+                  variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-600"
+                  onClick={() => handleViewLogs(rec.id)}
+                  title="Histórico / Logs"
+                >
+                  <History className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Dialog Ver Logs */}
+      <Dialog open={!!logView} onOpenChange={(o) => !o && setLogView(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" /> Histórico de Ações
+            </DialogTitle>
+            <DialogDescription>Eventos registrados para esta NFS-e</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-2">
+            {loadingLogs ? (
+              <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : logView?.logs.length === 0 ? (
+              <div className="text-center py-6 text-xs text-muted-foreground">Nenhum evento registrado.</div>
+            ) : (
+              <div className="space-y-4">
+                {logView?.logs.map((log: any) => (
+                  <div key={log.id} className="relative pl-6 pb-1 border-l-2 border-border last:border-0 ml-2">
+                    <div className={cn(
+                      "absolute -left-2 top-0 h-4 w-4 rounded-full border-2 border-background flex items-center justify-center",
+                      log.status === 'sucesso' ? 'bg-emerald-500' : 'bg-red-500'
+                    )}>
+                      {log.status === 'sucesso' ? <CheckCircle2 className="h-2 w-2 text-white" /> : <XCircle className="h-2 w-2 text-white" />}
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">{log.type}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                      </div>
+                      <p className="text-xs font-semibold">{log.message}</p>
+                      {log.details && (
+                        <p className="text-[10px] text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded mt-1 border border-border/40 font-mono italic">
+                          {log.details}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Ver XML */}
+      <Dialog open={!!xmlView} onOpenChange={(o) => !o && setXmlView(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Code2 className="h-4 w-4 text-primary" /> XML da NFS-e
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {xmlView?.enviado && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">XML Enviado</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => copyToClipboard(xmlView.enviado!, 'enviado')}
+                  >
+                    {copiedKey === 'enviado'
+                      ? <><Check className="h-3.5 w-3.5 mr-1 text-green-500" /> Copiado</>
+                      : <><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</>}
+                  </Button>
+                </div>
+                <pre className="text-[10px] bg-slate-950 text-green-400 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                  {xmlView.enviado}
+                </pre>
+              </div>
+            )}
+            {xmlView?.retorno && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Retorno GINFES</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => copyToClipboard(xmlView.retorno!, 'retorno')}
+                  >
+                    {copiedKey === 'retorno'
+                      ? <><Check className="h-3.5 w-3.5 mr-1 text-green-500" /> Copiado</>
+                      : <><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</>}
+                  </Button>
+                </div>
+                <pre className="text-[10px] bg-slate-950 text-blue-300 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                  {xmlView.retorno}
+                </pre>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Emitir NFS-e */}
       <Dialog open={emitOpen} onOpenChange={setEmitOpen}>

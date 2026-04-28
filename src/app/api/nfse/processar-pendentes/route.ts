@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getActiveNfseProvider } from '@/lib/financeiro/nfse/factory';
 import { sendNfseEmail } from '@/lib/financeiro/nfse/send-email';
+import { fetchNfsePdf } from '@/lib/financeiro/nfse/fetch-pdf';
 
 /**
  * POST /api/nfse/processar-pendentes
@@ -50,7 +51,11 @@ export async function POST(req: Request) {
 
                 let codigoVerificacao: string | null = null;
                 if (nfseProvider.provider === 'ginfes' && resultado.xmlRetorno) {
-                    const match = resultado.xmlRetorno.match(/<CodigoVerificacao>(.*?)<\/CodigoVerificacao>/);
+                    let xml = resultado.xmlRetorno;
+                    if (xml.includes('&lt;')) {
+                        xml = xml.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+                    }
+                    const match = xml.match(/<(?:\w+:)?CodigoVerificacao>(.*?)<\/(?:\w+:)?CodigoVerificacao>/i);
                     codigoVerificacao = match?.[1] ?? null;
                 }
 
@@ -65,7 +70,34 @@ export async function POST(req: Request) {
                     },
                 });
 
-                sendNfseEmail({ clientId: updated.clientId, tomadorNome: updated.tomadorNome, valorServicos: updated.valorServicos, discriminacao: updated.discriminacao, numeroNfse, codigoVerificacao, provider: nfseProvider.provider });
+                // Buscar PDF do GINFES para enviar como anexo no email
+                let pdfBufferCron: Buffer | null = null;
+                if (codigoVerificacao) {
+                    const cfgPdf = await prisma.nfeConfig.findUnique({ where: { id: 'default' } });
+                    if (cfgPdf) {
+                        const cleanCnpj = cfgPdf.cnpj.replace(/\D/g, '');
+                        const maskedCnpj = cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+                        const pdfUrl = `https://visualizar.ginfes.com.br/report/consultarNota?__report=nfs_ver4RT&cnpjPrestador=${maskedCnpj}&numNota=${numeroNfse}&cdVerificacao=${codigoVerificacao}&__format=pdf`;
+                        pdfBufferCron = await fetchNfsePdf(pdfUrl).catch(e => {
+                            console.warn('[PDF_FETCH_CRON_ERROR]', e.message);
+                            return null;
+                        });
+                    }
+                }
+
+                sendNfseEmail({
+                    clientId: updated.clientId,
+                    tomadorNome: updated.tomadorNome,
+                    valorServicos: updated.valorServicos,
+                    discriminacao: updated.discriminacao,
+                    numeroNfse,
+                    codigoVerificacao,
+                    provider: nfseProvider.provider,
+                    xmlContent: resultado.xmlRetorno,
+                    pdfBuffer: pdfBufferCron,
+                    nfseId: updated.id,
+                    overrideEmail: updated.tomadorEmail ?? null,
+                });
                 emitidas++;
 
             } else if (resultado.situacao === 3) {

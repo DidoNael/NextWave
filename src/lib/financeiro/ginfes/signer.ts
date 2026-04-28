@@ -1,7 +1,5 @@
 import forge from 'node-forge';
-import { DOMParser } from '@xmldom/xmldom';
-import { ExclusiveCanonicalization } from 'xml-crypto';
-import crypto from 'crypto';
+import { SignedXml } from 'xml-crypto';
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
@@ -97,135 +95,55 @@ export class GinfesSigner {
     }
 
     /**
-     * Assina o elemento `tagToSign` identificado por `Id="${elementId}"`.
-     * @param insertAfterClose Se true, a Signature é inserida APÓS </tagToSign>
-     *   (enveloped no pai) — padrão GINFES para InfRps e LoteRps.
-     *   Se false (padrão legado), a Signature vai dentro do elemento assinado.
+     * Assina o elemento `tagToSign` identificado por `Id="${elementId}"` usando
+     * xml-crypto SignedXml — garante Exc-C14N correto com contexto de namespace completo.
+     *
+     * @param insertAfterClose Se true, a Signature é inserida como último filho do PAI
+     *   do elemento assinado (padrão GINFES: InfRps e LoteRps).
+     *   Se false, é inserida como último filho do próprio elemento assinado
+     *   (consultas: ConsultarSituacaoLoteRpsEnvio, etc.).
      */
     public signXml(xml: string, tagToSign: string, elementId: string, insertAfterClose = true): string {
-        const certContent = this.cleanCert(this.certPem);
-
         // 1. Garantir que o elemento-alvo tem o atributo Id
         let xmlToSign = xml;
-        if (!xml.includes(`Id="${elementId}"`)) {
-            xmlToSign = xml.replace(
-                new RegExp(`<${tagToSign}(\\s|>)`),
-                `<${tagToSign} Id="${elementId}"$1`
+        if (!xmlToSign.includes(`Id="${elementId}"`)) {
+            const escaped = tagToSign.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(':', '\\:');
+            xmlToSign = xmlToSign.replace(
+                new RegExp(`(<${escaped})(\\s[^>]*)?(>|/>)`),
+                `$1 Id="${elementId}"$2$3`
             );
         }
 
-        // 2. Parsear o XML e encontrar o elemento pelo Id
-        const doc = new DOMParser().parseFromString(xmlToSign, 'text/xml');
-        const elemToSign = this.findById(doc, elementId);
-        if (!elemToSign) throw new Error(`Elemento com Id="${elementId}" não encontrado`);
+        // 2. Construir SignedXml com chave + certificado (Usando Inclusive C14N para GINFES)
+        const sig = new SignedXml({
+            privateKey:  this.keyPem,
+            publicCert:  this.certPem,
+            idAttribute: 'Id',
+            signatureAlgorithm: 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
+            canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+        });
 
-        // 3. Coletar namespaces de ancestors (necessário para Exc-C14N correto)
-        const ancestorNamespaces = this.collectAncestorNamespaces(elemToSign);
+        // 3. Adicionar referência ao elemento assinado
+        sig.addReference({
+            xpath: `//*[@Id='${elementId}']`,
+            transforms: [
+                'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+                'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+            ],
+            digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1',
+        });
 
-        // 4. Canonicalizar o elemento (Exc-C14N)
-        const c14n = new ExclusiveCanonicalization();
-        const canonElem: string = (c14n as any).process(elemToSign, { ancestorNamespaces });
+        // 4. Determinar onde inserir a Signature no documento
+        const locationRef = insertAfterClose
+            ? `//*[@Id='${elementId}']/..`
+            : `//*[@Id='${elementId}']`;
 
-        // 5. Digest SHA1 do elemento canonicalizado
-        const digest = crypto.createHash('sha1')
-            .update(Buffer.from(canonElem, 'utf8'))
-            .digest('base64');
+        sig.computeSignature(xmlToSign, {
+            location: { reference: locationRef, action: 'append' },
+        });
 
-        // 6. Construir SignedInfo (com xmlns para canonicalização standalone)
-        const signedInfoXml = [
-            `<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">`,
-            `<CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>`,
-            `<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>`,
-            `<Reference URI="#${elementId}">`,
-            `<Transforms>`,
-            `<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>`,
-            `<Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>`,
-            `</Transforms>`,
-            `<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>`,
-            `<DigestValue>${digest}</DigestValue>`,
-            `</Reference>`,
-            `</SignedInfo>`,
-        ].join('');
-
-        // 7. Canonicalizar o SignedInfo para assinar
-        const siDoc = new DOMParser().parseFromString(signedInfoXml, 'text/xml');
-        const canonSI: string = (c14n as any).process(siDoc.documentElement, {});
-
-        // 8. Assinar o SignedInfo canonicalizado com RSA-SHA1
-        const sigValue = crypto.createSign('SHA1')
-            .update(Buffer.from(canonSI, 'utf8'))
-            .sign(this.keyPem, 'base64');
-
-        // 9. Montar bloco <Signature> completo
-        const signedInfoInner = signedInfoXml.replace(
-            `<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">`,
-            `<SignedInfo>`
-        );
-        const signatureBlock = [
-            `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">`,
-            signedInfoInner,
-            `<SignatureValue>${sigValue}</SignatureValue>`,
-            `<KeyInfo><X509Data><X509Certificate>${certContent}</X509Certificate></X509Data></KeyInfo>`,
-            `</Signature>`,
-        ].join('');
-
-        // 10. Inserir Signature
-        const closingTag = `</${tagToSign}>`;
-        const lastIdx = xmlToSign.lastIndexOf(closingTag);
-        if (lastIdx === -1) throw new Error(`Tag </${tagToSign}> não encontrada`);
-
-        if (insertAfterClose) {
-            const afterClose = lastIdx + closingTag.length;
-            return (
-                xmlToSign.substring(0, afterClose) +
-                signatureBlock +
-                xmlToSign.substring(afterClose)
-            );
-        }
-
-        return (
-            xmlToSign.substring(0, lastIdx) +
-            signatureBlock +
-            xmlToSign.substring(lastIdx)
-        );
+        return sig.getSignedXml();
     }
 
-    /** Localiza elemento com atributo Id="id" em qualquer namespace */
-    private findById(doc: any, id: string): any {
-        const all = doc.getElementsByTagName('*');
-        for (let i = 0; i < all.length; i++) {
-            if (all[i].getAttribute('Id') === id) return all[i];
-        }
-        return null;
-    }
 
-    /**
-     * Coleta declarações de namespace de todos os ancestors do elemento.
-     * Necessário para Exc-C14N incluir corretamente namespaces herdados.
-     */
-    private collectAncestorNamespaces(elem: any): Array<{ prefix: string; namespaceURI: string }> {
-        const seen = new Set<string>();
-        const ns: Array<{ prefix: string; namespaceURI: string }> = [];
-        let node = elem.parentNode;
-        while (node && node.nodeType === 1) {
-            const attrs = node.attributes || [];
-            for (let i = 0; i < attrs.length; i++) {
-                const attr = attrs[i];
-                if (attr.name === 'xmlns') {
-                    if (!seen.has('')) { seen.add(''); ns.push({ prefix: '', namespaceURI: attr.value }); }
-                } else if (attr.name.startsWith('xmlns:')) {
-                    const prefix = attr.name.slice(6);
-                    if (!seen.has(prefix)) { seen.add(prefix); ns.push({ prefix, namespaceURI: attr.value }); }
-                }
-            }
-            node = node.parentNode;
-        }
-        return ns;
-    }
-
-    private cleanCert(certPem: string): string {
-        return certPem
-            .replace(/-----(BEGIN|END) CERTIFICATE-----/g, '')
-            .replace(/\s+/g, '');
-    }
 }
