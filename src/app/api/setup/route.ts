@@ -168,48 +168,8 @@ export async function POST(req: Request) {
 
             fs.writeFileSync(envPath, envContent);
 
-            // Sincronizar Schema
-            console.log(`[SETUP] Verificando se o banco está pronto para o schema...`);
-            let schemaReady = false;
-            const { Client: PgClient } = await import("pg");
-            
-            // Loop de 15 tentativas (30 segundos total) para o banco acordar com a senha nova
-            for (let i = 0; i < 15; i++) {
-                try {
-                    const client = new PgClient({ 
-                        connectionString: dbUrl, 
-                        connectionTimeoutMillis: 3000 
-                    });
-                    await client.connect();
-                    await client.end();
-                    schemaReady = true;
-                    console.log("[SETUP] Banco de dados detectado e pronto!");
-                    break;
-                } catch (e) {
-                    console.log(`[SETUP] Banco ainda não respondeu (tentativa ${i+1}/15). Aguardando 2s...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            }
 
-            if (!schemaReady) {
-                throw new Error("O Banco de Dados demorou demais para iniciar ou a senha digitada é inválida. Verifique os logs do container 'nextwave-db'.");
-            }
-
-            console.log(`[SETUP] Sincronizando schema (prisma db push)...`);
-            try {
-                const { execSync } = await import("child_process");
-                process.env.DATABASE_URL = dbUrl;
-                const output = execSync("npx prisma db push --accept-data-loss", { 
-                    env: process.env,
-                    encoding: 'utf-8' 
-                });
-                console.log("[SETUP] Prisma Push Success:", output);
-            } catch (pErr: any) { 
-                console.error("[SETUP] Prisma push failed:", pErr.stdout || pErr.message);
-                throw new Error(`Falha ao criar tabelas: ${pErr.stdout || pErr.message}`);
-            }
-
-            // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
+        // 3. Conexão Dinâmica: Usar a senha que ACABOU de ser definida (v3.0.4 Soberana)
             console.log(`[SETUP] Iniciando conexão dinâmica para finalização...`);
             const tempPrisma = new PrismaClient({
                 datasources: {
