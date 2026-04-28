@@ -79,16 +79,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const reservedPath = ["dashboard", "login", "setup", "api", "_next"];
-  const orgSlug = pathname.split("/")[1] || "";
-  const base = (orgSlug && !reservedPath.includes(orgSlug)) ? `/${orgSlug}` : "";
-  const relativePath = base ? pathname.replace(base, "") || "/" : pathname;
+  const urlSlug = pathname.split("/")[1] || "";
+  const sessionOrgSlug = (session?.user as any)?.orgSlug as string | null;
+  // Preferir slug da URL quando não reservado; fallback para o slug da sessão (ex: rota /dashboard/* legada)
+  const effectiveSlug = (urlSlug && !reservedPath.includes(urlSlug)) ? urlSlug : sessionOrgSlug;
+  const base = effectiveSlug ? `/${effectiveSlug}` : "";
+  // Normaliza o relativePath removendo tanto o base quanto o prefixo /dashboard legado
+  let relativePath = base ? pathname.replace(base, "") || "/" : pathname;
+  if (relativePath.startsWith("/dashboard")) relativePath = relativePath.replace(/^\/dashboard/, "") || "/";
 
   const bottomItems = bottomItemsBase.filter(item => !item.masterOnly || isMaster);
   const isProfessional = layoutTheme === "professional";
 
   useEffect(() => {
-    if (relativePath.startsWith("/dashboard/")) setOpenMenus(prev => ({ ...prev, "/": true }));
-    if (relativePath.startsWith("/financeiro")) setOpenMenus(prev => ({ ...prev, "/": true }));
+    // Abre o submenu do Dashboard quando o usuário está numa rota filha (já normalizada)
+    if (relativePath.startsWith("/financeiro") || relativePath === "/") {
+      setOpenMenus(prev => ({ ...prev, "/": true }));
+    }
   }, [relativePath]);
 
   useEffect(() => {
