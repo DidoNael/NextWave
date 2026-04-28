@@ -1,6 +1,3 @@
-# WIP - não incluir no build
-src/app/\[orgSlug\]/
-
 # dependencies
 /node_modules
 .next
