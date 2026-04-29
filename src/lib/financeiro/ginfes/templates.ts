@@ -33,14 +33,6 @@ export interface RpsData {
     };
 }
 
-/** Normaliza ItemListaServico para o formato XX.XX exigido pelo XSD (ex: "1.07" → "01.07") */
-function normalizeItemLista(item: string): string {
-    const parts = item.split('.');
-    const group = parts[0].padStart(2, '0');
-    const sub   = parts[1] ? parts[1].padEnd(2, '0') : '';
-    return sub ? `${group}.${sub}` : group;
-}
-
 export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
     const rpsXmls = rpsList.map(rps => `
     <tipos:Rps>
@@ -52,7 +44,7 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
         </tipos:IdentificacaoRps>
         <tipos:DataEmissao>${rps.dataEmissao}</tipos:DataEmissao>
         <tipos:NaturezaOperacao>${rps.naturezaOperacao}</tipos:NaturezaOperacao>
-        <tipos:RegimeEspecialTributacao>${rps.regimeEspecialTributacao}</tipos:RegimeEspecialTributacao>
+        ${rps.regimeEspecialTributacao ? `<tipos:RegimeEspecialTributacao>${rps.regimeEspecialTributacao}</tipos:RegimeEspecialTributacao>` : ''}
         <tipos:OptanteSimplesNacional>${rps.optanteSimplesNacional}</tipos:OptanteSimplesNacional>
         <tipos:IncentivadorCultural>${rps.incentivadorCultural}</tipos:IncentivadorCultural>
         <tipos:Status>1</tipos:Status>
@@ -63,11 +55,10 @@ export function generateLoteRpsXml(loteId: string, rpsList: RpsData[]): string {
             <tipos:BaseCalculo>${rps.valorServicos.toFixed(2)}</tipos:BaseCalculo>
             <tipos:Aliquota>${rps.aliquota.toFixed(4)}</tipos:Aliquota>
           </tipos:Valores>
-          <tipos:ItemListaServico>${normalizeItemLista(rps.itemListaServico)}</tipos:ItemListaServico>
+          <tipos:ItemListaServico>${rps.itemListaServico}</tipos:ItemListaServico>
           ${rps.codigoTributacaoMunicipio ? `<tipos:CodigoTributacaoMunicipio>${rps.codigoTributacaoMunicipio}</tipos:CodigoTributacaoMunicipio>` : ''}
           <tipos:Discriminacao>${rps.discriminacao}</tipos:Discriminacao>
           <tipos:CodigoMunicipio>${rps.codigoMunicipio}</tipos:CodigoMunicipio>
-          <tipos:ExigibilidadeISS>${rps.exigibilidadeIss}</tipos:ExigibilidadeISS>
         </tipos:Servico>
         <tipos:Prestador>
           <tipos:Cnpj>${rps.prestador.cnpj}</tipos:Cnpj>

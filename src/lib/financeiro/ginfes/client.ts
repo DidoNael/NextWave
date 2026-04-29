@@ -40,6 +40,7 @@ function buildSoapEnvelope(operation: string, xmlContent: string, ambiente: 'hom
 </soapenv:Envelope>`;
 }
 
+
 async function soapCall(
     url: string,
     operation: string,
@@ -49,8 +50,8 @@ async function soapCall(
     ambiente: 'homologacao' | 'producao' = 'homologacao'
 ): Promise<string> {
     const body = buildSoapEnvelope(operation, xmlContent, ambiente);
-    const ns = ambiente === 'producao' ? NS_PROD : NS_HOMOLOG;
-    const soapAction = `"${ns}/${operation}"`;
+    const soapAction = '""';
+    console.log('[GINFES_SOAP_REQUEST]', body);
 
     return new Promise((resolve, reject) => {
         const urlObj = new URL(url);
@@ -187,6 +188,7 @@ export class GinfesClient {
         const xmlLoteAssinado = this.signer.signXml(xmlAssinado, 'LoteRps', `lote${loteId}`, true);
 
         console.log('[GINFES_XML_ENVIADO]', xmlLoteAssinado);
+
         try {
             const xmlRetorno = await soapCall(
                 this.baseUrl,
@@ -202,16 +204,17 @@ export class GinfesClient {
                 || parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
             if (fault) return { erro: fault, xmlRetorno, xmlEnviado: xmlLoteAssinado };
 
+
             const protocolo = extractTagContent(innerXml, 'Protocolo') ||
                 extractTagContent(innerXml, 'protocolo');
 
-            // GINFES retornou sem erro e sem protocolo — extrair mensagem de retorno se houver
             if (!protocolo) {
                 const msgRetorno = parseListaMensagemRetorno(innerXml) || parseListaMensagemRetorno(xmlRetorno);
                 if (msgRetorno) return { erro: msgRetorno, xmlRetorno, xmlEnviado: xmlLoteAssinado };
             }
 
             return { protocolo: protocolo || undefined, xmlRetorno, xmlEnviado: xmlLoteAssinado };
+
         } catch (err) {
             console.error('[GINFES_EMITIR_ERROR]', safeError(err));
             throw new Error(`Erro ao comunicar com Ginfes: ${safeError(err)}`);
