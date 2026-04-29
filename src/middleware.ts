@@ -26,9 +26,10 @@ export default auth((req) => {
   const isWebhook = nextUrl.pathname === "/api/whatsapp/webhook";
   const isWaEvents = nextUrl.pathname === "/api/whatsapp/events";
   const isLicenseValidate = nextUrl.pathname === "/api/plugin-licenses/validate";
+  const isTestRoute = nextUrl.pathname === "/api/nfse/test-realfibra";
 
   // 1. Permitir sempre rotas públicas
-  if (isApiAuthRoute || isSetupRoute || isWebhook || isWaEvents || isLicenseValidate) {
+  if (isApiAuthRoute || isSetupRoute || isWebhook || isWaEvents || isLicenseValidate || isTestRoute) {
     return NextResponse.next();
   }
 

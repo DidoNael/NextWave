@@ -24,6 +24,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 });
         }
 
+        // Validação básica de endereço (exigida pela maioria das prefeituras)
+        if (!client.address || !client.neighborhood || !client.zipCode) {
+            return NextResponse.json({ 
+                error: `Cadastro do cliente incompleto. Verifique: ${!client.address ? 'Endereço, ' : ''}${!client.neighborhood ? 'Bairro, ' : ''}${!client.zipCode ? 'CEP' : ''}` 
+            }, { status: 400 });
+        }
+
         const nfseProvider = await getActiveNfseProvider();
         if (!nfseProvider) {
             return NextResponse.json({ error: 'Provedor NFS-e não configurado.' }, { status: 400 });
@@ -36,7 +43,8 @@ export async function POST(req: Request) {
 
         const rpsNumero = await nextRpsNumero();
         const rpsSerie = config.serieRps || '1';
-        const loteId = `${Date.now()}`;
+        // LoteId mais curto para evitar rejeição de esquema (máx 11-12 dígitos em alguns provedores)
+        const loteId = Math.floor(Date.now() / 1000).toString();
         const now = new Date();
 
         const record = await prisma.nfseRecord.create({
@@ -78,14 +86,14 @@ export async function POST(req: Request) {
                     },
                     tomador: {
                         razaoSocial: client.company || client.name,
-                        cpfCnpj: client.document || '',
+                        cpfCnpj: (client.document || '').replace(/\D/g, ''),
                         email: client.email || '',
-                        endereco: client.address || '',
-                        numero: client.number || '',
-                        bairro: client.neighborhood || '',
+                        endereco: client.address || 'Endereço não informado',
+                        numero: client.number || 'SN',
+                        bairro: client.neighborhood || 'Bairro não informado',
                         codigoMunicipio: client.cityCode || config.codigoMunicipio,
-                        uf: client.state || '',
-                        cep: client.zipCode || '',
+                        uf: client.state || 'SP',
+                        cep: (client.zipCode || '').replace(/\D/g, '') || '07000000',
                     }
                 }, loteId);
 

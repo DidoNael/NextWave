@@ -46,13 +46,17 @@ export async function POST(
     const valorServicos = overrides.valorServicos != null ? Number(overrides.valorServicos) : record.valorServicos;
     const tomadorNome = overrides.tomadorNome ?? record.tomadorNome;
     const tomadorDoc = overrides.tomadorDoc ?? record.tomadorDoc;
-    const tomadorEndereco = overrides.tomadorEndereco || 'Não informado';
-    const tomadorNumero = overrides.tomadorNumero || 'SN';
-    const tomadorBairro = overrides.tomadorBairro || 'Não informado';
-    const tomadorCodigoMunicipio = overrides.tomadorCodigoMunicipio || config.codigoMunicipio || '3514700';
-    const tomadorUf = overrides.tomadorUf || 'SP';
-    const tomadorCep = (overrides.tomadorCep || '').replace(/\D/g, '') || '07000000';
-    const tomadorEmail = overrides.tomadorEmail || undefined;
+    
+    // Buscar endereço real do cliente se não for fornecido no override
+    const client = record.clientId ? await prisma.client.findUnique({ where: { id: record.clientId } }) : null;
+
+    const tomadorEndereco = overrides.tomadorEndereco || client?.address || 'Endereço não informado';
+    const tomadorNumero = overrides.tomadorNumero || client?.number || 'SN';
+    const tomadorBairro = overrides.tomadorBairro || client?.neighborhood || 'Bairro não informado';
+    const tomadorCodigoMunicipio = overrides.tomadorCodigoMunicipio || client?.cityCode || config.codigoMunicipio || '3514700';
+    const tomadorUf = overrides.tomadorUf || client?.state || 'SP';
+    const tomadorCep = (overrides.tomadorCep || client?.zipCode || '').replace(/\D/g, '') || '07000000';
+    const tomadorEmail = overrides.tomadorEmail || client?.email || undefined;
 
     // Gerar novo número RPS para evitar duplicata no provedor (atômico)
     const rpsNumero = await nextRpsNumero();

@@ -96,16 +96,17 @@ export class GinfesSigner {
 
     /**
      * Assina o elemento `tagToSign` identificado por `Id="${elementId}"` usando
-     * xml-crypto SignedXml — garante Exc-C14N correto com contexto de namespace completo.
+     * xml-crypto SignedXml.
      *
      * @param insertAfterClose Se true, a Signature é inserida como último filho do PAI
      *   do elemento assinado (padrão GINFES: InfRps e LoteRps).
-     *   Se false, é inserida como último filho do próprio elemento assinado
-     *   (consultas: ConsultarSituacaoLoteRpsEnvio, etc.).
      */
-    public signXml(xml: string, tagToSign: string, elementId: string, insertAfterClose = true): string {
-        // 1. Garantir que o elemento-alvo tem o atributo Id
-        let xmlToSign = xml;
+    public signXml(xml: string, tagToSign: string, elementId: string, insertAfterClose = false): string {
+        // 1. Minificar o XML para evitar problemas de espaços em branco com C14N
+        const minifiedXml = xml.replace(/>\s+</g, '><').trim();
+
+        // 2. Garantir que o elemento-alvo tem o atributo Id
+        let xmlToSign = minifiedXml;
         if (!xmlToSign.includes(`Id="${elementId}"`)) {
             const escaped = tagToSign.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(':', '\\:');
             xmlToSign = xmlToSign.replace(
@@ -114,16 +115,16 @@ export class GinfesSigner {
             );
         }
 
-        // 2. Construir SignedXml com chave + certificado (Usando Inclusive C14N para GINFES)
+        // 3. Configurar SignedXml (xml-crypto 6.x usa opções nativas para prefixos)
         const sig = new SignedXml({
-            privateKey:  this.keyPem,
-            publicCert:  this.certPem,
+            privateKey: this.keyPem,
+            publicCert: this.certPem,
             idAttribute: 'Id',
             signatureAlgorithm: 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
             canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
         });
 
-        // 3. Adicionar referência ao elemento assinado
+        // 4. Adicionar referência com transforms padrão ABRASF/GINFES
         sig.addReference({
             xpath: `//*[@Id='${elementId}']`,
             transforms: [
@@ -133,17 +134,20 @@ export class GinfesSigner {
             digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1',
         });
 
-        // 4. Determinar onde inserir a Signature no documento
+        // 5. Definir onde inserir a Signature
         const locationRef = insertAfterClose
             ? `//*[@Id='${elementId}']/..`
             : `//*[@Id='${elementId}']`;
 
+        // 6. Computar assinatura com prefixo 'ds' nativo
         sig.computeSignature(xmlToSign, {
             location: { reference: locationRef, action: 'append' },
+            prefix: 'ds'
         });
 
         return sig.getSignedXml();
     }
+
 
 
 }
